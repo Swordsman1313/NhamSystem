@@ -395,38 +395,17 @@ export default function BatchCostingPage() {
     );
   }, [linkedInvoices]);
 
-  // Toggle between invoiced delivery revenue and catalog wholesale expected revenue
-  const handleToggleApplyRevenue = () => {
+  // Sync revenue from today's delivery invoices
+  const syncInvoicedRevenue = () => {
     if (totalDeliveredRevenueUSD === 0) {
-      showToast('No invoices found for this date to apply revenue.');
+      showToast('No invoices found for this date to sync revenue.');
       return;
     }
-
-    const isInvoicedApplied =
-      revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01;
-
-    if (isInvoicedApplied) {
-      // Toggle off -> revert to catalog wholesale revenue
-      const wholesale = Number(catalogExpectedRevenueUSD.toFixed(2));
-      setDeliveryRevenueInputUSD(wholesale);
-      setRevenueApplied(false);
-      showToast(`Revenue unapplied: Reverted to wholesale catalog expected revenue (${formatUSD(wholesale)})`);
-    } else {
-      // Apply invoiced revenue
-      const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
-      setDeliveryRevenueInputUSD(rev);
-      setRevenueApplied(true);
-      showToast(`Invoiced revenue (${formatUSD(rev)}) applied to batch reconciliation!`);
-
-      // Scroll to reconciliation card
-      const card = document.getElementById('profit-reconciliation-card');
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    }
+    const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
+    setDeliveryRevenueInputUSD(rev);
+    setRevenueApplied(true);
+    showToast(`Synced ${formatUSD(rev)} from today's delivery invoices`);
   };
-
-  const handleApplyRevenue = handleToggleApplyRevenue;
 
   // Auto-calculate Total Invoiced Units: Sum of boxes across those invoices
   const totalInvoicedUnits = React.useMemo(() => {
@@ -1139,48 +1118,6 @@ export default function BatchCostingPage() {
                 </span>
               </div>
             </div>
-
-            {/* 4. Action Strip */}
-            <div className="relative z-10 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t border-emerald-800/40">
-              <button
-                type="button"
-                onClick={handleToggleApplyRevenue}
-                disabled={totalDeliveredRevenueUSD === 0}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer whitespace-nowrap ${
-                  revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white ring-2 ring-emerald-300/40'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
-                } disabled:opacity-40 disabled:cursor-not-allowed`}
-                title={
-                  revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
-                    ? 'Click to unapply and revert to wholesale catalog revenue'
-                    : 'Click to apply invoiced delivery revenue to batch reconciliation'
-                }
-              >
-                {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-100" />
-                    <span>Revenue Applied ({formatUSD(totalDeliveredRevenueUSD)})</span>
-                    <span className="text-[10px] text-emerald-100 bg-emerald-700/70 hover:bg-emerald-800/80 px-1.5 py-0.5 rounded ml-1 transition">
-                      Click to unapply
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Apply Revenue ({formatUSD(totalDeliveredRevenueUSD)}) to Batch Record</span>
-                  </>
-                )}
-              </button>
-
-              <Link
-                href="/deliveries/new"
-                className="text-xs font-bold text-slate-300 hover:text-white inline-flex items-center space-x-1 transition self-end sm:self-auto whitespace-nowrap"
-              >
-                <span>Delivery DO Ledger</span>
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
           </div>
 
           {/* Card: Landed Cost Breakdown Formula */}
@@ -1258,20 +1195,20 @@ export default function BatchCostingPage() {
                 {totalDeliveredRevenueUSD > 0 && (
                   <button
                     type="button"
-                    onClick={handleToggleApplyRevenue}
+                    onClick={syncInvoicedRevenue}
                     className={`text-xs font-bold flex items-center space-x-1 px-2 py-0.5 rounded transition cursor-pointer ${
-                      revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
-                        ? 'bg-emerald-100 text-emerald-800 font-bold'
+                      Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
+                        ? 'bg-emerald-100 text-emerald-800'
                         : 'text-emerald-700 hover:bg-emerald-50'
                     }`}
-                    title="Apply invoiced revenue to reconciliation"
+                    title="Sync revenue from today's invoices"
                   >
-                    {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
+                    {Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
                       <Check className="w-3 h-3 text-emerald-700 stroke-[3]" />
                     ) : (
                       <Sparkles className="w-3 h-3 text-emerald-600" />
                     )}
-                    <span>Invoices (${totalDeliveredRevenueUSD.toFixed(2)})</span>
+                    <span>Sync Invoices (${totalDeliveredRevenueUSD.toFixed(2)})</span>
                   </button>
                 )}
                 <button
@@ -1291,10 +1228,10 @@ export default function BatchCostingPage() {
                 <label className="block text-xs font-bold text-slate-700">
                   Estimated Delivery Revenue ($ USD)
                 </label>
-                {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 && (
+                {totalDeliveredRevenueUSD > 0 && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 && (
                   <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                     <Check className="w-2.5 h-2.5 stroke-[3]" />
-                    <span>Applied from Invoices</span>
+                    <span>Linked from Invoices</span>
                   </span>
                 )}
               </div>
