@@ -921,17 +921,12 @@ export default function ProductBOMBuilderPage() {
 
                     {/* Active Recipe Ingredients List */}
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                            Active Recipe Ingredients (BOM)
-                          </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                            {selectedProduct.bom?.length || 0} items linked
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-slate-500 font-khmer">
-                          កែប្រែចំនួន ឬដកចេញដោយចុចផ្ទាល់
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                          Active Recipe Ingredients (BOM)
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                          {selectedProduct.bom?.length || 0} items linked
                         </span>
                       </div>
 
