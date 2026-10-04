@@ -101,36 +101,17 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-      {/* Top Banner / Welcome */}
-      <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-2xl p-4 sm:px-6 sm:py-5 text-white shadow-md relative overflow-hidden">
-        {/* Subtle decorative circles */}
-        <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-8 right-24 w-48 h-48 bg-citrus-400/10 rounded-full blur-xl pointer-events-none" />
-
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 p-1 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center">
-              <img
-                src="/logo.png"
-                alt="Nham Nham Fruit Logo"
-                className="w-full h-full object-contain drop-shadow-md"
-              />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="px-2 py-0.5 rounded-full bg-citrus-400/20 text-citrus-300 border border-citrus-400/30 text-[10px] sm:text-xs font-semibold tracking-wide uppercase">
-                  B2B Fresh Operations
-                </span>
-                <span className="text-xs text-emerald-200">Phnom Penh Distribution Hub</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight mt-0.5">
-                Nham Nham Operations
-              </h1>
-              <p className="text-emerald-100 text-xs font-khmer hidden sm:block">
-                ប្រព័ន្ធគ្រប់គ្រងការចែកចាយផ្លែឈើស្រស់កាត់ស្រេច គណនាថ្លៃដើមផលិត និងវិក្កយបត្រ
-              </p>
-            </div>
-          </div>
+      {/* Minimal Top Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Overview</h1>
+          <p className="text-xs text-slate-500">Live operational metrics &amp; delivery ledger</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Ops Online
+          </span>
         </div>
       </div>
 
