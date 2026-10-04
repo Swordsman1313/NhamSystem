@@ -18,6 +18,10 @@ import {
   CheckCircle2,
   Clock,
   RotateCcw,
+  Scale,
+  Receipt,
+  ExternalLink,
+  Eye,
 } from 'lucide-react';
 import {
   getProducts,
@@ -31,8 +35,10 @@ import {
   formatKHR,
   formatDateDisplay,
   getPackagingItems,
+  getInvoices,
+  saveInvoices,
 } from '@/lib/storage';
-import { Product, AppSettings, BatchCostRecord, BatchYieldItem, PackagingItem } from '@/lib/types';
+import { Product, AppSettings, BatchCostRecord, BatchYieldItem, PackagingItem, Invoice } from '@/lib/types';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function BatchCostingPage() {
@@ -40,10 +46,11 @@ export default function BatchCostingPage() {
   const [packagingItems, setPackagingItems] = useState<PackagingItem[]>([]);
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [batches, setBatches] = useState<BatchCostRecord[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   // Toggle for dynamic recipe BOM vs manual override
   const [useDynamicBOM, setUseDynamicBOM] = useState<boolean>(true);
-  const [manualBOMOverrideKHR, setManualBOMOverrideKHR] = useState<number>(500);
+  const [manualBOMOverrideKHR, setManualBOMOverrideKHR] = useState<number>(872);
 
   // Modal Dialog States (replacing browser native alert & confirm)
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -66,7 +73,7 @@ export default function BatchCostingPage() {
 
   // Yield Inputs per SKU
   const [yieldInputs, setYieldInputs] = useState<Record<string, number>>({});
-  const [deliveryRevenueInputUSD, setDeliveryRevenueInputUSD] = useState<number>(44.5);
+  const [deliveryRevenueInputUSD, setDeliveryRevenueInputUSD] = useState<number>(75.78);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const loadData = () => {
@@ -74,17 +81,29 @@ export default function BatchCostingPage() {
     const pkg = getPackagingItems();
     const s = getSettings();
     const b = getBatches();
+    const inv = getInvoices();
     setProducts(p);
     setPackagingItems(pkg);
     setSettings(s);
     setBatches(b);
+    setInvoices(inv);
 
-    // Default yield initialization (e.g. 10 boxes per first 5 SKUs)
+    // Default yield initialization matching today's 87 packed boxes across 6 SKUs
     setYieldInputs((curr) => {
       if (Object.keys(curr).length > 0) return curr;
-      const initialYields: Record<string, number> = {};
-      p.forEach((item, index) => {
-        initialYields[item.barcode] = index < 5 ? 10 : 0;
+      const initialYields: Record<string, number> = {
+        '2016800000025': 24, // Sweet Melon Cubes 300G
+        '2016800000032': 13, // Baby Mango Bites
+        '2016800000049': 20, // Jackfruit Bites 300G
+        '2016800000094': 13, // Mixed Sour Fruits
+        '2016800000087': 16, // Jujube Bites
+        '2016800000070': 1,  // Jicama Bites
+      };
+      // Ensure all products are registered
+      p.forEach((item) => {
+        if (initialYields[item.barcode] === undefined) {
+          initialYields[item.barcode] = 0;
+        }
       });
       return initialYields;
     });
@@ -96,11 +115,15 @@ export default function BatchCostingPage() {
     window.addEventListener('products_updated', handleUpdate);
     window.addEventListener('packaging_updated', handleUpdate);
     window.addEventListener('inventory_updated', handleUpdate);
+    window.addEventListener('invoices_updated', handleUpdate);
+    window.addEventListener('batches_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('products_updated', handleUpdate);
       window.removeEventListener('packaging_updated', handleUpdate);
       window.removeEventListener('inventory_updated', handleUpdate);
+      window.removeEventListener('invoices_updated', handleUpdate);
+      window.removeEventListener('batches_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
@@ -199,6 +222,168 @@ export default function BatchCostingPage() {
   // Auto-fill delivery revenue from catalog prices
   const handleAutoFillRevenue = () => {
     setDeliveryRevenueInputUSD(Number(catalogExpectedRevenueUSD.toFixed(2)));
+  };
+
+  // ==========================================
+  // DAILY RUN PROFIT RECONCILIATION ENGINE
+  // ==========================================
+  // 1. Connect Invoices to Batch Run by Date:
+  // Scan the delivery ledger and pull all invoices created on that same date
+  const linkedInvoices = React.useMemo(() => {
+    return invoices.filter((inv) => {
+      const invDate = (inv.invoiceDate || inv.createdAt || '').split('T')[0];
+      return invDate === batchDate;
+    });
+  }, [invoices, batchDate]);
+
+  // Auto-calculate Total Delivered Revenue: Sum of all invoice totals for that date
+  const totalDeliveredRevenueUSD = React.useMemo(() => {
+    return linkedInvoices.reduce(
+      (sum, inv) => sum + (Number(inv.totalAmountUSD) || 0),
+      0
+    );
+  }, [linkedInvoices]);
+
+  // Auto-calculate Total Invoiced Units: Sum of boxes across those invoices
+  const totalInvoicedUnits = React.useMemo(() => {
+    return linkedInvoices.reduce(
+      (sum, inv) => sum + (Number(inv.totalQuantity) || 0),
+      0
+    );
+  }, [linkedInvoices]);
+
+  // Unique stores count and names
+  const linkedStores = React.useMemo(() => {
+    const list = linkedInvoices
+      .map((inv) => inv.shipTo || inv.customerName || inv.storeCode)
+      .filter(Boolean);
+    return Array.from(new Set(list));
+  }, [linkedInvoices]);
+
+  // 2. Automated Same-Day P&L Calculation:
+  // - Total Day Revenue = Invoices Total ($75.78 USD)
+  // - Total Day Expenses = 
+  //     (Fruit Market Spend KHR / 4050) + 
+  //     (Route Fuel KHR / 4050) + 
+  //     (Total Packaging BOM Cost for the 87 boxes)
+  const sameDayFruitSpendUSD = marketSpendKHR / exchangeRate;
+  const sameDayFuelExpenseUSD = fuelExpenseKHR / exchangeRate;
+
+  // Total Packaging BOM Cost for the invoiced boxes
+  const totalInvoicedPackagingBOMCostKHR = React.useMemo(() => {
+    if (totalInvoicedUnits === 0) return 0;
+
+    let bomSum = 0;
+    if (useDynamicBOM) {
+      linkedInvoices.forEach((inv) => {
+        inv.items?.forEach((item) => {
+          const prod = products.find((p) => p.barcode === item.barcode);
+          const itemBOM = prod ? getProductBOMCostKHR(prod) : tubStickerBOM;
+          bomSum += itemBOM * (Number(item.quantity) || 0);
+        });
+      });
+    } else {
+      bomSum = totalInvoicedUnits * tubStickerBOM;
+    }
+
+    if (bomSum === 0 && totalInvoicedUnits > 0) {
+      bomSum = totalInvoicedUnits * (tubStickerBOM || 872);
+    }
+    return bomSum;
+  }, [linkedInvoices, totalInvoicedUnits, useDynamicBOM, products, tubStickerBOM, packagingItems, settings]);
+
+  const totalInvoicedPackagingBOMCostUSD =
+    totalInvoicedPackagingBOMCostKHR / exchangeRate;
+
+  const totalDayExpensesUSD =
+    sameDayFruitSpendUSD + sameDayFuelExpenseUSD + totalInvoicedPackagingBOMCostUSD;
+  const totalDayExpensesKHR = Math.round(totalDayExpensesUSD * exchangeRate);
+
+  // Daily Net Profit ($ USD & KHR) = Total Day Revenue - Total Day Expenses
+  const dailyNetProfitUSD = totalDeliveredRevenueUSD - totalDayExpensesUSD;
+  const dailyNetProfitKHR = Math.round(dailyNetProfitUSD * exchangeRate);
+
+  // Daily Net Margin % = (Daily Net Profit / Total Day Revenue) * 100
+  const dailyNetMarginPercent =
+    totalDeliveredRevenueUSD > 0
+      ? Number(((dailyNetProfitUSD / totalDeliveredRevenueUSD) * 100).toFixed(1))
+      : 0;
+
+  // Seed demo invoices if none exist on this date
+  const handleSeedTodayInvoices = () => {
+    const todaySeeds: Invoice[] = [
+      {
+        id: `inv-seed-1-${Date.now()}`,
+        invoiceNumber: 'INV-2610-001',
+        storeCode: 'ON-TK592',
+        customerName: 'Angkor Prototype LTD.',
+        shipTo: 'ON Mart St.592 TK',
+        address: '#ដីឡូត៍លេខ១ ផ្លូវ ៥៩២ កែងបណ្តោយ ៦ សង្កាត់បឹងកក់ទី២ ខណ្ឌទួលគោក ភ្នំពេញ',
+        phone: '099 423 599',
+        invoiceDate: batchDate,
+        dueDate: batchDate,
+        items: [
+          { id: 'item-1', barcode: '2016800000025', name: 'Sweet Melon Cubes 300G', khmerName: 'ត្រសក់ផ្អែមស្រស់', uom: 'Pcs', quantity: 24, unitPrice: 1.00 },
+          { id: 'item-2', barcode: '2016800000032', name: 'Baby Mango Bites', khmerName: 'ក្តឹបស្វាយស្រស់', uom: 'Pcs', quantity: 13, unitPrice: 0.76 },
+          { id: 'item-3', barcode: '2016800000087', name: 'Jujube Bites', khmerName: 'ពុទ្រាស្រស់', uom: 'Pcs', quantity: 8, unitPrice: 0.71 },
+        ],
+        totalQuantity: 45,
+        totalAmountUSD: 39.56,
+        totalAmountKHR: 160218,
+        status: 'paid_aba',
+        paidAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        notes: 'Morning fresh delivery to Tuol Kouk branch',
+      },
+      {
+        id: `inv-seed-2-${Date.now()}`,
+        invoiceNumber: 'INV-2610-002',
+        storeCode: 'ON-PDK',
+        customerName: 'Sambath Linda Mart',
+        shipTo: 'ON Mart Phsar Derm Thkov',
+        address: '#០១៥៤ ផ្លូវ១៦៣ ភូមិ៣ សង្កាត់ផ្សារដើមថ្កូវ ខណ្ឌចំការមន រាជធានីភ្នំពេញ',
+        phone: '097 91 97 054',
+        invoiceDate: batchDate,
+        dueDate: batchDate,
+        items: [
+          { id: 'item-201', barcode: '2016800000049', name: 'Jackfruit Bites 300G', khmerName: 'ខ្នុរសាច់លឿងស្រស់', uom: 'Pcs', quantity: 20, unitPrice: 1.00 },
+          { id: 'item-202', barcode: '2016800000094', name: 'Mixed Sour Fruits', khmerName: 'ម្ជូរចម្រុះ', uom: 'Pcs', quantity: 13, unitPrice: 0.76 },
+          { id: 'item-203', barcode: '2016800000087', name: 'Jujube Bites', khmerName: 'ពុទ្រាស្រស់', uom: 'Pcs', quantity: 8, unitPrice: 0.71 },
+          { id: 'item-204', barcode: '2016800000070', name: 'Jicama Bites', khmerName: 'ប៉ិកួក់ស្រស់', uom: 'Pcs', quantity: 1, unitPrice: 0.66 },
+        ],
+        totalQuantity: 42,
+        totalAmountUSD: 36.22,
+        totalAmountKHR: 146691,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        notes: 'Morning fresh delivery to Phsar Derm Thkov branch',
+      },
+    ];
+
+    const current = getInvoices();
+    const updated = [...todaySeeds, ...current.filter((c) => !todaySeeds.some((s) => s.invoiceNumber === c.invoiceNumber))];
+    saveInvoices(updated);
+    setInvoices(updated);
+  };
+
+  const handleLoadBatchForReconciliation = (record: BatchCostRecord) => {
+    setBatchDate(record.date);
+    setMarketSpendKHR(record.marketSpendKHR);
+    setFuelExpenseKHR(record.fuelExpenseKHR);
+    if (record.tubStickerBOMKHR) {
+      setManualBOMOverrideKHR(record.tubStickerBOMKHR);
+    }
+    if (record.deliveryRevenueUSD) {
+      setDeliveryRevenueInputUSD(record.deliveryRevenueUSD);
+    }
+    if (record.yieldItems && record.yieldItems.length > 0) {
+      const loadedYields: Record<string, number> = {};
+      record.yieldItems.forEach((y) => {
+        loadedYields[y.barcode] = y.boxes;
+      });
+      setYieldInputs(loadedYields);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Save Batch to Ledger
@@ -534,6 +719,228 @@ export default function BatchCostingPage() {
 
         {/* Right Column (5 Cols): Real-time Landed Cost & Profit Reconciliation */}
         <div className="lg:col-span-5 space-y-6">
+          {/* Card: Daily Run Profit Reconciliation Hero Widget */}
+          <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-950 text-white rounded-2xl p-5 shadow-md border border-emerald-500/40 relative overflow-hidden">
+            {/* Glowing ambient background accents */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-citrus-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Widget Header */}
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-emerald-800/50">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <Scale className="w-3.5 h-3.5" />
+                  </span>
+                  <h2 className="text-sm font-black tracking-tight text-white uppercase">
+                    Daily Run Profit Reconciliation
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Live P&amp;L
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-300/80 font-khmer mt-0.5">
+                  ការផ្ទៀងផ្ទាត់ចំណូល ចំណាយ និងប្រាក់ចំណេញរត់ចែកជូនតាមហាងជាក់ស្តែង
+                </p>
+              </div>
+
+              {/* Date Indicator */}
+              <div className="flex items-center space-x-1.5 text-xs self-start sm:self-auto">
+                <span className="text-slate-400 text-[11px]">Run:</span>
+                <span className="font-mono font-bold text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded text-[11px] border border-emerald-700/60">
+                  {formatDateDisplay(batchDate)}
+                </span>
+                {batchDate !== getTodayDateString() && (
+                  <button
+                    type="button"
+                    onClick={() => setBatchDate(getTodayDateString())}
+                    className="text-[10px] font-bold text-citrus-400 hover:text-citrus-300 hover:underline ml-1"
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 1. Invoices Linked Strip */}
+            <div className="relative z-10 mt-3 p-3 rounded-xl bg-slate-900/90 border border-emerald-800/40 backdrop-blur-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 flex-wrap">
+                  <Receipt className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="text-xs font-bold text-slate-200">
+                    Invoices Linked:
+                  </span>
+                  {linkedInvoices.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {linkedInvoices.map((inv) => (
+                        <Link
+                          key={inv.id}
+                          href="/deliveries/new"
+                          className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/40 transition"
+                          title={`${inv.customerName || inv.shipTo} (${inv.totalQuantity} boxes • $${inv.totalAmountUSD.toFixed(2)})`}
+                        >
+                          <span>{inv.invoiceNumber}</span>
+                          <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-300 font-medium italic">
+                      None found for this date
+                    </span>
+                  )}
+                </div>
+
+                {linkedInvoices.length > 0 ? (
+                  <div className="text-[11px] text-emerald-400 font-medium sm:text-right">
+                    <span>
+                      {formatUSD(totalDeliveredRevenueUSD)} USD across {linkedStores.length} {linkedStores.length === 1 ? 'store' : 'stores'}
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSeedTodayInvoices}
+                    className="text-[11px] font-bold text-citrus-400 hover:text-citrus-300 hover:underline inline-flex items-center space-x-1"
+                  >
+                    <Sparkles className="w-3 h-3 mr-0.5" />
+                    <span>Link Demo Invoices (87 boxes / $75.78)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Core 4-Metrics Summary Card */}
+            <div className="relative z-10 mt-3 grid grid-cols-2 gap-2.5">
+              {/* Metric 1: Units Delivered */}
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Units Delivered
+                </span>
+                <div className="text-lg sm:text-xl font-black text-white font-mono mt-0.5">
+                  {totalInvoicedUnits}{' '}
+                  <span className="text-xs font-normal text-slate-400">boxes</span>
+                </div>
+                <div className="text-[10px] text-emerald-400 mt-0.5 truncate">
+                  {totalBoxesYielded === totalInvoicedUnits && totalInvoicedUnits > 0 ? (
+                    <span className="text-emerald-300 font-semibold">✓ Matches Yield ({totalBoxesYielded})</span>
+                  ) : (
+                    <span className="text-slate-400">Yield: {totalBoxesYielded} boxes</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Metric 2: Revenue */}
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition">
+                <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider block">
+                  Revenue
+                </span>
+                <div className="text-lg sm:text-xl font-black text-emerald-300 font-mono mt-0.5">
+                  {formatUSD(totalDeliveredRevenueUSD)}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  ≈ {formatKHR(Math.round(totalDeliveredRevenueUSD * exchangeRate))}
+                </div>
+              </div>
+
+              {/* Metric 3: Total Run Cost */}
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/30 transition">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Total Run Cost
+                </span>
+                <div className="text-lg sm:text-xl font-black text-slate-200 font-mono mt-0.5">
+                  {formatUSD(totalDayExpensesUSD)}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Fruit + Fuel + BOM
+                </div>
+              </div>
+
+              {/* Metric 4: Net Profit & Margin */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-600/30 to-teal-600/30 border border-emerald-400/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">
+                    Net Profit
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-400 text-slate-950">
+                    {dailyNetMarginPercent}%
+                  </span>
+                </div>
+                <div className="text-lg sm:text-xl font-black text-emerald-200 font-mono mt-0.5">
+                  {formatUSD(dailyNetProfitUSD)}
+                </div>
+                <div className="text-[10px] text-emerald-300/80 mt-0.5">
+                  ≈ {formatKHR(dailyNetProfitKHR)}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Automated Same-Day P&L Formula Breakdown */}
+            <div className="relative z-10 mt-3 p-3 rounded-xl bg-black/40 border border-white/5 text-[11px] space-y-1 font-mono">
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-sans mb-1 flex items-center justify-between">
+                <span>Automated Same-Day P&amp;L</span>
+                <span className="text-slate-400 text-[10px]">Rate: 1$ = {exchangeRate.toLocaleString()}៛</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span className="font-sans text-slate-400">Total Day Revenue:</span>
+                <span className="font-bold text-emerald-300">{formatUSD(totalDeliveredRevenueUSD)}</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span className="font-sans text-slate-400">
+                  Fruit Spend ({marketSpendKHR.toLocaleString()}៛ / {exchangeRate}):
+                </span>
+                <span>${sameDayFruitSpendUSD.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span className="font-sans text-slate-400">
+                  Route Fuel ({fuelExpenseKHR.toLocaleString()}៛ / {exchangeRate}):
+                </span>
+                <span>${sameDayFuelExpenseUSD.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-300">
+                <span className="font-sans text-slate-400">
+                  Packaging BOM ({totalInvoicedUnits} boxes):
+                </span>
+                <span>${totalInvoicedPackagingBOMCostUSD.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-200 pt-1 border-t border-white/10 font-bold">
+                <span className="font-sans text-slate-300">Total Day Expenses:</span>
+                <span className="text-amber-300">{formatUSD(totalDayExpensesUSD)}</span>
+              </div>
+              <div className="flex justify-between text-emerald-300 pt-1 border-t border-emerald-500/30 text-xs font-bold">
+                <span className="font-sans text-emerald-200">Daily Net Profit &amp; Margin:</span>
+                <span>
+                  {formatUSD(dailyNetProfitUSD)} ({dailyNetMarginPercent}%)
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Action Strip */}
+            <div className="relative z-10 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t border-emerald-800/40">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeliveryRevenueInputUSD(Number(totalDeliveredRevenueUSD.toFixed(2)));
+                }}
+                disabled={totalDeliveredRevenueUSD === 0}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center space-x-1 shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>
+                  Apply Revenue ({formatUSD(totalDeliveredRevenueUSD)}) to Batch Record
+                </span>
+              </button>
+
+              <Link
+                href="/deliveries/new"
+                className="text-xs font-bold text-slate-300 hover:text-white inline-flex items-center space-x-1 transition self-end sm:self-auto"
+              >
+                <span>Delivery DO Ledger</span>
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
+
           {/* Card: Landed Cost Breakdown Formula */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -753,13 +1160,23 @@ export default function BatchCostingPage() {
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => handleDeleteBatch(b.id, b.batchNumber)}
-                        className="text-slate-400 hover:text-red-600 p-1 transition"
-                        title="Delete batch calculation"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <button
+                          onClick={() => handleLoadBatchForReconciliation(b)}
+                          className="text-emerald-700 hover:text-emerald-900 font-bold text-[10px] px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 inline-flex items-center space-x-1 transition cursor-pointer"
+                          title="Load batch data and reconcile same-day invoices"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Reconcile</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBatch(b.id, b.batchNumber)}
+                          className="text-slate-400 hover:text-red-600 p-1 transition cursor-pointer"
+                          title="Delete batch calculation"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

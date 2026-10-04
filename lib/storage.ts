@@ -391,11 +391,25 @@ export function saveSettings(settings: AppSettings): void {
 
 // Invoices
 export function getInvoices(): Invoice[] {
-  return getItem<Invoice[]>(STORAGE_KEYS.INVOICES, INITIAL_INVOICES);
+  let invoices = getItem<Invoice[]>(STORAGE_KEYS.INVOICES, INITIAL_INVOICES);
+  if (typeof window !== 'undefined' && Array.isArray(invoices)) {
+    const hasToday = invoices.some((inv) => (inv.invoiceDate || '').startsWith('2026-10-04'));
+    if (!hasToday) {
+      const todaySeeds = INITIAL_INVOICES.filter((inv) => (inv.invoiceDate || '').startsWith('2026-10-04'));
+      if (todaySeeds.length > 0) {
+        invoices = [...todaySeeds, ...invoices];
+        setItem(STORAGE_KEYS.INVOICES, invoices);
+      }
+    }
+  }
+  return invoices;
 }
 
 export function saveInvoices(invoices: Invoice[]): void {
   setItem(STORAGE_KEYS.INVOICES, invoices);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('invoices_updated'));
+  }
 }
 
 export function addInvoice(invoice: Invoice): Invoice {
@@ -421,11 +435,25 @@ export function deleteInvoice(id: string): void {
 
 // Batches
 export function getBatches(): BatchCostRecord[] {
-  return getItem<BatchCostRecord[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCH_COSTS);
+  let batches = getItem<BatchCostRecord[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCH_COSTS);
+  if (typeof window !== 'undefined' && Array.isArray(batches)) {
+    const hasToday = batches.some((b) => (b.date || '').startsWith('2026-10-04'));
+    if (!hasToday) {
+      const todaySeed = INITIAL_BATCH_COSTS.find((b) => (b.date || '').startsWith('2026-10-04'));
+      if (todaySeed) {
+        batches = [todaySeed, ...batches];
+        setItem(STORAGE_KEYS.BATCHES, batches);
+      }
+    }
+  }
+  return batches;
 }
 
 export function saveBatches(batches: BatchCostRecord[]): void {
   setItem(STORAGE_KEYS.BATCHES, batches);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('batches_updated'));
+  }
 }
 
 export function addBatch(batch: BatchCostRecord): BatchCostRecord {
