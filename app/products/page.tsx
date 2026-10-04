@@ -70,8 +70,8 @@ export default function ProductBOMBuilderPage() {
   const [productSearch, setProductSearch] = useState<string>('');
   const [productFilterPreset, setProductFilterPreset] = useState<'all' | 'standard' | '300g' | 'custom'>('all');
 
-  // Active BOM Builder material picker category
-  const [pickerCategory, setPickerCategory] = useState<string>('all');
+  // Active BOM Builder sticker smart filter toggle
+  const [showAllStickers, setShowAllStickers] = useState(false);
 
   // Inline Product Quick Edit inside the Studio
   const [isQuickEditingProduct, setIsQuickEditingProduct] = useState(false);
@@ -220,6 +220,7 @@ export default function ProductBOMBuilderPage() {
       setEditNameEn(selectedProduct.nameEn || selectedProduct.name || '');
       setEditNameKh(selectedProduct.nameKh || selectedProduct.khmerName || '');
       setIsQuickEditingProduct(false);
+      setShowAllStickers(false);
     }
   }, [selectedProductId, selectedProduct]);
 
@@ -349,21 +350,54 @@ export default function ProductBOMBuilderPage() {
     handleUpdateActiveBOM(filtered, `Removed "${pkg?.name || packagingItemId}" from recipe`);
   };
 
-  // Add an item to recipe
-  const handleAddToBOM = (packagingItemId: string) => {
+  // Toggle item in recipe with single-choice auto-swap for boxes and stickers
+  const handleToggleMaterialInBOM = (pkg: PackagingItem) => {
     if (!selectedProduct) return;
     const currentBOM = selectedProduct.bom ? [...selectedProduct.bom] : [];
-    const pkg = packagingMap.get(packagingItemId);
-    const existing = isItemInBOM(currentBOM, pkg || ({ id: packagingItemId } as PackagingItem));
+    const existing = isItemInBOM(currentBOM, pkg);
 
+    // Rule 4: Clicking an already-selected card removes it from the recipe
     if (existing) {
-      handleAdjustItemQty(existing.packagingItemId, 1);
-    } else {
-      handleUpdateActiveBOM(
-        [...currentBOM, { packagingItemId, quantity: 1 }],
-        `Added "${pkg?.name || packagingItemId}" to recipe`
-      );
+      const filtered = currentBOM.filter((b) => b.packagingItemId !== existing.packagingItemId);
+      handleUpdateActiveBOM(filtered, `Removed "${pkg.name}" from recipe`);
+      return;
     }
+
+    // Rule 2: Single-choice auto-swap for Containers (box)
+    if (pkg.category === 'box') {
+      const existingBoxIndex = currentBOM.findIndex((b) => {
+        const p = packagingMap.get(b.packagingItemId);
+        return p?.category === 'box' || b.packagingItemId.startsWith('box-');
+      });
+
+      if (existingBoxIndex !== -1) {
+        const updatedBOM = [...currentBOM];
+        updatedBOM[existingBoxIndex] = { packagingItemId: pkg.id, quantity: 1 };
+        handleUpdateActiveBOM(updatedBOM, `Swapped container to "${pkg.name}"`);
+        return;
+      }
+    }
+
+    // Rule 3: Single-choice auto-swap for Fruit Stickers (sticker)
+    if (pkg.category === 'sticker') {
+      const existingStickerIndex = currentBOM.findIndex((b) => {
+        const p = packagingMap.get(b.packagingItemId);
+        return p?.category === 'sticker' || b.packagingItemId.startsWith('sticker-');
+      });
+
+      if (existingStickerIndex !== -1) {
+        const updatedBOM = [...currentBOM];
+        updatedBOM[existingStickerIndex] = { packagingItemId: pkg.id, quantity: 1 };
+        handleUpdateActiveBOM(updatedBOM, `Assigned sticker "${pkg.name}"`);
+        return;
+      }
+    }
+
+    // Default: Add item (Accessories or first box/sticker)
+    handleUpdateActiveBOM(
+      [...currentBOM, { packagingItemId: pkg.id, quantity: 1 }],
+      `Added "${pkg.name}" to recipe`
+    );
   };
 
   // Find matching sticker for a product
@@ -503,13 +537,89 @@ export default function ProductBOMBuilderPage() {
     });
   }, [products, productSearch, productFilterPreset]);
 
-  // Packaging items available to add in Recipe Studio
-  const availableMaterialsForStudio = useMemo(() => {
-    return packagingItems.filter((pkg) => {
-      if (pickerCategory === 'all') return true;
-      return pkg.category === pickerCategory;
+  // Categorized packaging items for the 3 Studio sections
+  const boxItems = useMemo(() => {
+    return packagingItems.filter((pkg) => pkg.category === 'box');
+  }, [packagingItems]);
+
+  const stickerItems = useMemo(() => {
+    return packagingItems.filter((pkg) => pkg.category === 'sticker');
+  }, [packagingItems]);
+
+  const matchingStickerId = selectedProduct ? getMatchingStickerId(selectedProduct) : '';
+
+  const displayedStickerItems = useMemo(() => {
+    if (showAllStickers) return stickerItems;
+    if (!selectedProduct) return stickerItems;
+
+    const matching = stickerItems.filter((p) => {
+      if (p.id === matchingStickerId) return true;
+      if (p.barcodeRef && p.barcodeRef === selectedProduct.barcode) return true;
+      if (
+        (selectedProduct.barcode === '2016800000025' ||
+          (selectedProduct.nameEn || selectedProduct.name || '').includes('Sweet Melon')) &&
+        (p.id === 'sticker-2016800000025' || p.id === 'sticker-sweet-melon' || p.name.includes('Sweet Melon'))
+      ) {
+        return true;
+      }
+      const firstName = (selectedProduct.nameEn || selectedProduct.name || '').split(' ')[0].toLowerCase();
+      if (firstName && firstName.length > 2 && p.name.toLowerCase().includes(firstName)) {
+        return true;
+      }
+      return false;
     });
-  }, [packagingItems, pickerCategory]);
+
+    return matching.length > 0 ? matching : stickerItems;
+  }, [stickerItems, showAllStickers, selectedProduct, matchingStickerId]);
+
+  const accessoryItems = useMemo(() => {
+    return packagingItems.filter((pkg) => pkg.category === 'skewer' || pkg.category === 'other');
+  }, [packagingItems]);
+
+  const renderMaterialCard = (pkg: PackagingItem) => {
+    const existingInBOM = isItemInBOM(selectedProduct?.bom, pkg);
+    const isAttached = Boolean(existingInBOM);
+
+    return (
+      <div
+        key={pkg.id}
+        onClick={() => handleToggleMaterialInBOM(pkg)}
+        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+          isAttached
+            ? 'bg-emerald-50/60 border-emerald-400 ring-2 ring-emerald-500/20 shadow-2xs'
+            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs'
+        }`}
+      >
+        <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+          <div
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition ${
+              isAttached ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {isAttached ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Plus className="w-3.5 h-3.5" />}
+          </div>
+          <div className="min-w-0">
+            <div className="font-bold text-xs text-slate-900 truncate">
+              {pkg.name}
+            </div>
+            <div className="text-[10px] font-mono text-emerald-800 font-semibold">
+              {formatKHR(pkg.unitCostKHR)} • {pkg.onHand} in stock
+            </div>
+          </div>
+        </div>
+
+        {isAttached ? (
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+            ✓ {existingInBOM?.quantity}x in BOM
+          </span>
+        ) : (
+          <span className="text-slate-400 hover:text-slate-600 text-sm px-1.5 py-0.5 shrink-0 font-bold">
+            +
+          </span>
+        )}
+      </div>
+    );
+  };
 
   // Color helper for categories
   const getCategoryBadge = (cat: PackagingCategory) => {
@@ -1031,79 +1141,60 @@ export default function ProductBOMBuilderPage() {
                     </div>
 
                     {/* Add More Packaging Materials Picker */}
-                    <div className="pt-3 border-t border-slate-100 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                            Add Packaging Materials to Recipe
-                          </h4>
-                          <p className="text-[11px] text-slate-500 font-khmer">
-                            ចុចលើសម្ភារៈខាងក្រោមដើម្បីបញ្ចូលទៅក្នុងរូបមន្ត
-                          </p>
-                        </div>
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                          Add Packaging Materials to Recipe
+                        </h4>
+                        <p className="text-[11px] text-slate-500 font-khmer">
+                          ជ្រើសរើសប្រអប់ ស្លាក និងសម្ភារៈបន្ថែមសម្រាប់ផលិតផលនេះ
+                        </p>
+                      </div>
 
-                        {/* Category filter pills inside picker */}
-                        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs">
-                          {['all', 'box', 'sticker', 'skewer', 'other'].map((cat) => (
-                            <button
-                              key={cat}
-                              type="button"
-                              onClick={() => setPickerCategory(cat)}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase transition ${
-                                pickerCategory === cat
-                                  ? 'bg-white text-slate-900 shadow-2xs'
-                                  : 'text-slate-500 hover:text-slate-900'
-                              }`}
-                            >
-                              {cat}
-                            </button>
-                          ))}
+                      {/* 1. CONTAINER BOX (ជ្រើសរើស ១ - Choose 1) */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                            <Boxes className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>1. CONTAINER BOX (ជ្រើសរើស ១ - Choose 1)</span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {boxItems.map(renderMaterialCard)}
                         </div>
                       </div>
 
-                      {/* Material cards grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
-                        {availableMaterialsForStudio.map((pkg) => {
-                          const existingInBOM = isItemInBOM(selectedProduct.bom, pkg);
-                          const isAttached = Boolean(existingInBOM);
-                          const badge = getCategoryBadge(pkg.category);
+                      {/* 2. FRUIT STICKER (ជ្រើសរើស ១ - Choose 1) */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                            <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>2. FRUIT STICKER (ជ្រើសរើស ១ - Choose 1)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllStickers(!showAllStickers)}
+                            className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-800 hover:underline transition cursor-pointer"
+                          >
+                            {showAllStickers ? '← Show recommended sticker' : 'Browse other stickers →'}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {displayedStickerItems.map(renderMaterialCard)}
+                        </div>
+                      </div>
 
-                          return (
-                            <div
-                              key={pkg.id}
-                              onClick={() => handleAddToBOM(pkg.id)}
-                              className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
-                                isAttached
-                                  ? 'bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-400/20'
-                                  : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80'
-                              }`}
-                            >
-                              <div className="flex items-center space-x-2.5 min-w-0 flex-1">
-                                <div
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                    isAttached ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
-                                  }`}
-                                >
-                                  {isAttached ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="font-bold text-xs text-slate-900 truncate">
-                                    {pkg.name}
-                                  </div>
-                                  <div className="text-[10px] font-mono text-emerald-800 font-semibold">
-                                    {formatKHR(pkg.unitCostKHR)} • {pkg.onHand} in stock
-                                  </div>
-                                </div>
-                              </div>
-
-                              {isAttached && (
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 shrink-0">
-                                  ✓ {existingInBOM?.quantity}x in BOM
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
+                      {/* 3. ACCESSORIES & OTHER (សម្ភារៈបន្ថែម) */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                            <Layers className="w-3.5 h-3.5 text-amber-600" />
+                            <span>3. ACCESSORIES &amp; OTHER (សម្ភារៈបន្ថែម)</span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {accessoryItems.map(renderMaterialCard)}
+                        </div>
                       </div>
 
                       {/* Missing a packaging item? Link to Warehouse */}
