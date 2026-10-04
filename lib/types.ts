@@ -1,4 +1,17 @@
-export type PackagingCategory = 'box' | 'sticker' | 'skewer' | 'other';
+export interface PackagingCategoryRecord {
+  id: string;
+  name: string;
+  isProtected?: boolean; // True for 'box', 'sticker', 'skewer'
+}
+
+export type PackagingCategory =
+  | PackagingCategoryRecord
+  | 'box'
+  | 'sticker'
+  | 'skewer'
+  | 'other'
+  | (string & {});
+
 export type InventoryCategory = PackagingCategory;
 
 export interface PackagingItem {
@@ -32,12 +45,15 @@ export interface Product {
 }
 
 export interface Store {
-  code: string;
-  customerName: string; // Bill To
-  shipTo: string;
+  id?: string;
+  code: string; // e.g. "ON-TK592"
+  customerName: string; // Bill To / Legal Entity (e.g. "Angkor Prototype LTD.")
+  shipTo: string; // Branch / Destination (e.g. "ON Mart St.592 TK")
   address: string;
   phone: string;
-  creditTermsDays: number; // default 15
+  termsDays?: number; // Default: 15
+  creditTermsDays?: number; // Alias for backward compatibility
+  isActive?: boolean; // True by default; false when archived
 }
 
 export interface SupplierProfile {
@@ -136,7 +152,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   khmerName?: string;
-  category: PackagingCategory;
+  category: PackagingCategory | string;
   onHand: number;
   costPerUnitKHR: number;
   unitCostKHR?: number; // alias for PackagingItem compatibility

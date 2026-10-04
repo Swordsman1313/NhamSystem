@@ -44,6 +44,7 @@ const formatDisplayDate = (date: Date | string) => {
 import {
   getProducts,
   getStores,
+  addStore,
   getSettings,
   addInvoice,
   generateNextInvoiceNumber,
@@ -70,6 +71,15 @@ export default function NewDeliveryPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<AppSettings>(getSettings());
+
+  // Quick New Store Modal State
+  const [newStoreModalOpen, setNewStoreModalOpen] = useState(false);
+  const [newStoreCode, setNewStoreCode] = useState('');
+  const [newStoreShipTo, setNewStoreShipTo] = useState('');
+  const [newStoreCustomerName, setNewStoreCustomerName] = useState('');
+  const [newStoreAddress, setNewStoreAddress] = useState('');
+  const [newStorePhone, setNewStorePhone] = useState('');
+  const [newStoreTermsDays, setNewStoreTermsDays] = useState(15);
 
   // Alert Modal State
   const [alertModal, setAlertModal] = useState<{
@@ -99,6 +109,47 @@ export default function NewDeliveryPage() {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do'>('edit');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleQuickCreateStore = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStoreCode.trim() || !newStoreShipTo.trim() || !newStoreCustomerName.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Missing Required Fields',
+        message: 'Please provide Store Code, Destination (Ship To), and Legal Entity (Bill To).',
+      });
+      return;
+    }
+
+    const created = addStore({
+      code: newStoreCode.trim().toUpperCase(),
+      shipTo: newStoreShipTo.trim(),
+      customerName: newStoreCustomerName.trim(),
+      address: newStoreAddress.trim(),
+      phone: newStorePhone.trim(),
+      termsDays: Math.max(0, Number(newStoreTermsDays)),
+      creditTermsDays: Math.max(0, Number(newStoreTermsDays)),
+      isActive: true,
+    });
+
+    const refreshedStores = getStores();
+    setStores(refreshedStores);
+    setSelectedStoreCode(created.code);
+    const terms = created.termsDays || 15;
+    setCreditTermsDays(terms);
+    setDueDate(calculateDueDate(invoiceDate, terms));
+
+    setNewStoreModalOpen(false);
+    setNewStoreCode('');
+    setNewStoreShipTo('');
+    setNewStoreCustomerName('');
+    setNewStoreAddress('');
+    setNewStorePhone('');
+    setNewStoreTermsDays(15);
+
+    setToastMessage(`Created and selected store "${created.code} - ${created.shipTo}"`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   // Initialize on mount
   useEffect(() => {
@@ -409,22 +460,44 @@ export default function NewDeliveryPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Store Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Destination Store / សាខាទទួល
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Destination Store / សាខាទទួល
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setNewStoreModalOpen(true)}
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3 text-emerald-600" />
+                    <span>+ New Store</span>
+                  </button>
+                </div>
                 <select
                   value={selectedStoreCode}
-                  onChange={(e) => setSelectedStoreCode(e.target.value)}
+                  onChange={(e) => {
+                    const newCode = e.target.value;
+                    setSelectedStoreCode(newCode);
+                    const selected = stores.find((s) => s.code === newCode);
+                    if (selected) {
+                      const terms = selected.termsDays || selected.creditTermsDays || 15;
+                      setCreditTermsDays(terms);
+                      setDueDate(calculateDueDate(invoiceDate, terms));
+                    }
+                  }}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 >
-                  {stores.map((s) => (
-                    <option key={s.code} value={s.code}>
-                      {s.code} - {s.shipTo}
-                    </option>
-                  ))}
+                  {stores
+                    .filter((s) => s.isActive !== false || s.code === selectedStoreCode)
+                    .map((s) => (
+                      <option key={s.code} value={s.code}>
+                        {s.code} - {s.shipTo} {s.isActive === false ? '(Archived)' : ''}
+                      </option>
+                    ))}
                 </select>
-                <div className="mt-1.5 text-[11px] text-slate-600">
-                  <span className="font-semibold">{currentStore.customerName}</span>
+                <div className="mt-1.5 text-[11px] text-slate-600 flex items-center justify-between">
+                  <span className="font-semibold truncate max-w-[180px]">{currentStore.customerName}</span>
+                  <span className="font-mono text-slate-500">Terms: Net {currentStore.termsDays || currentStore.creditTermsDays || 15}d</span>
                 </div>
               </div>
 
@@ -900,6 +973,141 @@ export default function NewDeliveryPage() {
         onConfirm={() => setAlertModal({ isOpen: false, title: '', message: '' })}
         onCancel={() => setAlertModal({ isOpen: false, title: '', message: '' })}
       />
+
+      {/* Quick New Store Modal */}
+      {newStoreModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <StoreIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Add New Client / Destination Store
+                  </h3>
+                  <p className="text-xs text-slate-500 font-khmer">
+                    បង្កើតសាខា ឬអតិថិជនថ្មីភ្លាមៗសម្រាប់វិក្កយបត្រនេះ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewStoreModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickCreateStore} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Store Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ON-OU3, AEON-1"
+                    value={newStoreCode}
+                    onChange={(e) => setNewStoreCode(e.target.value.toUpperCase())}
+                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Branch / Ship To *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ON Mart OU 3"
+                    value={newStoreShipTo}
+                    onChange={(e) => setNewStoreShipTo(e.target.value)}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Legal Entity / Bill To *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Heng Kimchy Investment"
+                  value={newStoreCustomerName}
+                  onChange={(e) => setNewStoreCustomerName(e.target.value)}
+                  className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Delivery Address
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="ផ្លូវ ភូមិ៥ សង្កាត់៤ ក្រុងព្រះសីហនុ..."
+                  value={newStoreAddress}
+                  onChange={(e) => setNewStoreAddress(e.target.value)}
+                  className="w-full text-xs font-khmer border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Telephone
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 096 67 69 536"
+                    value={newStorePhone}
+                    onChange={(e) => setNewStorePhone(e.target.value)}
+                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Payment Terms (Days) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={newStoreTermsDays}
+                    onChange={(e) => setNewStoreTermsDays(parseInt(e.target.value, 10) || 0)}
+                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setNewStoreModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition transform active:scale-95"
+                >
+                  Create &amp; Select Store
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Packaging Stock Shortfall Warning Modal */}
       <ConfirmModal

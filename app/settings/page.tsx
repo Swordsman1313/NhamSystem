@@ -17,12 +17,23 @@ import {
   Phone,
   MapPin,
   AlertTriangle,
+  Plus,
+  Edit2,
+  Trash2,
+  Archive,
+  Check,
+  Search,
+  X,
 } from 'lucide-react';
 import {
   getSettings,
   saveSettings,
   getStores,
   saveStores,
+  addStore,
+  updateStore,
+  deleteStore,
+  toggleStoreActive,
   getProducts,
   saveProducts,
   exportAllData,
@@ -38,6 +49,22 @@ export default function SettingsPage() {
   const [products, setProductsState] = useState<Product[]>([]);
   const [saveToast, setSaveToast] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  // Store CRUD State
+  const [storeSearch, setStoreSearch] = useState('');
+  const [storeFilter, setStoreFilter] = useState<'all' | 'active' | 'archived'>('all');
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
+  const [storeFormCode, setStoreFormCode] = useState('');
+  const [storeFormCustomerName, setStoreFormCustomerName] = useState('');
+  const [storeFormShipTo, setStoreFormShipTo] = useState('');
+  const [storeFormAddress, setStoreFormAddress] = useState('');
+  const [storeFormPhone, setStoreFormPhone] = useState('');
+  const [storeFormTermsDays, setStoreFormTermsDays] = useState(15);
+  const [storeFormIsActive, setStoreFormIsActive] = useState(true);
+
+  // Store Delete Confirm
+  const [storeToDelete, setStoreToDelete] = useState<Store | null>(null);
 
   // Modal Dialog States
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
@@ -56,6 +83,13 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadData();
+    const handleStoresUpdated = () => loadData();
+    window.addEventListener('stores_updated', handleStoresUpdated);
+    window.addEventListener('storage', handleStoresUpdated);
+    return () => {
+      window.removeEventListener('stores_updated', handleStoresUpdated);
+      window.removeEventListener('storage', handleStoresUpdated);
+    };
   }, []);
 
   const handleSaveSettings = () => {
@@ -63,6 +97,99 @@ export default function SettingsPage() {
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
   };
+
+  const openNewStoreModal = () => {
+    setEditingStoreId(null);
+    setStoreFormCode('');
+    setStoreFormCustomerName('');
+    setStoreFormShipTo('');
+    setStoreFormAddress('');
+    setStoreFormPhone('');
+    setStoreFormTermsDays(15);
+    setStoreFormIsActive(true);
+    setStoreModalOpen(true);
+  };
+
+  const openEditStoreModal = (s: Store) => {
+    setEditingStoreId(s.id || s.code);
+    setStoreFormCode(s.code);
+    setStoreFormCustomerName(s.customerName);
+    setStoreFormShipTo(s.shipTo);
+    setStoreFormAddress(s.address);
+    setStoreFormPhone(s.phone);
+    setStoreFormTermsDays(s.termsDays || 15);
+    setStoreFormIsActive(s.isActive !== false);
+    setStoreModalOpen(true);
+  };
+
+  const handleSaveStoreSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!storeFormCode.trim() || !storeFormCustomerName.trim() || !storeFormShipTo.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Missing Required Fields',
+        message: 'Please provide Store Code, Legal Entity (Bill To), and Branch (Ship To).',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (editingStoreId) {
+      updateStore({
+        id: editingStoreId,
+        code: storeFormCode.trim().toUpperCase(),
+        customerName: storeFormCustomerName.trim(),
+        shipTo: storeFormShipTo.trim(),
+        address: storeFormAddress.trim(),
+        phone: storeFormPhone.trim(),
+        termsDays: Math.max(0, Number(storeFormTermsDays)),
+        creditTermsDays: Math.max(0, Number(storeFormTermsDays)),
+        isActive: storeFormIsActive,
+      });
+    } else {
+      addStore({
+        code: storeFormCode.trim().toUpperCase(),
+        customerName: storeFormCustomerName.trim(),
+        shipTo: storeFormShipTo.trim(),
+        address: storeFormAddress.trim(),
+        phone: storeFormPhone.trim(),
+        termsDays: Math.max(0, Number(storeFormTermsDays)),
+        creditTermsDays: Math.max(0, Number(storeFormTermsDays)),
+        isActive: storeFormIsActive,
+      });
+    }
+
+    setStoreModalOpen(false);
+    loadData();
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 2500);
+  };
+
+  const handleToggleStoreActive = (storeId: string) => {
+    toggleStoreActive(storeId);
+    loadData();
+  };
+
+  const handleConfirmDeleteStore = () => {
+    if (!storeToDelete) return;
+    deleteStore(storeToDelete.id || storeToDelete.code);
+    setStoreToDelete(null);
+    loadData();
+  };
+
+  const filteredStores = stores.filter((s) => {
+    if (storeFilter === 'active' && s.isActive === false) return false;
+    if (storeFilter === 'archived' && s.isActive !== false) return false;
+    if (!storeSearch.trim()) return true;
+    const q = storeSearch.toLowerCase();
+    return (
+      s.code.toLowerCase().includes(q) ||
+      s.shipTo.toLowerCase().includes(q) ||
+      s.customerName.toLowerCase().includes(q) ||
+      s.address.toLowerCase().includes(q) ||
+      s.phone.includes(q)
+    );
+  });
 
   // Export JSON backup
   const handleExportJSON = () => {
@@ -380,29 +507,173 @@ export default function SettingsPage() {
         {/* Section 3: Stores Directory & Catalog & Backup */}
         <div className="space-y-6">
           {/* Client Stores Overview */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2 mb-3">
-              <StoreIcon className="w-4 h-4 text-emerald-600" />
-              <span>Partner Stores Directory ({stores.length})</span>
-            </h2>
+          {/* Client Stores Overview & CRUD */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+                  <StoreIcon className="w-4 h-4 text-emerald-600" />
+                  <span>Partner Stores &amp; Clients Directory ({stores.length})</span>
+                </h2>
+                <p className="text-xs text-slate-500 font-khmer mt-0.5">
+                  គ្រប់គ្រងបញ្ជីអតិថិជន សាខាទទួល និងលក្ខខណ្ឌទូទាត់ (Terms)
+                </p>
+              </div>
 
-            <div className="space-y-3">
-              {stores.map((s) => (
-                <div
-                  key={s.code}
-                  className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-mono font-bold text-emerald-800 text-sm">{s.code}</span>
-                    <span className="font-bold text-slate-900">{s.shipTo}</span>
-                  </div>
-                  <div className="text-slate-700">Bill To: {s.customerName}</div>
-                  <div className="text-[11px] text-slate-600 font-khmer">{s.address}</div>
-                  <div className="text-[11px] text-slate-500">
-                    Tel: <strong>{s.phone}</strong> • Terms: <strong>Net {s.creditTermsDays} Days</strong>
-                  </div>
+              <button
+                type="button"
+                onClick={openNewStoreModal}
+                className="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-2xs transition transform active:scale-95 text-xs self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Add Store</span>
+              </button>
+            </div>
+
+            {/* Store Search & Filter Tabs */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by code, branch, client name, or phone..."
+                  value={storeSearch}
+                  onChange={(e) => setStoreSearch(e.target.value)}
+                  className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                />
+                {storeSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setStoreSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-1">
+                {[
+                  { id: 'all', label: `All (${stores.length})` },
+                  { id: 'active', label: `Active (${stores.filter((s) => s.isActive !== false).length})` },
+                  { id: 'archived', label: `Archived (${stores.filter((s) => s.isActive === false).length})` },
+                ].map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setStoreFilter(chip.id as any)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                      storeFilter === chip.id
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stores List */}
+            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+              {filteredStores.length === 0 ? (
+                <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-1">
+                  <p>No partner stores found matching your criteria.</p>
+                  <button
+                    type="button"
+                    onClick={openNewStoreModal}
+                    className="text-emerald-600 font-bold hover:underline"
+                  >
+                    Create a new store now
+                  </button>
                 </div>
-              ))}
+              ) : (
+                filteredStores.map((s) => {
+                  const isActive = s.isActive !== false;
+                  return (
+                    <div
+                      key={s.id || s.code}
+                      className={`p-3 rounded-xl border transition-all text-xs space-y-1.5 ${
+                        isActive
+                          ? 'bg-white border-slate-200 hover:border-emerald-300 shadow-2xs'
+                          : 'bg-slate-50/80 border-slate-200 opacity-60'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono font-black text-emerald-800 text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {s.code}
+                          </span>
+                          <span className="font-bold text-slate-900">{s.shipTo}</span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
+                              isActive
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {isActive ? 'Active' : 'Archived'}
+                          </span>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center space-x-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => openEditStoreModal(s)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition"
+                            title="Edit Store Information"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStoreActive(s.id || s.code)}
+                            className={`p-1.5 rounded-lg transition ${
+                              isActive
+                                ? 'text-slate-400 hover:text-amber-700 hover:bg-amber-50'
+                                : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                            title={isActive ? 'Archive Store (hide from invoices)' : 'Unarchive Store'}
+                          >
+                            <Archive className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setStoreToDelete(s)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                            title="Delete Store"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-slate-700 flex items-center space-x-1">
+                        <span className="text-slate-400 font-semibold">Bill To:</span>
+                        <span className="font-medium text-slate-900">{s.customerName}</span>
+                      </div>
+
+                      {s.address && (
+                        <div className="text-[11px] text-slate-500 font-khmer flex items-start space-x-1">
+                          <MapPin className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{s.address}</span>
+                        </div>
+                      )}
+
+                      <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-100">
+                        <span className="flex items-center space-x-1">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <span>{s.phone || 'No phone'}</span>
+                        </span>
+                        <span className="font-mono text-slate-600 font-semibold">
+                          Terms: Net {s.termsDays || s.creditTermsDays || 15} Days
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -481,6 +752,167 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Store Create/Edit Modal */}
+      {storeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <StoreIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    {editingStoreId ? 'Edit Partner Store / Client' : 'Add New Partner Store / Client'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-khmer">
+                    កំណត់ព័ត៌មានសាខា ទីតាំង និងលក្ខខណ្ឌទូទាត់
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStoreModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStoreSubmit} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Store Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ON-TK592"
+                    value={storeFormCode}
+                    onChange={(e) => setStoreFormCode(e.target.value.toUpperCase())}
+                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Branch / Ship To *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ON Mart St.592 TK"
+                    value={storeFormShipTo}
+                    onChange={(e) => setStoreFormShipTo(e.target.value)}
+                    className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Legal Entity / Bill To *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Angkor Prototype LTD."
+                  value={storeFormCustomerName}
+                  onChange={(e) => setStoreFormCustomerName(e.target.value)}
+                  className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Delivery Address (អាសយដ្ឋាន)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="#ដីឡូត៍លេខ១ ផ្លូវ ៥៩២ សង្កាត់បឹងកក់ទី២..."
+                  value={storeFormAddress}
+                  onChange={(e) => setStoreFormAddress(e.target.value)}
+                  className="w-full text-xs font-khmer border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Telephone
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 099 423 599"
+                    value={storeFormPhone}
+                    onChange={(e) => setStoreFormPhone(e.target.value)}
+                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Credit Terms (Days) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={storeFormTermsDays}
+                    onChange={(e) => setStoreFormTermsDays(parseInt(e.target.value, 10) || 0)}
+                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="storeFormIsActive"
+                  checked={storeFormIsActive}
+                  onChange={(e) => setStoreFormIsActive(e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="storeFormIsActive" className="text-xs font-bold text-slate-700 cursor-pointer">
+                  Active Store (Visible in Invoice Creator &amp; Deliveries)
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setStoreModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition transform active:scale-95"
+                >
+                  {editingStoreId ? 'Save Store Changes' : 'Create Store'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Store Confirm Modal */}
+      <ConfirmModal
+        isOpen={Boolean(storeToDelete)}
+        title="Delete Partner Store?"
+        khmerTitle="លុបសាខាអតិថិជននេះ"
+        message={`Are you sure you want to delete "${storeToDelete?.code} - ${storeToDelete?.shipTo}"? Historical invoices referencing this store will remain preserved.`}
+        confirmText="Yes, Delete Store"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteStore}
+        onCancel={() => setStoreToDelete(null)}
+      />
 
       {/* Modern UI Confirm Modal for Database Reset */}
       <ConfirmModal

@@ -7,6 +7,7 @@ import {
   PackagingItem,
   BOMItem,
   CostingDraft,
+  PackagingCategoryRecord,
 } from './types';
 import {
   INITIAL_PRODUCTS,
@@ -19,6 +20,7 @@ import {
 const STORAGE_KEYS = {
   PRODUCTS: 'nhamnham_ops_products',
   PACKAGING: 'nhamnham_ops_packaging_inventory', // Unified Single Source of Truth
+  CATEGORIES: 'nhamnham_ops_packaging_categories',
   STORES: 'nhamnham_ops_stores',
   SETTINGS: 'nhamnham_ops_settings',
   INVOICES: 'nhamnham_ops_invoices',
@@ -376,13 +378,153 @@ export function deleteProduct(idOrBarcode: string): void {
   saveProducts(current.filter((p) => p.id !== idOrBarcode && p.barcode !== idOrBarcode));
 }
 
-// Stores
+// Packaging Categories CRUD
+export const INITIAL_PACKAGING_CATEGORIES: PackagingCategoryRecord[] = [
+  { id: 'box', name: 'Box', isProtected: true },
+  { id: 'sticker', name: 'UV Sticker', isProtected: true },
+  { id: 'skewer', name: 'Skewer', isProtected: true },
+  { id: 'other', name: 'Other', isProtected: false },
+];
+
+export function getPackagingCategories(): PackagingCategoryRecord[] {
+  const raw = getItem<any[]>(STORAGE_KEYS.CATEGORIES, INITIAL_PACKAGING_CATEGORIES);
+  const map = new Map<string, PackagingCategoryRecord>();
+  INITIAL_PACKAGING_CATEGORIES.forEach((c) => map.set(c.id, c));
+  raw.forEach((c) => {
+    if (c && c.id) {
+      map.set(c.id, {
+        id: c.id,
+        name: c.name || c.id,
+        isProtected: c.isProtected ?? (c.id === 'box' || c.id === 'sticker' || c.id === 'skewer'),
+      });
+    }
+  });
+  return Array.from(map.values());
+}
+
+export function savePackagingCategories(categories: PackagingCategoryRecord[]): void {
+  setItem(STORAGE_KEYS.CATEGORIES, categories);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('categories_updated'));
+  }
+}
+
+export function addPackagingCategory(name: string): PackagingCategoryRecord {
+  const cleanName = name.trim();
+  const id =
+    cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
+  const current = getPackagingCategories();
+  const existing = current.find((c) => c.id === id || c.name.toLowerCase() === cleanName.toLowerCase());
+  if (existing) return existing;
+
+  const newCat: PackagingCategoryRecord = {
+    id,
+    name: cleanName,
+    isProtected: false,
+  };
+  const updated = [...current, newCat];
+  savePackagingCategories(updated);
+  return newCat;
+}
+
+export function updatePackagingCategory(cat: PackagingCategoryRecord): PackagingCategoryRecord {
+  const current = getPackagingCategories();
+  const updated = current.map((c) => (c.id === cat.id ? { ...c, name: cat.name.trim() } : c));
+  savePackagingCategories(updated);
+  return cat;
+}
+
+export function deletePackagingCategory(id: string): boolean {
+  if (id === 'box' || id === 'sticker' || id === 'skewer') {
+    return false;
+  }
+  const current = getPackagingCategories();
+  const updated = current.filter((c) => c.id !== id);
+  savePackagingCategories(updated);
+  return true;
+}
+
+// Stores CRUD
 export function getStores(): Store[] {
-  return getItem<Store[]>(STORAGE_KEYS.STORES, INITIAL_STORES);
+  const raw = getItem<any[]>(STORAGE_KEYS.STORES, INITIAL_STORES);
+  return raw.map((s, idx) => ({
+    id: s.id || `store-${(s.code || String(idx + 1)).toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+    code: s.code || `STORE-${idx + 1}`,
+    customerName: s.customerName || '',
+    shipTo: s.shipTo || '',
+    address: s.address || '',
+    phone: s.phone || '',
+    termsDays: Number(s.termsDays ?? s.creditTermsDays ?? 15),
+    creditTermsDays: Number(s.creditTermsDays ?? s.termsDays ?? 15),
+    isActive: s.isActive !== false,
+  }));
 }
 
 export function saveStores(stores: Store[]): void {
   setItem(STORAGE_KEYS.STORES, stores);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('stores_updated'));
+  }
+}
+
+export function addStore(storeData: Partial<Store>): Store {
+  const current = getStores();
+  const code = (storeData.code || `STORE-${current.length + 1}`).trim().toUpperCase();
+  const id = storeData.id || `store-${code.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+  const terms = Number(storeData.termsDays ?? storeData.creditTermsDays ?? 15);
+
+  const newStore: Store = {
+    id,
+    code,
+    customerName: (storeData.customerName || '').trim(),
+    shipTo: (storeData.shipTo || '').trim(),
+    address: (storeData.address || '').trim(),
+    phone: (storeData.phone || '').trim(),
+    termsDays: terms,
+    creditTermsDays: terms,
+    isActive: storeData.isActive !== false,
+  };
+
+  const existsIdx = current.findIndex((s) => s.id === id || s.code === code);
+  let updated: Store[];
+  if (existsIdx !== -1) {
+    updated = [...current];
+    updated[existsIdx] = newStore;
+  } else {
+    updated = [...current, newStore];
+  }
+  saveStores(updated);
+  return newStore;
+}
+
+export function updateStore(store: Store): Store {
+  const current = getStores();
+  const terms = Number(store.termsDays ?? store.creditTermsDays ?? 15);
+  const normalized: Store = {
+    ...store,
+    termsDays: terms,
+    creditTermsDays: terms,
+    isActive: store.isActive !== false,
+  };
+  const updated = current.map((s) => (s.id === store.id || s.code === store.code ? normalized : s));
+  saveStores(updated);
+  return normalized;
+}
+
+export function deleteStore(idOrCode: string): void {
+  const current = getStores();
+  const updated = current.filter((s) => s.id !== idOrCode && s.code !== idOrCode);
+  saveStores(updated);
+}
+
+export function toggleStoreActive(idOrCode: string): Store | null {
+  const current = getStores();
+  const target = current.find((s) => s.id === idOrCode || s.code === idOrCode);
+  if (!target) return null;
+  const updatedStore: Store = { ...target, isActive: !target.isActive };
+  const updated = current.map((s) => (s.id === target.id ? updatedStore : s));
+  saveStores(updated);
+  return updatedStore;
 }
 
 // Settings
@@ -589,6 +731,7 @@ export function resetAllData(): void {
   saveSettings(INITIAL_SETTINGS);
   saveStores(INITIAL_STORES);
   saveProducts(INITIAL_PRODUCTS);
+  savePackagingCategories(INITIAL_PACKAGING_CATEGORIES);
   saveInvoices(INITIAL_INVOICES);
   saveBatches(INITIAL_BATCH_COSTS);
   clearCostingDraft();

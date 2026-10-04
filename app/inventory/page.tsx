@@ -21,21 +21,39 @@ import {
   TrendingDown,
   Sparkles,
   Edit3,
+  Trash2,
+  FolderPlus,
 } from 'lucide-react';
-import { InventoryItem, InventoryCategory, PackagingCategory } from '@/lib/types';
+import { InventoryItem, InventoryCategory, PackagingCategory, PackagingCategoryRecord } from '@/lib/types';
 import {
   getInventory,
   restockItem,
   resetInventory,
 } from '@/lib/inventoryStore';
-import { getSettings, formatKHR, formatUSD, updatePackagingItem, addPackagingItem } from '@/lib/storage';
+import {
+  getSettings,
+  formatKHR,
+  formatUSD,
+  updatePackagingItem,
+  addPackagingItem,
+  getPackagingCategories,
+  addPackagingCategory,
+  updatePackagingCategory,
+  deletePackagingCategory,
+} from '@/lib/storage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function InventoryDashboardPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [categories, setCategories] = useState<PackagingCategoryRecord[]>([]);
   const [exchangeRate, setExchangeRate] = useState<number>(4050);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'box' | 'sticker' | 'skewer' | 'low_stock'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+  // Category Manager Modal State
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryToDelete, setCategoryToDelete] = useState<PackagingCategoryRecord | null>(null);
 
   // Restock Modal State
   const [restockModalOpen, setRestockModalOpen] = useState(false);
@@ -46,7 +64,7 @@ export default function InventoryDashboardPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedEditItem, setSelectedEditItem] = useState<InventoryItem | null>(null);
   const [editFormName, setEditFormName] = useState<string>('');
-  const [editFormCategory, setEditFormCategory] = useState<PackagingCategory>('box');
+  const [editFormCategory, setEditFormCategory] = useState<string>('box');
   const [editFormCostKHR, setEditFormCostKHR] = useState<number>(0);
   const [editFormOnHand, setEditFormOnHand] = useState<number>(0);
   const [editFormThreshold, setEditFormThreshold] = useState<number>(25);
@@ -54,7 +72,7 @@ export default function InventoryDashboardPage() {
   // New Packaging Material Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createName, setCreateName] = useState<string>('');
-  const [createCategory, setCreateCategory] = useState<PackagingCategory>('box');
+  const [createCategory, setCreateCategory] = useState<string>('box');
   const [createCostKHR, setCreateCostKHR] = useState<number>(380);
   const [createOnHand, setCreateOnHand] = useState<number>(100);
 
@@ -66,7 +84,7 @@ export default function InventoryDashboardPage() {
 
   const openCreateMaterialModal = () => {
     setCreateName('');
-    setCreateCategory('box');
+    setCreateCategory(categories.length > 0 ? categories[0].id : 'box');
     setCreateCostKHR(380);
     setCreateOnHand(100);
     setCreateModalOpen(true);
@@ -95,8 +113,33 @@ export default function InventoryDashboardPage() {
     triggerToast(`Added new material "${createName.trim()}" (${formatKHR(createCostKHR)}) to packaging warehouse.`);
   };
 
+  const handleCreateCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) {
+      triggerToast('Please enter a category name.');
+      return;
+    }
+    const created = addPackagingCategory(newCategoryName.trim());
+    setNewCategoryName('');
+    setCategories(getPackagingCategories());
+    triggerToast(`Created packaging category "${created.name}".`);
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!categoryToDelete) return;
+    const success = deletePackagingCategory(categoryToDelete.id);
+    if (success) {
+      triggerToast(`Deleted category "${categoryToDelete.name}".`);
+      setCategories(getPackagingCategories());
+    } else {
+      triggerToast('Cannot delete system core category.');
+    }
+    setCategoryToDelete(null);
+  };
+
   const loadData = () => {
     setItems(getInventory());
+    setCategories(getPackagingCategories());
     const settings = getSettings();
     setExchangeRate(settings.exchangeRate || 4050);
   };
@@ -105,9 +148,11 @@ export default function InventoryDashboardPage() {
     loadData();
     const handleUpdate = () => loadData();
     window.addEventListener('inventory_updated', handleUpdate);
+    window.addEventListener('categories_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('inventory_updated', handleUpdate);
+      window.removeEventListener('categories_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
@@ -149,7 +194,7 @@ export default function InventoryDashboardPage() {
   const openEditItem = (item: InventoryItem) => {
     setSelectedEditItem(item);
     setEditFormName(item.name);
-    setEditFormCategory((item.category as PackagingCategory) || 'box');
+    setEditFormCategory((typeof item.category === 'string' ? item.category : (item.category as any)?.id) || 'box');
     setEditFormCostKHR(item.costPerUnitKHR ?? item.unitCostKHR ?? 0);
     setEditFormOnHand(item.onHand);
     setEditFormThreshold(item.lowStockThreshold || 25);
@@ -203,10 +248,11 @@ export default function InventoryDashboardPage() {
       (item.barcodeRef && item.barcodeRef.includes(searchQuery));
 
     let matchCategory = true;
-    if (categoryFilter === 'box') matchCategory = item.category === 'box';
-    else if (categoryFilter === 'sticker') matchCategory = item.category === 'sticker';
-    else if (categoryFilter === 'skewer') matchCategory = item.category === 'skewer';
-    else if (categoryFilter === 'low_stock') matchCategory = item.onHand <= item.lowStockThreshold;
+    if (categoryFilter === 'low_stock') {
+      matchCategory = item.onHand <= item.lowStockThreshold;
+    } else if (categoryFilter !== 'all') {
+      matchCategory = item.category === categoryFilter;
+    }
 
     return matchSearch && matchCategory;
   });
@@ -259,6 +305,15 @@ export default function InventoryDashboardPage() {
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span>Reset Defaults</span>
+          </button>
+
+          <button
+            onClick={() => setCategoryModalOpen(true)}
+            className="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold px-3 py-2 rounded-xl shadow-2xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
+            title="Manage packaging material categories"
+          >
+            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Categories</span>
           </button>
 
           <button
@@ -417,29 +472,43 @@ export default function InventoryDashboardPage() {
         </div>
 
         {/* Filter Badges */}
-        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
-          {[
-            { id: 'all', label: `All (${items.length})` },
-            { id: 'box', label: `Boxes (${boxItems.length})` },
-            { id: 'sticker', label: `Stickers (${stickerItems.length})` },
-            { id: 'skewer', label: `Skewers (1)` },
-            {
-              id: 'low_stock',
-              label: `Low Stock (${items.filter((i) => i.onHand <= i.lowStockThreshold).length})`,
-            },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setCategoryFilter(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                categoryFilter === tab.id
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl overflow-x-auto max-w-full">
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
+              categoryFilter === 'all'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            All ({items.length})
+          </button>
+          {categories.map((cat) => {
+            const count = items.filter((i) => i.category === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryFilter(cat.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
+                  categoryFilter === cat.id
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {cat.name} ({count})
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setCategoryFilter('low_stock')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
+              categoryFilter === 'low_stock'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Low Stock ({items.filter((i) => i.onHand <= i.lowStockThreshold).length})
+          </button>
         </div>
       </div>
 
@@ -501,19 +570,28 @@ export default function InventoryDashboardPage() {
 
                       {/* Category Badge */}
                       <td className="py-3 px-3 text-center">
-                        {item.category === 'box' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            Box
-                          </span>
-                        ) : item.category === 'sticker' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                            UV Sticker
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            Skewer
-                          </span>
-                        )}
+                        {(() => {
+                          const categoryStr = typeof item.category === 'string' ? item.category : (item.category as any)?.id || 'box';
+                          const catObj = categories.find((c) => c.id === categoryStr);
+                          const label: string = catObj?.name || (categoryStr === 'box' ? 'Box' : categoryStr === 'sticker' ? 'UV Sticker' : categoryStr === 'skewer' ? 'Skewer' : categoryStr);
+                          const isBox = categoryStr === 'box';
+                          const isSticker = categoryStr === 'sticker';
+                          const isSkewer = categoryStr === 'skewer';
+
+                          const colorClass = isBox
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : isSticker
+                            ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                            : isSkewer
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-purple-50 text-purple-800 border-purple-200';
+
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${colorClass}`}>
+                              {label}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* On-Hand Quantity */}
@@ -772,13 +850,17 @@ export default function InventoryDashboardPage() {
                 </label>
                 <select
                   value={editFormCategory}
-                  onChange={(e) => setEditFormCategory(e.target.value as PackagingCategory)}
+                  onChange={(e) => setEditFormCategory(e.target.value)}
                   className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
-                  <option value="box">Box (ប្រអប់ផ្លែឈើ)</option>
-                  <option value="sticker">Sticker (ស្ទីគ័រ UV)</option>
-                  <option value="skewer">Skewer (ឈើចាក់ផ្លែឈើ)</option>
-                  <option value="other">Other Material</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                  {!categories.some((c) => c.id === editFormCategory) && (
+                    <option value={editFormCategory}>{editFormCategory}</option>
+                  )}
                 </select>
               </div>
 
@@ -902,13 +984,14 @@ export default function InventoryDashboardPage() {
                 </label>
                 <select
                   value={createCategory}
-                  onChange={(e) => setCreateCategory(e.target.value as PackagingCategory)}
+                  onChange={(e) => setCreateCategory(e.target.value)}
                   className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
-                  <option value="box">Box (ប្រអប់ផ្លែឈើ)</option>
-                  <option value="sticker">Sticker (ស្ទីគ័រ UV)</option>
-                  <option value="skewer">Skewer (ឈើចាក់ផ្លែឈើ)</option>
-                  <option value="other">Other Material (ផ្សេងៗ / ម្សៅម្ទេស)</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -986,6 +1069,137 @@ export default function InventoryDashboardPage() {
         variant="warning"
         onConfirm={handleResetToSeed}
         onCancel={() => setResetConfirmOpen(false)}
+      />
+
+      {/* Packaging Categories Management Modal */}
+      {categoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Packaging Categories
+                  </h3>
+                  <p className="text-xs text-slate-500 font-khmer">
+                    គ្រប់គ្រងប្រភេទសម្ភារៈវេចខ្ចប់ (Box, Sticker, Skewer, etc.)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCategoryModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Add Category Form */}
+            <form onSubmit={handleCreateCategorySubmit} className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <FolderPlus className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="New category name (e.g. Shrink Wrap, Sauce Cup)..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 shrink-0 flex items-center space-x-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add</span>
+              </button>
+            </form>
+
+            {/* Categories List */}
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1">
+                Active Categories ({categories.length})
+              </div>
+              {categories.map((cat) => {
+                const count = items.filter((i) => i.category === cat.id).length;
+                const isCore = cat.isProtected || cat.id === 'box' || cat.id === 'sticker' || cat.id === 'skewer';
+                return (
+                  <div
+                    key={cat.id}
+                    className="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 flex items-center justify-between text-xs transition"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold">
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 flex items-center space-x-1.5">
+                          <span>{cat.name}</span>
+                          <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {cat.id}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {count} {count === 1 ? 'material item' : 'material items'} linked
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {isCore ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Core system category required by Fruit Products BOM">
+                          Core System
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCategoryToDelete(cat)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                          title="Delete this custom category"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Helper Info */}
+            <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-[11px] text-indigo-900">
+              💡 <strong>System Note:</strong> Core categories (Box, UV Sticker, Skewer) are required for standard Fruit BOM cost calculations and cannot be deleted. Custom categories can be added and assigned to any packaging material.
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCategoryModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Category Confirm Modal */}
+      <ConfirmModal
+        isOpen={!!categoryToDelete}
+        title={`Delete Category "${categoryToDelete?.name}"?`}
+        khmerTitle="លុបប្រភេទសម្ភារៈវេចខ្ចប់"
+        message={`Are you sure you want to delete the category "${categoryToDelete?.name}"? Items currently assigned to this category will remain in inventory.`}
+        confirmText="Delete Category"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteCategory}
+        onCancel={() => setCategoryToDelete(null)}
       />
     </div>
   );
