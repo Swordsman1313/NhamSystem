@@ -393,18 +393,7 @@ export function saveSettings(settings: AppSettings): void {
 
 // Invoices
 export function getInvoices(): Invoice[] {
-  let invoices = getItem<Invoice[]>(STORAGE_KEYS.INVOICES, INITIAL_INVOICES);
-  if (typeof window !== 'undefined' && Array.isArray(invoices)) {
-    const hasToday = invoices.some((inv) => (inv.invoiceDate || '').startsWith('2026-10-04'));
-    if (!hasToday) {
-      const todaySeeds = INITIAL_INVOICES.filter((inv) => (inv.invoiceDate || '').startsWith('2026-10-04'));
-      if (todaySeeds.length > 0) {
-        invoices = [...todaySeeds, ...invoices];
-        setItem(STORAGE_KEYS.INVOICES, invoices);
-      }
-    }
-  }
-  return invoices;
+  return getItem<Invoice[]>(STORAGE_KEYS.INVOICES, INITIAL_INVOICES);
 }
 
 export function saveInvoices(invoices: Invoice[]): void {
@@ -437,18 +426,7 @@ export function deleteInvoice(id: string): void {
 
 // Batches
 export function getBatches(): BatchCostRecord[] {
-  let batches = getItem<BatchCostRecord[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCH_COSTS);
-  if (typeof window !== 'undefined' && Array.isArray(batches)) {
-    const hasToday = batches.some((b) => (b.date || '').startsWith('2026-10-04'));
-    if (!hasToday) {
-      const todaySeed = INITIAL_BATCH_COSTS.find((b) => (b.date || '').startsWith('2026-10-04'));
-      if (todaySeed) {
-        batches = [todaySeed, ...batches];
-        setItem(STORAGE_KEYS.BATCHES, batches);
-      }
-    }
-  }
-  return batches;
+  return getItem<BatchCostRecord[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCH_COSTS);
 }
 
 export function saveBatches(batches: BatchCostRecord[]): void {
