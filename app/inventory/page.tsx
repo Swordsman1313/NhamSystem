@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -25,6 +25,7 @@ import {
   FolderPlus,
   Pencil,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 import { InventoryItem, InventoryCategory, PackagingCategory, PackagingCategoryRecord } from '@/lib/types';
 import {
@@ -47,6 +48,117 @@ import {
   deletePackagingCategory,
 } from '@/lib/storage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+
+function CategorySelect({
+  value,
+  onChange,
+  categories,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  categories: PackagingCategoryRecord[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const selectedCat = categories.find(
+    (c) => c.id === value || c.name.toLowerCase() === value.toLowerCase()
+  );
+  const label = selectedCat?.name || value || 'Select Category';
+
+  const getCategoryIcon = (idOrName: string) => {
+    const id = idOrName.toLowerCase();
+    if (id === 'box') return <Boxes className="w-4 h-4 text-emerald-600" />;
+    if (id === 'sticker') return <Tag className="w-4 h-4 text-indigo-600" />;
+    if (id === 'skewer') return <Layers className="w-4 h-4 text-amber-600" />;
+    return <Package className="w-4 h-4 text-purple-600" />;
+  };
+
+  const getCategoryBadgeClass = (idOrName: string) => {
+    const id = idOrName.toLowerCase();
+    if (id === 'box') return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    if (id === 'sticker') return 'bg-indigo-50 text-indigo-800 border-indigo-200';
+    if (id === 'skewer') return 'bg-amber-50 text-amber-800 border-amber-200';
+    return 'bg-purple-50 text-purple-800 border-purple-200';
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 hover:bg-white border border-slate-300 hover:border-emerald-500 rounded-xl transition shadow-2xs text-left focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer group"
+      >
+        <div className="flex items-center space-x-2.5 min-w-0">
+          <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+            {getCategoryIcon(selectedCat?.id || value)}
+          </div>
+          <span className="font-bold text-xs text-slate-900 truncate">
+            {label}
+          </span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${getCategoryBadgeClass(selectedCat?.id || value)}`}>
+            {selectedCat?.id || value}
+          </span>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0 ${
+            isOpen ? 'rotate-180 text-emerald-600' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+          {categories.map((cat) => {
+            const isSelected = (selectedCat?.id || value) === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  onChange(cat.id);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
+                  isSelected
+                    ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200 shadow-2xs'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <div className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                    {getCategoryIcon(cat.id)}
+                  </div>
+                  <span className="truncate">{cat.name}</span>
+                  <span className={`text-[9px] font-mono px-1 py-0.2 rounded border ${getCategoryBadgeClass(cat.id)}`}>
+                    {cat.id}
+                  </span>
+                </div>
+                {isSelected && (
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function InventoryDashboardPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -938,20 +1050,11 @@ export default function InventoryDashboardPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Category *
                 </label>
-                <select
+                <CategorySelect
                   value={editFormCategory}
-                  onChange={(e) => setEditFormCategory(e.target.value)}
-                  className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                  {!categories.some((c) => c.id === editFormCategory) && (
-                    <option value={editFormCategory}>{editFormCategory}</option>
-                  )}
-                </select>
+                  onChange={setEditFormCategory}
+                  categories={categories}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1072,17 +1175,11 @@ export default function InventoryDashboardPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Category *
                 </label>
-                <select
+                <CategorySelect
                   value={createCategory}
-                  onChange={(e) => setCreateCategory(e.target.value)}
-                  className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCreateCategory}
+                  categories={categories}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

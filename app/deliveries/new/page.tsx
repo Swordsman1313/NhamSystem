@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -24,6 +24,7 @@ import {
   Boxes,
   Tag,
   X,
+  ChevronDown,
 } from 'lucide-react';
 
 const formatDisplayDate = (date: Date | string) => {
@@ -63,6 +64,112 @@ import CommercialInvoice from '@/components/documents/CommercialInvoice';
 import DeliveryNote from '@/components/documents/DeliveryNote';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { triggerCleanPrint } from '@/lib/print';
+
+function StoreSelect({
+  value,
+  onChange,
+  stores,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  stores: Store[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const currentStore = stores.find((s) => s.code === value) || stores[0];
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-white border border-slate-300 hover:border-emerald-500 rounded-xl transition shadow-2xs text-left focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer group"
+      >
+        <div className="flex items-center space-x-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+            <StoreIcon className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center space-x-1.5">
+              <span className="font-mono font-bold text-xs text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded">
+                {currentStore?.code}
+              </span>
+              <span className="font-bold text-xs text-slate-900 truncate">
+                {currentStore?.shipTo}
+              </span>
+            </div>
+          </div>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0 ${
+            isOpen ? 'rotate-180 text-emerald-600' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+          {stores
+            .filter((s) => s.isActive !== false || s.code === value)
+            .map((s) => {
+              const isSelected = s.code === value;
+              return (
+                <button
+                  key={s.code}
+                  type="button"
+                  onClick={() => {
+                    onChange(s.code);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs transition cursor-pointer text-left ${
+                    isSelected
+                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-950 font-bold shadow-2xs'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="font-mono font-bold text-[10px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                        {s.code}
+                      </span>
+                      <span className="font-bold text-xs truncate">{s.shipTo}</span>
+                      {s.isActive === false && (
+                        <span className="text-[9px] text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
+                          Archived
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center justify-between">
+                      <span>{s.customerName}</span>
+                      <span className="font-mono text-[10px] text-slate-400">Net {s.termsDays || s.creditTermsDays || 15}d</span>
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
+                  )}
+                </button>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function NewDeliveryPage() {
   const router = useRouter();
@@ -473,10 +580,9 @@ export default function NewDeliveryPage() {
                     <span>+ New Store</span>
                   </button>
                 </div>
-                <select
+                <StoreSelect
                   value={selectedStoreCode}
-                  onChange={(e) => {
-                    const newCode = e.target.value;
+                  onChange={(newCode) => {
                     setSelectedStoreCode(newCode);
                     const selected = stores.find((s) => s.code === newCode);
                     if (selected) {
@@ -485,16 +591,8 @@ export default function NewDeliveryPage() {
                       setDueDate(calculateDueDate(invoiceDate, terms));
                     }
                   }}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                >
-                  {stores
-                    .filter((s) => s.isActive !== false || s.code === selectedStoreCode)
-                    .map((s) => (
-                      <option key={s.code} value={s.code}>
-                        {s.code} - {s.shipTo} {s.isActive === false ? '(Archived)' : ''}
-                      </option>
-                    ))}
-                </select>
+                  stores={stores}
+                />
                 <div className="mt-1.5 text-[11px] text-slate-600 flex items-center justify-between">
                   <span className="font-semibold truncate max-w-[180px]">{currentStore.customerName}</span>
                   <span className="font-mono text-slate-500">Terms: Net {currentStore.termsDays || currentStore.creditTermsDays || 15}d</span>
