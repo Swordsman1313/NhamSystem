@@ -395,25 +395,16 @@ export default function BatchCostingPage() {
     );
   }, [linkedInvoices]);
 
-  // Apply / Sync revenue from today's delivery invoices to batch record
-  const handleApplyRevenue = () => {
+  const syncInvoicedRevenue = () => {
     if (totalDeliveredRevenueUSD === 0) {
-      showToast('No invoices found for this date to apply revenue.');
+      showToast('No invoices found for this date to sync revenue.');
       return;
     }
     const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
     setDeliveryRevenueInputUSD(rev);
     setRevenueApplied(true);
-    showToast(`Invoiced revenue (${formatUSD(rev)}) applied to batch record!`);
-
-    // Smooth scroll to reconciliation card
-    const card = document.getElementById('profit-reconciliation-card');
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+    showToast(`Synced ${formatUSD(rev)} from today's delivery invoices`);
   };
-
-  const syncInvoicedRevenue = handleApplyRevenue;
 
   // Auto-calculate Total Invoiced Units: Sum of boxes across those invoices
   const totalInvoicedUnits = React.useMemo(() => {
@@ -562,8 +553,8 @@ export default function BatchCostingPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Save Batch to Ledger
-  const handleSaveBatch = () => {
+  // Save Batch to Ledger & History Table
+  const handleSaveBatchWithRevenue = (appliedRevUSD?: number) => {
     if (totalBoxesYielded === 0) {
       setAlertModal({
         isOpen: true,
@@ -573,6 +564,13 @@ export default function BatchCostingPage() {
       return;
     }
 
+    const rev = appliedRevUSD !== undefined
+      ? appliedRevUSD
+      : (totalDeliveredRevenueUSD > 0 ? Number(totalDeliveredRevenueUSD.toFixed(2)) : effectiveRevenueUSD);
+
+    setDeliveryRevenueInputUSD(rev);
+    setRevenueApplied(true);
+
     const yieldList: BatchYieldItem[] = products
       .filter((p) => (yieldInputs[p.barcode] || 0) > 0)
       .map((p) => ({
@@ -581,6 +579,10 @@ export default function BatchCostingPage() {
         khmerName: p.khmerName,
         boxes: yieldInputs[p.barcode] || 0,
       }));
+
+    const calcNetProfitUSD = Number((rev - totalProductionCostUSD).toFixed(2));
+    const calcNetProfitKHR = Math.round((rev - totalProductionCostUSD) * exchangeRate);
+    const calcGrossMarginPercent = rev > 0 ? Number(((calcNetProfitUSD / rev) * 100).toFixed(1)) : 0;
 
     const newRecord: BatchCostRecord = {
       id: `batch-${Date.now()}`,
@@ -600,10 +602,10 @@ export default function BatchCostingPage() {
       fuelSharePerBoxKHR,
       landedUnitCostKHR,
       landedUnitCostUSD,
-      deliveryRevenueUSD: effectiveRevenueUSD,
-      netProfitUSD,
-      netProfitKHR,
-      grossMarginPercent,
+      deliveryRevenueUSD: rev,
+      netProfitUSD: calcNetProfitUSD,
+      netProfitKHR: calcNetProfitKHR,
+      grossMarginPercent: calcGrossMarginPercent,
       createdAt: new Date().toISOString(),
       notes,
     };
@@ -614,7 +616,21 @@ export default function BatchCostingPage() {
     setLastAutoSaved(null);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
+
+    showToast(`✓ Batch ${newRecord.batchNumber} saved & logged to Production History!`);
+
+    // Smooth scroll down to the history table so the user sees the new row immediately!
+    const table = document.getElementById('batch-history-table');
+    if (table) {
+      table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
+
+  const handleSaveBatch = () => handleSaveBatchWithRevenue();
+  const handleApplyRevenue = () =>
+    handleSaveBatchWithRevenue(
+      totalDeliveredRevenueUSD > 0 ? Number(totalDeliveredRevenueUSD.toFixed(2)) : undefined
+    );
 
   const handleDeleteBatch = (id: string, num: string) => {
     setDeleteConfirm({
@@ -1127,27 +1143,27 @@ export default function BatchCostingPage() {
               </div>
             </div>
 
-            {/* Action Strip: Apply Revenue Button */}
+            {/* Action Strip: Apply Revenue & Save to History Button */}
             <div className="relative z-10 mt-3 pt-2.5 border-t border-emerald-800/40 flex items-center justify-start">
               <button
                 type="button"
                 onClick={handleApplyRevenue}
-                disabled={totalDeliveredRevenueUSD === 0}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer whitespace-nowrap ${
-                  revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
+                disabled={totalBoxesYielded === 0}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer whitespace-nowrap ${
+                  batches.some((b) => (b.date || '').startsWith(batchDate))
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-white ring-2 ring-emerald-300/40'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
                 } disabled:opacity-40 disabled:cursor-not-allowed`}
               >
-                {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
+                {batches.some((b) => (b.date || '').startsWith(batchDate)) ? (
                   <>
-                    <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-100" />
-                    <span>Revenue Applied ({formatUSD(totalDeliveredRevenueUSD)})</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-100" />
+                    <span>Batch Logged to History ({formatUSD(effectiveRevenueUSD)}) ✓</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Apply Revenue ({formatUSD(totalDeliveredRevenueUSD)}) to Batch Record</span>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Apply Revenue &amp; Save to History ({formatUSD(totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : effectiveRevenueUSD)})</span>
                   </>
                 )}
               </button>
@@ -1337,7 +1353,10 @@ export default function BatchCostingPage() {
       </div>
 
       {/* Production Batches Log History Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8">
+      <div
+        id="batch-history-table"
+        className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mt-8 scroll-mt-6"
+      >
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h2 className="text-base font-bold text-slate-900">
