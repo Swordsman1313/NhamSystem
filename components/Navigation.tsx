@@ -237,17 +237,8 @@ export default function Navigation() {
           ))}
         </div>
 
-        {/* Bottom Footer: Exchange Rate, Quick Action & System Status */}
+        {/* Bottom Footer: Exchange Rate & System Status */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/60 space-y-3">
-          {/* Quick Create Invoice Button */}
-          <Link
-            href="/deliveries/new"
-            className="w-full inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition transform active:scale-95 text-xs"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>+ Create Delivery DO</span>
-          </Link>
-
           {/* Exchange Rate Badge */}
           <Link
             href="/settings"
@@ -393,17 +384,7 @@ export default function Navigation() {
               ))}
             </div>
 
-            {/* Drawer Bottom */}
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <Link
-                href="/deliveries/new"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-xs"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ Create Delivery DO</span>
-              </Link>
-            </div>
+
           </div>
         </div>
       )}

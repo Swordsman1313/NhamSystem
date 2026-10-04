@@ -1,8 +1,22 @@
 'use client';
 
-import React from 'react';
 import { Invoice, SupplierProfile } from '@/lib/types';
-import { formatDateDisplay } from '@/lib/storage';
+
+const formatDisplayDate = (date: Date | string) => {
+  if (!date) return '';
+  let d: Date;
+  if (typeof date === 'string' && date.includes('-')) {
+    const parts = date.split('T')[0].split('-').map(Number);
+    d = new Date(parts[0], parts[1] - 1, parts[2]);
+  } else {
+    d = new Date(date);
+  }
+  const day = d.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
 
 interface DeliveryNoteProps {
   invoice: Invoice;
@@ -56,14 +70,14 @@ export default function DeliveryNote({
           </div>
           <div>
             <span className="font-khmer font-bold">កាលបរិច្ឆេទ / Delivery Date: </span>
-            <span className="font-bold ml-1">
-              {formatDateDisplay(invoice.invoiceDate)}
+            <span className="font-bold ml-1 font-mono">
+              {formatDisplayDate(invoice.invoiceDate)}
             </span>
           </div>
           <div>
             <span className="font-khmer font-bold">លក្ខខណ្ឌទូទាត់ / Credit Terms: </span>
-            <span className="font-bold ml-1">
-              {formatDateDisplay(invoice.dueDate)}
+            <span className="font-bold ml-1 font-mono">
+              {formatDisplayDate(invoice.dueDate)}
             </span>
           </div>
         </div>
@@ -108,7 +122,7 @@ export default function DeliveryNote({
               Item Name / មុខទំនិញ
             </th>
             <th className="border border-black py-1.5 px-4 text-center font-bold w-24">
-              UOM
+              UOM (Pcs)
             </th>
             <th className="border border-black py-1.5 px-4 text-center font-bold w-24">
               QTY
@@ -165,14 +179,14 @@ export default function DeliveryNote({
       </table>
 
       {/* 5. Dual Signature Section */}
-      <div className="grid grid-cols-2 gap-12 pt-12 text-center text-[10.5px]">
+      <div className="grid grid-cols-2 gap-12 pt-8 text-center text-[10.5px]">
         {/* Buyer Signature */}
         <div>
           <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកទិញ</p>
           <p className="font-bold text-[10px]">Buyer&apos;s Signature and Name</p>
-          <div className="h-20"></div>
+          <div className="h-16"></div>
           <p className="font-khmer text-[10px] text-slate-800">
-            កាលបរិច្ឆេទ / Date: ............/............/............
+            កាលបរិច្ឆេទ / Date: _____ / _____ / _________
           </p>
         </div>
 
@@ -180,9 +194,9 @@ export default function DeliveryNote({
         <div>
           <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកដឹក</p>
           <p className="font-bold text-[10px]">Delivery&apos;s Signature and Name</p>
-          <div className="h-20"></div>
+          <div className="h-16"></div>
           <p className="font-khmer text-[10px] text-slate-800">
-            កាលបរិច្ឆេទ / Date: ............/............/............
+            កាលបរិច្ឆេទ / Date: _____ / _____ / _________
           </p>
         </div>
       </div>

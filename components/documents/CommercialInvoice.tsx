@@ -1,9 +1,23 @@
 'use client';
 
-import React from 'react';
 import { Invoice, SupplierProfile } from '@/lib/types';
-import { formatDateDisplay } from '@/lib/storage';
 import AbaQrCode from './AbaQrCode';
+
+const formatDisplayDate = (date: Date | string) => {
+  if (!date) return '';
+  let d: Date;
+  if (typeof date === 'string' && date.includes('-')) {
+    const parts = date.split('T')[0].split('-').map(Number);
+    d = new Date(parts[0], parts[1] - 1, parts[2]);
+  } else {
+    d = new Date(date);
+  }
+  const day = d.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
 
 interface CommercialInvoiceProps {
   invoice: Invoice;
@@ -62,14 +76,14 @@ export default function CommercialInvoice({
           </div>
           <div>
             <span className="font-khmer font-bold">កាលបរិច្ឆេទ / Invoice Date: </span>
-            <span className="font-bold ml-1">
-              {formatDateDisplay(invoice.invoiceDate)}
+            <span className="font-bold ml-1 font-mono">
+              {formatDisplayDate(invoice.invoiceDate)}
             </span>
           </div>
           <div>
             <span className="font-khmer font-bold">លក្ខខណ្ឌទូទាត់ / Credit Terms: </span>
-            <span className="font-bold ml-1">
-              {formatDateDisplay(invoice.dueDate)}
+            <span className="font-bold ml-1 font-mono">
+              {formatDisplayDate(invoice.dueDate)}
             </span>
           </div>
         </div>
@@ -113,17 +127,17 @@ export default function CommercialInvoice({
             <th className="border border-black py-1.5 px-3 text-center font-bold">
               Item Name / មុខទំនិញ
             </th>
-            <th className="border border-black py-1.5 px-2 text-center font-bold w-14">
-              UOM
+            <th className="border border-black py-1.5 px-2 text-center font-bold w-16">
+              UOM (Pcs)
             </th>
             <th className="border border-black py-1.5 px-2 text-center font-bold w-14">
               QTY
             </th>
             <th className="border border-black py-1.5 px-3 text-center font-bold w-24">
-              Unit Price
+              Unit Price ($)
             </th>
             <th className="border border-black py-1.5 px-3 text-center font-bold w-28">
-              Total Amount
+              Total Amount ($)
             </th>
           </tr>
         </thead>
@@ -210,9 +224,9 @@ export default function CommercialInvoice({
         <div>
           <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកទិញ</p>
           <p className="font-bold text-[10px]">Buyer&apos;s Signature and Name</p>
-          <div className="h-16"></div>
+          <div className="h-14"></div>
           <p className="font-khmer text-[10px] text-slate-800">
-            កាលបរិច្ឆេទ / Date: ............/............/............
+            កាលបរិច្ឆេទ / Date: _____ / _____ / _________
           </p>
         </div>
 
@@ -220,9 +234,9 @@ export default function CommercialInvoice({
         <div>
           <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកលក់</p>
           <p className="font-bold text-[10px]">Seller&apos;s Signature and Name</p>
-          <div className="h-16"></div>
+          <div className="h-14"></div>
           <p className="font-khmer text-[10px] text-slate-800">
-            កាលបរិច្ឆេទ / Date: ............/............/............
+            កាលបរិច្ឆេទ / Date: _____ / _____ / _________
           </p>
         </div>
       </div>

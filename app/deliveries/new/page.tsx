@@ -23,7 +23,24 @@ import {
   AlertTriangle,
   Boxes,
   Tag,
+  X,
 } from 'lucide-react';
+
+const formatDisplayDate = (date: Date | string) => {
+  if (!date) return '';
+  let d: Date;
+  if (typeof date === 'string' && date.includes('-')) {
+    const parts = date.split('T')[0].split('-').map(Number);
+    d = new Date(parts[0], parts[1] - 1, parts[2]);
+  } else {
+    d = new Date(date);
+  }
+  const day = d.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
 import {
   getProducts,
   getStores,
@@ -81,6 +98,7 @@ export default function NewDeliveryPage() {
   // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do'
   const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do'>('edit');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Initialize on mount
   useEffect(() => {
@@ -218,13 +236,15 @@ export default function NewDeliveryPage() {
     const deductedItems = deductForInvoice(lineItems);
     const invoiceToSave: Invoice = {
       ...currentInvoiceData,
+      status: 'pending',
       deductedItems,
     };
     addInvoice(invoiceToSave);
     setSavedSuccess(true);
+    setToastMessage(`Invoice ${invoiceToSave.invoiceNumber} saved to ledger and packaging stock deducted.`);
     setTimeout(() => {
       router.push('/deliveries');
-    }, 1200);
+    }, 1500);
   };
 
   // Save to persistent storage with packaging stock pre-flight check
@@ -289,23 +309,35 @@ export default function NewDeliveryPage() {
               Order Form
             </button>
             <button
-              onClick={() => setActiveTab('preview_invoice')}
+              onClick={() => {
+                if (totalQuantity > 0) setActiveTab('preview_invoice');
+              }}
+              disabled={totalQuantity === 0}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 activeTab === 'preview_invoice'
                   ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : totalQuantity > 0
+                  ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/60 cursor-pointer'
+                  : 'text-slate-400 cursor-not-allowed opacity-60'
               }`}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Commercial Invoice'}
             >
               <FileText className="w-3.5 h-3.5" />
               <span>Commercial Invoice</span>
             </button>
             <button
-              onClick={() => setActiveTab('preview_do')}
+              onClick={() => {
+                if (totalQuantity > 0) setActiveTab('preview_do');
+              }}
+              disabled={totalQuantity === 0}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 activeTab === 'preview_do'
                   ? 'bg-brand-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : totalQuantity > 0
+                  ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/60 cursor-pointer'
+                  : 'text-slate-400 cursor-not-allowed opacity-60'
               }`}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Delivery Note'}
             >
               <Truck className="w-3.5 h-3.5" />
               <span>Delivery Note (DO)</span>
@@ -327,8 +359,8 @@ export default function NewDeliveryPage() {
             disabled={totalQuantity === 0}
             className={`inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition shadow-xs ${
               totalQuantity > 0
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
             }`}
           >
             {savedSuccess ? (
@@ -345,6 +377,29 @@ export default function NewDeliveryPage() {
           </button>
         </div>
       </div>
+
+      {/* Floating Success Toast Notification */}
+      {toastMessage && (
+        <div className="no-print p-4 rounded-2xl bg-emerald-950 text-white shadow-2xl flex items-center justify-between border border-emerald-700 animate-in fade-in slide-in-from-top-3 duration-200 z-50 fixed top-6 right-6 max-w-md">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-800 flex items-center justify-center text-emerald-300 shrink-0">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                Ledger Updated &amp; Stock-Out
+              </div>
+              <div className="text-sm font-semibold">{toastMessage}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-400 hover:text-white p-1.5 rounded-lg"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Main Content: Edit Form OR Printable A4 Document Preview */}
       {activeTab === 'edit' ? (
@@ -400,8 +455,9 @@ export default function NewDeliveryPage() {
                   onChange={(e) => handleDateChange(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Defaults to current date
+                <span className="text-xs text-emerald-800 font-bold font-mono mt-1.5 flex items-center space-x-1">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600 inline shrink-0" />
+                  <span>{formatDisplayDate(invoiceDate)}</span>
                 </span>
               </div>
 
@@ -418,8 +474,9 @@ export default function NewDeliveryPage() {
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
                 </div>
-                <span className="text-[10px] text-emerald-800 font-medium mt-1 block">
-                  Auto: {invoiceDate} + {creditTermsDays} days
+                <span className="text-xs text-emerald-800 font-bold font-mono mt-1.5 flex items-center space-x-1">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600 inline shrink-0" />
+                  <span>{formatDisplayDate(dueDate)} (Net {creditTermsDays})</span>
                 </span>
               </div>
             </div>
@@ -473,10 +530,10 @@ export default function NewDeliveryPage() {
                 <button
                   type="button"
                   onClick={handleAddCustomItem}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs border border-amber-300 transition"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs border border-amber-300 transition shadow-2xs"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Add Custom Item</span>
+                  <Plus className="w-4 h-4 mr-1 text-amber-700" />
+                  <span>Add Custom Item</span>
                 </button>
               </div>
             </div>
