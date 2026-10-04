@@ -6,6 +6,7 @@ import {
   BatchCostRecord,
   PackagingItem,
   BOMItem,
+  CostingDraft,
 } from './types';
 import {
   INITIAL_PRODUCTS,
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'nhamnham_ops_settings',
   INVOICES: 'nhamnham_ops_invoices',
   BATCHES: 'nhamnham_ops_batches',
+  COSTING_DRAFT: 'nhamnham_ops_costing_draft',
 };
 
 // Safe client-side storage access
@@ -608,4 +610,37 @@ export function resetAllData(): void {
   saveProducts(INITIAL_PRODUCTS);
   saveInvoices(INITIAL_INVOICES);
   saveBatches(INITIAL_BATCH_COSTS);
+  clearCostingDraft();
 }
+
+// In-progress Batch Costing Draft (Auto-Save)
+export function getCostingDraft(): CostingDraft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.COSTING_DRAFT);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('Error reading costing draft:', err);
+    return null;
+  }
+}
+
+export function saveCostingDraft(draft: CostingDraft): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.COSTING_DRAFT, JSON.stringify(draft));
+  } catch (err) {
+    console.error('Error saving costing draft:', err);
+  }
+}
+
+export function clearCostingDraft(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEYS.COSTING_DRAFT);
+  } catch (err) {
+    console.error('Error clearing costing draft:', err);
+  }
+}
+

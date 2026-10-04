@@ -143,3 +143,16 @@ export interface InventoryItem {
   lowStockThreshold: number;
   barcodeRef?: string; // Links stickers to product barcode
 }
+
+export interface CostingDraft {
+  batchDate: string;
+  marketSpendKHR: number;
+  fuelExpenseKHR: number;
+  notes: string;
+  yieldInputs: Record<string, number>;
+  deliveryRevenueInputUSD: number;
+  useDynamicBOM: boolean;
+  manualBOMOverrideKHR: number;
+  revenueApplied?: boolean;
+  updatedAt: string;
+}

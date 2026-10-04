@@ -22,6 +22,7 @@ import {
   Receipt,
   ExternalLink,
   Eye,
+  Check,
 } from 'lucide-react';
 import {
   getProducts,
@@ -37,8 +38,11 @@ import {
   getPackagingItems,
   getInvoices,
   saveInvoices,
+  getCostingDraft,
+  saveCostingDraft,
+  clearCostingDraft,
 } from '@/lib/storage';
-import { Product, AppSettings, BatchCostRecord, BatchYieldItem, PackagingItem, Invoice } from '@/lib/types';
+import { Product, AppSettings, BatchCostRecord, BatchYieldItem, PackagingItem, Invoice, CostingDraft } from '@/lib/types';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function BatchCostingPage() {
@@ -75,6 +79,8 @@ export default function BatchCostingPage() {
   const [yieldInputs, setYieldInputs] = useState<Record<string, number>>({});
   const [deliveryRevenueInputUSD, setDeliveryRevenueInputUSD] = useState<number>(75.78);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [revenueApplied, setRevenueApplied] = useState(false);
+  const [lastAutoSaved, setLastAutoSaved] = useState<string | null>(null);
 
   // Helper to extract SKU packed quantities from delivery invoices on a specific date
   const getInvoiceSKUQuantities = (
@@ -103,6 +109,8 @@ export default function BatchCostingPage() {
     return counts;
   };
 
+  const isLoadedRef = React.useRef(false);
+
   const loadData = () => {
     const p = getProducts();
     const pkg = getPackagingItems();
@@ -115,24 +123,77 @@ export default function BatchCostingPage() {
     setBatches(b);
     setInvoices(inv);
 
-    // Link SKU yield quantities directly from delivery invoices by default
-    setYieldInputs((curr) => {
-      if (Object.keys(curr).length === 0) {
-        return getInvoiceSKUQuantities(batchDate, inv, p);
+    // If an in-progress auto-saved draft exists, restore it directly!
+    const draft = getCostingDraft();
+    if (draft && !isLoadedRef.current) {
+      if (draft.batchDate) setBatchDate(draft.batchDate);
+      if (draft.marketSpendKHR !== undefined) setMarketSpendKHR(draft.marketSpendKHR);
+      if (draft.fuelExpenseKHR !== undefined) setFuelExpenseKHR(draft.fuelExpenseKHR);
+      if (draft.notes !== undefined) setNotes(draft.notes);
+      if (draft.manualBOMOverrideKHR !== undefined) setManualBOMOverrideKHR(draft.manualBOMOverrideKHR);
+      if (draft.useDynamicBOM !== undefined) setUseDynamicBOM(draft.useDynamicBOM);
+      if (draft.deliveryRevenueInputUSD !== undefined) setDeliveryRevenueInputUSD(draft.deliveryRevenueInputUSD);
+      if (draft.revenueApplied !== undefined) setRevenueApplied(draft.revenueApplied);
+      if (draft.yieldInputs && Object.keys(draft.yieldInputs).length > 0) {
+        setYieldInputs(draft.yieldInputs);
+      } else {
+        setYieldInputs(getInvoiceSKUQuantities(draft.batchDate || batchDate, inv, p));
       }
-      return curr;
-    });
+      setLastAutoSaved(draft.updatedAt || 'Restored');
+      isLoadedRef.current = true;
+      return;
+    }
 
-    // Also link delivery revenue from invoices if available
-    const dayInvoices = inv.filter((item) => {
-      const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
-      return invDate === batchDate;
-    });
-    const dayRevenue = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
-    if (dayRevenue > 0) {
-      setDeliveryRevenueInputUSD(Number(dayRevenue.toFixed(2)));
+    if (!isLoadedRef.current) {
+      // Link SKU yield quantities directly from delivery invoices by default
+      setYieldInputs((curr) => {
+        if (Object.keys(curr).length === 0) {
+          return getInvoiceSKUQuantities(batchDate, inv, p);
+        }
+        return curr;
+      });
+
+      const dayInvoices = inv.filter((item) => {
+        const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
+        return invDate === batchDate;
+      });
+      const dayRevenue = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
+      if (dayRevenue > 0) {
+        setDeliveryRevenueInputUSD(Number(dayRevenue.toFixed(2)));
+      }
+      isLoadedRef.current = true;
     }
   };
+
+  // Auto-Save in-progress inputs to draft so user never loses work when navigating or refreshing
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const draft: CostingDraft = {
+      batchDate,
+      marketSpendKHR,
+      fuelExpenseKHR,
+      notes,
+      yieldInputs,
+      deliveryRevenueInputUSD,
+      useDynamicBOM,
+      manualBOMOverrideKHR,
+      revenueApplied,
+      updatedAt: now,
+    };
+    saveCostingDraft(draft);
+    setLastAutoSaved(now);
+  }, [
+    batchDate,
+    marketSpendKHR,
+    fuelExpenseKHR,
+    notes,
+    yieldInputs,
+    deliveryRevenueInputUSD,
+    useDynamicBOM,
+    manualBOMOverrideKHR,
+    revenueApplied,
+  ]);
 
   const handleDateChange = (newDate: string) => {
     setBatchDate(newDate);
@@ -140,6 +201,7 @@ export default function BatchCostingPage() {
     const inv = invoices.length > 0 ? invoices : getInvoices();
     const invoicedYields = getInvoiceSKUQuantities(newDate, inv, p);
     setYieldInputs(invoicedYields);
+    setRevenueApplied(false);
 
     const dayInvoices = inv.filter((item) => {
       const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
@@ -163,24 +225,52 @@ export default function BatchCostingPage() {
     if (dayRevenue > 0) {
       setDeliveryRevenueInputUSD(Number(dayRevenue.toFixed(2)));
     }
+    setRevenueApplied(true);
+  };
+
+  const handleApplyRevenue = () => {
+    const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
+    setDeliveryRevenueInputUSD(rev);
+    setRevenueApplied(true);
+  };
+
+  const handleResetDraft = () => {
+    clearCostingDraft();
+    setBatchDate(getTodayDateString());
+    setMarketSpendKHR(90000);
+    setFuelExpenseKHR(8000);
+    setNotes('Morning wholesale fruit purchase from Phsar Derm Kor');
+    setRevenueApplied(false);
+    const p = products.length > 0 ? products : getProducts();
+    const inv = invoices.length > 0 ? invoices : getInvoices();
+    setYieldInputs(getInvoiceSKUQuantities(getTodayDateString(), inv, p));
+    const dayInvoices = inv.filter((item) => (item.invoiceDate || '').startsWith(getTodayDateString()));
+    const dayRev = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
+    setDeliveryRevenueInputUSD(dayRev > 0 ? Number(dayRev.toFixed(2)) : 44.5);
+    setLastAutoSaved(null);
   };
 
   useEffect(() => {
     loadData();
-    const handleUpdate = () => loadData();
+    const handleUpdate = () => {
+      // Re-fetch products, packaging, and invoices without wiping user's typed inputs
+      setProducts(getProducts());
+      setPackagingItems(getPackagingItems());
+      setSettings(getSettings());
+      setBatches(getBatches());
+      setInvoices(getInvoices());
+    };
     window.addEventListener('products_updated', handleUpdate);
     window.addEventListener('packaging_updated', handleUpdate);
     window.addEventListener('inventory_updated', handleUpdate);
     window.addEventListener('invoices_updated', handleUpdate);
     window.addEventListener('batches_updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('products_updated', handleUpdate);
       window.removeEventListener('packaging_updated', handleUpdate);
       window.removeEventListener('inventory_updated', handleUpdate);
       window.removeEventListener('invoices_updated', handleUpdate);
       window.removeEventListener('batches_updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
     };
   }, []);
 
@@ -495,6 +585,8 @@ export default function BatchCostingPage() {
 
     addBatch(newRecord);
     setBatches(getBatches());
+    clearCostingDraft();
+    setLastAutoSaved(null);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -525,27 +617,46 @@ export default function BatchCostingPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleSaveBatch}
-          disabled={totalBoxesYielded === 0}
-          className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-xs transition ${
-            totalBoxesYielded > 0
-              ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          {savedSuccess ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-white" />
-              <span>Batch Saved to Log!</span>
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              <span>Save Batch Calculation</span>
-            </>
+        <div className="flex items-center space-x-3">
+          {lastAutoSaved && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium inline-flex items-center">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 mr-1" />
+                <span>Auto-saved ({lastAutoSaved})</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleResetDraft}
+                className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 hover:underline px-2 py-1 cursor-pointer"
+                title="Discard current draft and reset inputs"
+              >
+                Reset Inputs
+              </button>
+            </div>
           )}
-        </button>
+
+          <button
+            onClick={handleSaveBatch}
+            disabled={totalBoxesYielded === 0}
+            className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-xs transition ${
+              totalBoxesYielded > 0
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            {savedSuccess ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>Batch Saved to Log!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Save Batch Calculation</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Breadcrumb Navigation Header */}
@@ -998,16 +1109,25 @@ export default function BatchCostingPage() {
             <div className="relative z-10 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t border-emerald-800/40">
               <button
                 type="button"
-                onClick={() => {
-                  setDeliveryRevenueInputUSD(Number(totalDeliveredRevenueUSD.toFixed(2)));
-                }}
+                onClick={handleApplyRevenue}
                 disabled={totalDeliveredRevenueUSD === 0}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center space-x-1 shadow-xs"
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer ${
+                  revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white ring-2 ring-emerald-300/40'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>
-                  Apply Revenue ({formatUSD(totalDeliveredRevenueUSD)}) to Batch Record
-                </span>
+                {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-100" />
+                    <span>Revenue Applied ({formatUSD(totalDeliveredRevenueUSD)}) ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Apply Revenue ({formatUSD(totalDeliveredRevenueUSD)}) to Batch Record</span>
+                  </>
+                )}
               </button>
 
               <Link
@@ -1088,29 +1208,60 @@ export default function BatchCostingPage() {
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Run Profit Reconciliation
               </span>
-              <button
-                type="button"
-                onClick={handleAutoFillRevenue}
-                className="text-xs font-bold text-emerald-700 hover:underline flex items-center space-x-1"
-                title="Calculate revenue from catalog wholesale prices"
-              >
-                <Sparkles className="w-3 h-3 text-emerald-600" />
-                <span>Auto-Calc (${catalogExpectedRevenueUSD.toFixed(2)})</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                {totalDeliveredRevenueUSD > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleApplyRevenue}
+                    className={`text-xs font-bold flex items-center space-x-1 px-2 py-0.5 rounded transition cursor-pointer ${
+                      revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
+                        ? 'bg-emerald-100 text-emerald-800 font-bold'
+                        : 'text-emerald-700 hover:bg-emerald-50'
+                    }`}
+                    title="Apply invoiced revenue to reconciliation"
+                  >
+                    {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
+                      <Check className="w-3 h-3 text-emerald-700 stroke-[3]" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 text-emerald-600" />
+                    )}
+                    <span>Invoices (${totalDeliveredRevenueUSD.toFixed(2)})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleAutoFillRevenue}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 hover:underline flex items-center space-x-1 cursor-pointer"
+                  title="Calculate revenue from catalog wholesale prices"
+                >
+                  <span>Wholesale (${catalogExpectedRevenueUSD.toFixed(2)})</span>
+                </button>
+              </div>
             </div>
 
             {/* Delivery Revenue Input */}
             <div className="mt-4">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Estimated Delivery Revenue ($ USD)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Estimated Delivery Revenue ($ USD)
+                </label>
+                {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 && (
+                  <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    <span>Applied from Invoices</span>
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="number"
                   step="0.5"
                   min="0"
                   value={deliveryRevenueInputUSD}
-                  onChange={(e) => setDeliveryRevenueInputUSD(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    setDeliveryRevenueInputUSD(parseFloat(e.target.value) || 0);
+                    setRevenueApplied(false);
+                  }}
                   className="w-full text-base font-mono font-bold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
