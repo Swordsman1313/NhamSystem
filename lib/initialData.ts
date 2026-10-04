@@ -52,7 +52,7 @@ export const INITIAL_PRODUCTS: (Product & { subtitle?: string })[] = [
     wholesalePriceUSD: 1.00,
     bom: [
       { packagingItemId: 'box-big-300g', quantity: 1 },
-      { packagingItemId: 'sticker-sweet-melon', quantity: 1 },
+      { packagingItemId: 'sticker-2016800000025', quantity: 1 },
       { packagingItemId: 'skewer-wood', quantity: 1 },
     ],
   },

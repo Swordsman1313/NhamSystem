@@ -38,6 +38,7 @@ import {
   getPackagingItems,
   deletePackagingItem,
   getProducts,
+  saveProducts,
   addProduct,
   updateProduct,
   deleteProduct,
@@ -111,9 +112,43 @@ export default function ProductBOMBuilderPage() {
   };
 
   const loadData = () => {
-    const loadedProducts = getProducts();
+    let loadedProducts = getProducts();
     const loadedPackaging = getPackagingItems();
     const loadedSettings = getSettings();
+
+    // Ensure 300g products default to box-big-300g (500 Riel) and aligned sticker IDs
+    let productsUpdated = false;
+    loadedProducts = loadedProducts.map((p) => {
+      const is300g =
+        p.barcode === '2016800000025' ||
+        p.barcode === '2016800000049' ||
+        p.barcode === '2016800000117' ||
+        (p.nameEn || p.name || '').toLowerCase().includes('300g');
+      if (is300g && p.bom) {
+        let bomChanged = false;
+        const newBom = p.bom.map((item) => {
+          if (item.packagingItemId === 'box-small-std') {
+            bomChanged = true;
+            return { ...item, packagingItemId: 'box-big-300g' };
+          }
+          if (p.barcode === '2016800000025' && item.packagingItemId === 'sticker-sweet-melon') {
+            bomChanged = true;
+            return { ...item, packagingItemId: 'sticker-2016800000025' };
+          }
+          return item;
+        });
+        if (bomChanged) {
+          productsUpdated = true;
+          return { ...p, bom: newBom };
+        }
+      }
+      return p;
+    });
+
+    if (productsUpdated) {
+      saveProducts(loadedProducts);
+    }
+
     setProducts(loadedProducts);
     setPackagingItems(loadedPackaging);
     setExchangeRate(loadedSettings.exchangeRate || 4050);
@@ -139,6 +174,21 @@ export default function ProductBOMBuilderPage() {
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
+
+  const isItemInBOM = (bom: BOMItem[] | undefined, pkg: PackagingItem) => {
+    if (!bom) return undefined;
+    return bom.find((b) => {
+      if (b.packagingItemId === pkg.id) return true;
+      if (pkg.barcodeRef && b.packagingItemId === `sticker-${pkg.barcodeRef}`) return true;
+      if (
+        (pkg.id === 'sticker-sweet-melon' || pkg.id === 'sticker-2016800000025' || pkg.barcodeRef === '2016800000025') &&
+        (b.packagingItemId === 'sticker-sweet-melon' || b.packagingItemId === 'sticker-2016800000025')
+      ) {
+        return true;
+      }
+      return false;
+    });
+  };
 
   const packagingMap = useMemo(() => {
     const map = new Map<string, PackagingItem>(packagingItems.map((p) => [p.id, p]));
@@ -265,10 +315,13 @@ export default function ProductBOMBuilderPage() {
   const handleAdjustItemQty = (packagingItemId: string, delta: number) => {
     if (!selectedProduct) return;
     const currentBOM = selectedProduct.bom ? [...selectedProduct.bom] : [];
-    const itemIndex = currentBOM.findIndex((b) => b.packagingItemId === packagingItemId);
+    const pkg = packagingMap.get(packagingItemId);
+    const existing = isItemInBOM(currentBOM, pkg || ({ id: packagingItemId } as PackagingItem));
+    const targetId = existing ? existing.packagingItemId : packagingItemId;
+    const itemIndex = currentBOM.findIndex((b) => b.packagingItemId === targetId);
 
     if (itemIndex === -1 && delta > 0) {
-      handleUpdateActiveBOM([...currentBOM, { packagingItemId, quantity: 1 }]);
+      handleUpdateActiveBOM([...currentBOM, { packagingItemId: targetId, quantity: 1 }]);
       return;
     }
 
@@ -276,7 +329,7 @@ export default function ProductBOMBuilderPage() {
       const newQty = currentBOM[itemIndex].quantity + delta;
       if (newQty <= 0) {
         // Remove item
-        const filtered = currentBOM.filter((b) => b.packagingItemId !== packagingItemId);
+        const filtered = currentBOM.filter((b) => b.packagingItemId !== targetId);
         handleUpdateActiveBOM(filtered, 'Removed from recipe');
       } else {
         currentBOM[itemIndex] = { ...currentBOM[itemIndex], quantity: newQty };
@@ -289,8 +342,10 @@ export default function ProductBOMBuilderPage() {
   const handleRemoveFromBOM = (packagingItemId: string) => {
     if (!selectedProduct) return;
     const currentBOM = selectedProduct.bom ? [...selectedProduct.bom] : [];
-    const filtered = currentBOM.filter((b) => b.packagingItemId !== packagingItemId);
     const pkg = packagingMap.get(packagingItemId);
+    const existing = isItemInBOM(currentBOM, pkg || ({ id: packagingItemId } as PackagingItem));
+    const targetId = existing ? existing.packagingItemId : packagingItemId;
+    const filtered = currentBOM.filter((b) => b.packagingItemId !== targetId);
     handleUpdateActiveBOM(filtered, `Removed "${pkg?.name || packagingItemId}" from recipe`);
   };
 
@@ -298,20 +353,23 @@ export default function ProductBOMBuilderPage() {
   const handleAddToBOM = (packagingItemId: string) => {
     if (!selectedProduct) return;
     const currentBOM = selectedProduct.bom ? [...selectedProduct.bom] : [];
-    const exists = currentBOM.find((b) => b.packagingItemId === packagingItemId);
     const pkg = packagingMap.get(packagingItemId);
+    const existing = isItemInBOM(currentBOM, pkg || ({ id: packagingItemId } as PackagingItem));
 
-    if (exists) {
-      handleAdjustItemQty(packagingItemId, 1);
+    if (existing) {
+      handleAdjustItemQty(existing.packagingItemId, 1);
     } else {
-      handleUpdateActiveBOM([...currentBOM, { packagingItemId, quantity: 1 }], `Added "${pkg?.name || packagingItemId}" to recipe`);
+      handleUpdateActiveBOM(
+        [...currentBOM, { packagingItemId, quantity: 1 }],
+        `Added "${pkg?.name || packagingItemId}" to recipe`
+      );
     }
   };
 
   // Find matching sticker for a product
   const getMatchingStickerId = (prod: Product): string => {
     const stickerMap: Record<string, string> = {
-      '2016800000025': 'sticker-sweet-melon',
+      '2016800000025': 'sticker-2016800000025',
       '2016800000032': 'sticker-baby-mango',
       '2016800000049': 'sticker-jackfruit',
       '2016800000056': 'sticker-guava',
@@ -332,54 +390,6 @@ export default function ProductBOMBuilderPage() {
         p.name.toLowerCase().includes(prod.name.split(' ')[0].toLowerCase())
     );
     return nameMatch ? nameMatch.id : `sticker-${prod.barcode}`;
-  };
-
-  // 1-Click Preset: Standard Box Pack
-  const handleApplyStandardPreset = () => {
-    if (!selectedProduct) return;
-    const stickerId = getMatchingStickerId(selectedProduct);
-    const recipe: BOMItem[] = [
-      { packagingItemId: 'box-small-std', quantity: 1 },
-      { packagingItemId: stickerId, quantity: 1 },
-      { packagingItemId: 'skewer-wood', quantity: 1 },
-    ];
-    handleUpdateActiveBOM(recipe, 'Applied Standard Pack: 1x Small Box + 1x Skewer + 1x Sticker');
-  };
-
-  // 1-Click Preset: 300g Big Tub Pack
-  const handleApply300gPreset = () => {
-    if (!selectedProduct) return;
-    const stickerId = getMatchingStickerId(selectedProduct);
-    const recipe: BOMItem[] = [
-      { packagingItemId: 'box-big-300g', quantity: 1 },
-      { packagingItemId: stickerId, quantity: 1 },
-      { packagingItemId: 'skewer-wood', quantity: 1 },
-    ];
-    handleUpdateActiveBOM(recipe, 'Applied 300G Big Tub Pack: 1x Big Box + 1x Skewer + 1x Sticker');
-  };
-
-  // 1-Click Preset: Add Chili Salt Sachet
-  const handleToggleChiliSalt = () => {
-    if (!selectedProduct) return;
-    const currentBOM = selectedProduct.bom ? [...selectedProduct.bom] : [];
-    const hasChili = currentBOM.some((b) => b.packagingItemId === 'chili-salt-sachet');
-    if (hasChili) {
-      handleUpdateActiveBOM(
-        currentBOM.filter((b) => b.packagingItemId !== 'chili-salt-sachet'),
-        'Removed Chili Salt Dip'
-      );
-    } else {
-      handleUpdateActiveBOM(
-        [...currentBOM, { packagingItemId: 'chili-salt-sachet', quantity: 1 }],
-        'Added Chili Salt Dip (+50៛)'
-      );
-    }
-  };
-
-  // 1-Click Preset: Clear Recipe
-  const handleClearRecipe = () => {
-    if (!selectedProduct) return;
-    handleUpdateActiveBOM([], 'Cleared recipe ingredients');
   };
 
   // --- Quick Edit Product Details ---
@@ -559,18 +569,9 @@ export default function ProductBOMBuilderPage() {
       {/* Main Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold uppercase tracking-wider">
-              Recipe &amp; Packaging Studio
-            </span>
-            <span className="text-xs text-slate-500 font-mono">1$ = {exchangeRate.toLocaleString()}៛</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Products &amp; Packaging BOM Studio
           </h1>
-          <p className="text-xs text-slate-700 font-khmer mt-0.5">
-            គ្រប់គ្រងមុខទំនិញផ្លែឈើ និងកំណត់រូបមន្តវេចខ្ចប់ (BOM) ដោយភាពងាយស្រួល និងរហ័ស
-          </p>
         </div>
 
         {/* Quick Action Buttons & View Mode Toggle */}
@@ -605,13 +606,6 @@ export default function ProductBOMBuilderPage() {
             <span>New Fruit Product</span>
           </button>
         </div>
-      </div>
-
-      {/* Breadcrumb Navigation Header */}
-      <div className="flex items-center space-x-2 text-xs text-slate-500 pb-1">
-        <span className="font-semibold text-slate-700">Production &amp; Inventory</span>
-        <span>/</span>
-        <span className="font-bold text-slate-900">Products &amp; BOM Studio (រូបមន្តវេចខ្ចប់)</span>
       </div>
 
       {/* Interactive Recipe & BOM Studio (Split Workbench & Grid) */}
@@ -925,57 +919,6 @@ export default function ProductBOMBuilderPage() {
                       </div>
                     </div>
 
-                    {/* 1-Click Smart Recipe Presets Bar */}
-                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                        <span className="flex items-center space-x-1.5">
-                          <Zap className="w-3.5 h-3.5 text-amber-500" />
-                          <span>1-CLICK RECIPE PRESETS (ចុចកំណត់រូបមន្តភ្លាមៗ)</span>
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-normal">
-                          Fast template application
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={handleApplyStandardPreset}
-                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 border border-slate-300 hover:border-emerald-400 text-slate-800 text-xs font-bold shadow-2xs transition flex items-center space-x-1.5 group"
-                        >
-                          <Boxes className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Standard Pack (Small Box + Skewer + Sticker)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleApply300gPreset}
-                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50 border border-slate-300 hover:border-indigo-400 text-slate-800 text-xs font-bold shadow-2xs transition flex items-center space-x-1.5 group"
-                        >
-                          <Boxes className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>300G Big Tub Pack (Big Box + Skewer + Sticker)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleToggleChiliSalt}
-                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 border border-slate-300 hover:border-amber-400 text-slate-800 text-xs font-bold shadow-2xs transition flex items-center space-x-1.5"
-                        >
-                          <span>🧂 + Chili Dip Sachet</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleClearRecipe}
-                          className="px-2.5 py-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 text-xs font-bold transition ml-auto flex items-center space-x-1"
-                          title="Remove all ingredients"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Clear</span>
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Active Recipe Ingredients List */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -1086,7 +1029,7 @@ export default function ProductBOMBuilderPage() {
                           <Package className="w-8 h-8 text-slate-300 mx-auto" />
                           <div className="text-xs font-bold text-slate-700">No Packaging Materials in Recipe</div>
                           <p className="text-[11px] text-slate-400 font-khmer">
-                            ចុចលើ 1-Click Recipe Presets ខាងលើ ឬចុចជ្រើសរើសសម្ភារៈខាងក្រោមដើម្បីបញ្ចូល
+                            ចុចជ្រើសរើសសម្ភារៈខាងក្រោមដើម្បីបញ្ចូលទៅក្នុងរូបមន្ត
                           </p>
                         </div>
                       )}
@@ -1126,9 +1069,7 @@ export default function ProductBOMBuilderPage() {
                       {/* Material cards grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                         {availableMaterialsForStudio.map((pkg) => {
-                          const existingInBOM = selectedProduct.bom?.find(
-                            (b) => b.packagingItemId === pkg.id
-                          );
+                          const existingInBOM = isItemInBOM(selectedProduct.bom, pkg);
                           const isAttached = Boolean(existingInBOM);
                           const badge = getCategoryBadge(pkg.category);
 
@@ -1162,7 +1103,7 @@ export default function ProductBOMBuilderPage() {
 
                               {isAttached && (
                                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 shrink-0">
-                                  {existingInBOM?.quantity}x in BOM
+                                  ✓ {existingInBOM?.quantity}x in BOM
                                 </span>
                               )}
                             </div>
