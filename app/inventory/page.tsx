@@ -12,7 +12,6 @@ import {
   Filter,
   AlertTriangle,
   CheckCircle2,
-  RotateCcw,
   ArrowLeft,
   X,
   Plus,
@@ -31,7 +30,6 @@ import { InventoryItem, InventoryCategory, PackagingCategory, PackagingCategoryR
 import {
   getInventory,
   restockItem,
-  resetInventory,
 } from '@/lib/inventoryStore';
 import {
   getSettings,
@@ -197,9 +195,6 @@ export default function InventoryDashboardPage() {
 
   // Success Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Reset Confirm Modal
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   const openCreateMaterialModal = () => {
     setCreateName('');
@@ -384,14 +379,6 @@ export default function InventoryDashboardPage() {
     }
   };
 
-  // Reset to initial seed
-  const handleResetToSeed = () => {
-    resetInventory();
-    loadData();
-    setResetConfirmOpen(false);
-    triggerToast('Packaging inventory reset to initial factory seed values.');
-  };
-
   // Open edit material modal
   const openEditItem = (item: InventoryItem) => {
     setSelectedEditItem(item);
@@ -494,21 +481,9 @@ export default function InventoryDashboardPage() {
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
             Packaging Inventory &amp; Stock-Out
           </h1>
-          <p className="text-xs text-slate-700 font-khmer mt-0.5">
-            គ្រប់គ្រងស្តុកប្រអប់ផ្លែឈើ (តូច/ធំ) ឈើចាក់ផ្លែឈើ និងស្ទីគ័រ UV ទាំង១០មុខ តាម BOM
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setResetConfirmOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition"
-            title="Reset packaging inventory to default factory values"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span>Reset Defaults</span>
-          </button>
-
           <button
             onClick={() => setCategoryModalOpen(true)}
             className="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold px-3 py-2 rounded-xl shadow-2xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
@@ -537,13 +512,6 @@ export default function InventoryDashboardPage() {
             <span>Restock Packaging</span>
           </button>
         </div>
-      </div>
-
-      {/* Breadcrumb Navigation Header */}
-      <div className="flex items-center space-x-2 text-xs text-slate-500 pb-1">
-        <span className="font-semibold text-slate-700">Production &amp; Inventory</span>
-        <span>/</span>
-        <span className="font-bold text-slate-900">Packaging Warehouse (ស្តុកសម្ភារៈ)</span>
       </div>
 
       {/* 3 Core Summary Cards (User Requested) + Asset Valuation Tile */}
@@ -647,12 +615,9 @@ export default function InventoryDashboardPage() {
             <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-mono">
               {formatUSD(totalValuationUSD)}
             </div>
-            <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs">
+            <div className="mt-2.5 pt-2.5 border-t border-white/10 text-xs">
               <span className="text-slate-300">
                 ≈ {formatKHR(totalValuationKHR)}
-              </span>
-              <span className="text-[10px] text-emerald-400 font-mono">
-                1$={exchangeRate.toLocaleString()}៛
               </span>
             </div>
           </div>
@@ -1245,18 +1210,7 @@ export default function InventoryDashboardPage() {
         </div>
       )}
 
-      {/* Reset Confirmation Modal */}
-      <ConfirmModal
-        isOpen={resetConfirmOpen}
-        title="Reset Packaging Inventory?"
-        khmerTitle="កំណត់ស្តុកសម្ភារៈវេចខ្ចប់ឡើងវិញ"
-        message="Are you sure you want to reset all packaging stock to initial factory defaults (300 small boxes, 200 big boxes, 1,000 skewers, and 100 UV stickers per SKU)?"
-        confirmText="Reset to Defaults"
-        cancelText="Cancel"
-        variant="warning"
-        onConfirm={handleResetToSeed}
-        onCancel={() => setResetConfirmOpen(false)}
-      />
+
 
       {/* Packaging Categories Management Modal */}
       {categoryModalOpen && (

@@ -41,6 +41,7 @@ import {
   resetAllData,
 } from '@/lib/storage';
 import { AppSettings, Store, Product } from '@/lib/types';
+import { resetInventory } from '@/lib/inventoryStore';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function SettingsPage() {
@@ -68,6 +69,7 @@ export default function SettingsPage() {
 
   // Modal Dialog States
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [confirmPackagingResetOpen, setConfirmPackagingResetOpen] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -238,6 +240,23 @@ export default function SettingsPage() {
       isOpen: true,
       title: 'Database Reset Complete',
       message: 'All stores, fruit catalog SKUs, settings, and seed delivery invoices have been successfully restored to initial defaults.',
+      variant: 'success',
+    });
+  };
+
+  // Reset Packaging Warehouse Stock
+  const handleResetPackagingStock = () => {
+    setConfirmPackagingResetOpen(true);
+  };
+
+  const executePackagingReset = () => {
+    resetInventory();
+    loadData();
+    setConfirmPackagingResetOpen(false);
+    setAlertModal({
+      isOpen: true,
+      title: 'Packaging Inventory Reset',
+      message: 'All packaging materials, boxes, skewers, and UV stickers have been restored to initial factory starting quantities (300 small boxes, 200 big boxes, 1,000 skewers, 100 stickers per SKU).',
       variant: 'success',
     });
   };
@@ -739,15 +758,63 @@ export default function SettingsPage() {
                   className="hidden"
                 />
               </label>
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={handleResetToDefaults}
-                className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold text-xs transition border border-red-200"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset to Seed Data</span>
-              </button>
+          {/* Section 5: Danger Zone / Reset Data */}
+          <div className="bg-red-50/60 rounded-2xl border border-red-200 p-5 shadow-xs space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-red-900 uppercase tracking-wider">
+                  Danger Zone / Reset Data
+                </h2>
+                <p className="text-xs text-red-600/80">
+                  Irreversible database and stock maintenance operations
+                </p>
+              </div>
+            </div>
+
+            <div className="divide-y divide-red-100 bg-white rounded-xl border border-red-100 p-4 text-xs space-y-4">
+              {/* Reset Packaging Defaults */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div>
+                  <span className="font-bold text-slate-900 block">Reset Packaging Warehouse Stock</span>
+                  <span className="text-slate-500">
+                    Reset all packaging materials, boxes, skewers, and UV stickers back to factory starting inventory counts (300 small boxes, 200 big boxes, 1,000 skewers, 100 stickers per SKU).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetPackagingStock}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-amber-800 bg-amber-50 hover:bg-amber-100 font-bold text-xs transition border border-amber-300 shrink-0 self-start sm:self-center cursor-pointer shadow-2xs"
+                  title="Reset packaging inventory to factory seed values"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Reset Packaging Stock</span>
+                </button>
+              </div>
+
+              {/* Reset Entire Database */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
+                <div>
+                  <span className="font-bold text-slate-900 block">Reset Entire System Database</span>
+                  <span className="text-slate-500">
+                    Permanently erase all custom changes and restore all stores, catalog SKUs, settings, and seed delivery records to initial defaults.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetToDefaults}
+                  className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700 font-bold text-xs transition shadow-xs shrink-0 self-start sm:self-center cursor-pointer"
+                  title="Reset complete database to factory seed values"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Reset Entire Database</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -912,6 +979,19 @@ export default function SettingsPage() {
         variant="danger"
         onConfirm={handleConfirmDeleteStore}
         onCancel={() => setStoreToDelete(null)}
+      />
+
+      {/* Packaging Inventory Reset Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmPackagingResetOpen}
+        title="Reset Packaging Inventory?"
+        khmerTitle="កំណត់ស្តុកសម្ភារៈវេចខ្ចប់ឡើងវិញ"
+        message="Are you sure you want to reset all packaging stock to initial factory defaults (300 small boxes, 200 big boxes, 1,000 skewers, and 100 UV stickers per SKU)?"
+        confirmText="Reset Packaging Stock"
+        cancelText="Cancel"
+        variant="warning"
+        onConfirm={executePackagingReset}
+        onCancel={() => setConfirmPackagingResetOpen(false)}
       />
 
       {/* Modern UI Confirm Modal for Database Reset */}
