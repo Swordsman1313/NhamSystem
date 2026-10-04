@@ -20,7 +20,6 @@ import {
   ArrowUpRight,
   RefreshCw,
   Coins,
-  Boxes,
 } from 'lucide-react';
 import {
   getInvoices,
@@ -80,12 +79,14 @@ export default function DashboardPage() {
 
   // Costing KPIs from batches
   const latestBatch = batches[0];
-  const avgLandedCostUSD =
-    batches.length > 0
-      ? (
-          batches.reduce((sum, b) => sum + (b.landedUnitCostUSD || 0), 0) / batches.length
-        ).toFixed(2)
-      : '0.61';
+  const displayLandedCostUSD =
+    batches.length > 0 && latestBatch?.landedUnitCostUSD
+      ? latestBatch.landedUnitCostUSD.toFixed(2)
+      : '0.40';
+  const displayLandedCostKHR =
+    batches.length > 0 && latestBatch?.landedUnitCostKHR
+      ? latestBatch.landedUnitCostKHR
+      : 1599;
 
   // Toggle invoice status directly from dashboard
   const handleMarkAsPaid = (inv: Invoice) => {
@@ -101,69 +102,34 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
       {/* Top Banner / Welcome */}
-      <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-2xl p-4 sm:px-6 sm:py-5 text-white shadow-md relative overflow-hidden">
         {/* Subtle decorative circles */}
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -bottom-8 right-24 w-48 h-48 bg-citrus-400/10 rounded-full blur-xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 p-1.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center">
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 p-1 rounded-xl bg-white/10 backdrop-blur-xs border border-white/20 flex items-center justify-center">
               <img
                 src="/logo.png"
                 alt="Nham Nham Fruit Logo"
                 className="w-full h-full object-contain drop-shadow-md"
               />
             </div>
-            <div className="space-y-1">
+            <div>
               <div className="flex items-center space-x-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-citrus-400/20 text-citrus-300 border border-citrus-400/30 text-xs font-semibold tracking-wide uppercase">
-                  B2B Fresh Distribution Hub
+                <span className="px-2 py-0.5 rounded-full bg-citrus-400/20 text-citrus-300 border border-citrus-400/30 text-[10px] sm:text-xs font-semibold tracking-wide uppercase">
+                  B2B Fresh Operations
                 </span>
-                <span className="text-xs text-emerald-200">Phnom Penh &amp; Sihanoukville</span>
+                <span className="text-xs text-emerald-200">Phnom Penh Distribution Hub</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight mt-0.5">
                 Nham Nham Operations
               </h1>
-              <p className="text-emerald-100 text-sm font-khmer">
+              <p className="text-emerald-100 text-xs font-khmer hidden sm:block">
                 ប្រព័ន្ធគ្រប់គ្រងការចែកចាយផ្លែឈើស្រស់កាត់ស្រេច គណនាថ្លៃដើមផលិត និងវិក្កយបត្រ
               </p>
             </div>
-          </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/deliveries/new"
-              className="inline-flex items-center space-x-2 bg-citrus-400 text-slate-950 hover:bg-citrus-300 font-bold px-4 py-2.5 rounded-xl shadow-md transition transform active:scale-95 text-sm"
-            >
-              <PlusCircle className="w-4 h-4 text-slate-950" />
-              <span>+ New Invoice / DO</span>
-            </Link>
-
-            <Link
-              href="/products"
-              className="inline-flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-4 py-2.5 rounded-xl backdrop-blur-xs border border-white/20 transition text-sm"
-            >
-              <Package className="w-4 h-4 text-citrus-300" />
-              <span>Products &amp; BOM</span>
-            </Link>
-
-            <Link
-              href="/inventory"
-              className="inline-flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-4 py-2.5 rounded-xl backdrop-blur-xs border border-white/20 transition text-sm"
-            >
-              <Boxes className="w-4 h-4 text-emerald-300" />
-              <span>Packaging Stock</span>
-            </Link>
-
-            <Link
-              href="/costing"
-              className="inline-flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-4 py-2.5 rounded-xl backdrop-blur-xs border border-white/20 transition text-sm"
-            >
-              <Calculator className="w-4 h-4 text-citrus-300" />
-              <span>Calculate Batch BOM</span>
-            </Link>
           </div>
         </div>
       </div>
@@ -218,7 +184,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Total billed: {formatUSD(totalAllRevenueUSD)}</span>
+            <span className="text-slate-500 font-medium">Settled Invoices</span>
             <span className="text-emerald-700 font-semibold font-mono">ABA Active</span>
           </div>
         </div>
@@ -265,20 +231,20 @@ export default function DashboardPage() {
           </div>
           <div className="mt-3">
             <div className="text-2xl font-black text-slate-900 tracking-tight">
-              ${avgLandedCostUSD}{' '}
+              ${displayLandedCostUSD}{' '}
               <span className="text-sm font-semibold text-slate-500 font-normal">/ box</span>
             </div>
             <div className="text-xs font-semibold text-lime-800 mt-0.5">
-              Fruit + Tub(500៛) + Dip(10៛) + Fuel
+              Fruit + Weighted BOM + Route Fuel
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Margin: ~28% – 38%</span>
+            <span className="text-slate-500 font-medium">≈ {displayLandedCostKHR.toLocaleString()} ៛ / box</span>
             <Link
               href="/costing"
               className="text-lime-800 font-semibold hover:underline inline-flex items-center"
             >
-              Run Batch <ChevronRight className="w-3 h-3 ml-0.5" />
+              Batch Costing <ChevronRight className="w-3 h-3 ml-0.5" />
             </Link>
           </div>
         </div>
@@ -393,44 +359,57 @@ export default function DashboardPage() {
             </div>
 
             <div className="divide-y divide-slate-100 mt-2">
-              {stores.map((store) => {
-                const storeInvoices = invoices.filter((inv) => inv.storeCode === store.code);
-                const storePending = storeInvoices
-                  .filter((inv) => inv.status === 'pending')
-                  .reduce((sum, inv) => sum + inv.totalAmountUSD, 0);
-                const storeTotal = storeInvoices.reduce((sum, inv) => sum + inv.totalAmountUSD, 0);
+              {stores
+                .filter((s) => s.isActive !== false)
+                .map((store) => {
+                  const storeInvoices = invoices.filter(
+                    (inv) => inv.storeCode === store.code || inv.shipTo === store.shipTo
+                  );
+                  const storePending = storeInvoices
+                    .filter((inv) => inv.status === 'pending')
+                    .reduce((sum, inv) => sum + (Number(inv.totalAmountUSD) || 0), 0);
+                  const storeTotal = storeInvoices.reduce(
+                    (sum, inv) => sum + (Number(inv.totalAmountUSD) || 0),
+                    0
+                  );
+                  const storeDeliveredBoxes = storeInvoices.reduce(
+                    (sum, inv) => sum + (Number(inv.totalQuantity) || 0),
+                    0
+                  );
 
-                return (
-                  <div key={store.code} className="py-3 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-mono text-xs font-bold text-slate-900">
-                          {store.code}
-                        </span>
-                        <span className="text-xs font-medium text-slate-700">
-                          {store.shipTo}
-                        </span>
+                  return (
+                    <div key={store.code} className="py-3 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-xs font-bold text-slate-900">
+                            {store.code}
+                          </span>
+                          <span className="text-xs font-medium text-slate-700">
+                            {store.shipTo}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {storeDeliveredBoxes.toLocaleString()} boxes delivered ({storeInvoices.length} {storeInvoices.length === 1 ? 'run' : 'runs'})
+                        </div>
                       </div>
-                      <div className="text-[11px] text-slate-600 mt-0.5">
-                        {storeInvoices.length} total deliveries
+
+                      <div className="text-right">
+                        <div className="font-mono text-xs font-bold text-slate-900">
+                          {formatUSD(storeTotal)}
+                        </div>
+                        {storePending > 0 ? (
+                          <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 inline-block mt-0.5">
+                            {formatUSD(storePending)} pending
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-block mt-0.5">
+                            $0.00 (All paid)
+                          </span>
+                        )}
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <div className="font-mono text-xs font-bold text-slate-900">
-                        {formatUSD(storeTotal)}
-                      </div>
-                      {storePending > 0 ? (
-                        <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                          Unpaid: {formatUSD(storePending)}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-semibold text-emerald-700">All paid</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
 
@@ -445,7 +424,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-              Wholesale Market Spend + Route Fuel + <strong>500៛</strong> Tub/Sticker + <strong>10៛</strong> Wash dip = true Landed Unit Cost per fresh packed box.
+              Wholesale Market Spend + Route Fuel + <strong>Weighted BOM Packaging</strong> = true Landed Unit Cost per fresh packed box.
             </p>
             <div className="mt-4 flex items-center justify-between">
               <span className="text-xs font-medium text-slate-600">Rate: 1$ = {settings.exchangeRate}៛</span>
