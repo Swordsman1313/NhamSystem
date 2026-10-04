@@ -33,7 +33,7 @@ import {
   Info,
   SlidersHorizontal,
 } from 'lucide-react';
-import { Product, PackagingItem, BOMItem, PackagingCategory } from '@/lib/types';
+import { Product, PackagingItem, BOMItem, PackagingCategory, PackagingCategoryRecord } from '@/lib/types';
 import {
   getPackagingItems,
   deletePackagingItem,
@@ -43,6 +43,7 @@ import {
   updateProduct,
   deleteProduct,
   getSettings,
+  getCategories,
   formatUSD,
   formatKHR,
   INITIAL_PACKAGING_ITEMS,
@@ -83,6 +84,7 @@ export default function ProductBOMBuilderPage() {
   // Master Data initialized directly with storage getters (handles both SSR defaults and client localStorage)
   const [products, setProducts] = useState<Product[]>(getProducts);
   const [packagingItems, setPackagingItems] = useState<PackagingItem[]>(getPackagingItems);
+  const [categories, setCategories] = useState<PackagingCategoryRecord[]>(getCategories);
   const [exchangeRate, setExchangeRate] = useState<number>(4050);
 
   // Selected Product in Studio (defaults to first product)
@@ -139,6 +141,7 @@ export default function ProductBOMBuilderPage() {
   const loadData = () => {
     let loadedProducts = getProducts();
     const loadedPackaging = getPackagingItems();
+    const loadedCategories = getCategories();
     const loadedSettings = getSettings();
 
     // Ensure standard & 300g products have complete default recipes (Box + Matching Sticker + Skewer)
@@ -213,6 +216,7 @@ export default function ProductBOMBuilderPage() {
 
     setProducts(loadedProducts);
     setPackagingItems(loadedPackaging);
+    setCategories(loadedCategories);
     setExchangeRate(loadedSettings.exchangeRate || 4050);
 
     // If no product is currently selected, select the first product
@@ -229,10 +233,12 @@ export default function ProductBOMBuilderPage() {
     const handleUpdate = () => loadData();
     window.addEventListener('products_updated', handleUpdate);
     window.addEventListener('packaging_updated', handleUpdate);
+    window.addEventListener('categories_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('products_updated', handleUpdate);
       window.removeEventListener('packaging_updated', handleUpdate);
+      window.removeEventListener('categories_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
@@ -283,6 +289,21 @@ export default function ProductBOMBuilderPage() {
     });
     return map;
   }, [packagingItems]);
+
+  // Dynamic category mapping from storage
+  const boxCat = useMemo(() => {
+    return categories.find((c) => c.id === 'box' || c.name.toLowerCase() === 'box');
+  }, [categories]);
+
+  const stickerCat = useMemo(() => {
+    return categories.find((c) => c.id === 'sticker' || c.name.toLowerCase().includes('sticker'));
+  }, [categories]);
+
+  const accessoryCats = useMemo(() => {
+    return categories.filter((c) => c.id !== 'box' && !c.name.toLowerCase().includes('sticker'));
+  }, [categories]);
+
+  const accessoryCat = accessoryCats[0];
 
   // Selected product object
   const selectedProduct = useMemo(() => {
@@ -440,11 +461,22 @@ export default function ProductBOMBuilderPage() {
       return;
     }
 
+    const pkgCat = typeof pkg.category === 'string' ? pkg.category.toLowerCase() : '';
+    const isBox =
+      pkgCat === 'box' ||
+      (boxCat && (pkgCat === boxCat.id.toLowerCase() || pkgCat === boxCat.name.toLowerCase())) ||
+      pkg.id.startsWith('box-');
+
     // Rule 2: Single-choice auto-swap for Containers (box)
-    if (pkg.category === 'box') {
+    if (isBox) {
       const existingBoxIndex = currentBOM.findIndex((b) => {
         const p = packagingMap.get(b.packagingItemId);
-        return p?.category === 'box' || b.packagingItemId.startsWith('box-');
+        const pCat = typeof p?.category === 'string' ? p.category.toLowerCase() : '';
+        return (
+          pCat === 'box' ||
+          (boxCat && (pCat === boxCat.id.toLowerCase() || pCat === boxCat.name.toLowerCase())) ||
+          b.packagingItemId.startsWith('box-')
+        );
       });
 
       if (existingBoxIndex !== -1) {
@@ -455,11 +487,21 @@ export default function ProductBOMBuilderPage() {
       }
     }
 
+    const isSticker =
+      pkgCat === 'sticker' ||
+      (stickerCat && (pkgCat === stickerCat.id.toLowerCase() || pkgCat === stickerCat.name.toLowerCase())) ||
+      pkg.id.startsWith('sticker-');
+
     // Rule 3: Single-choice auto-swap for Fruit Stickers (sticker)
-    if (pkg.category === 'sticker') {
+    if (isSticker) {
       const existingStickerIndex = currentBOM.findIndex((b) => {
         const p = packagingMap.get(b.packagingItemId);
-        return p?.category === 'sticker' || b.packagingItemId.startsWith('sticker-');
+        const pCat = typeof p?.category === 'string' ? p.category.toLowerCase() : '';
+        return (
+          pCat === 'sticker' ||
+          (stickerCat && (pCat === stickerCat.id.toLowerCase() || pCat === stickerCat.name.toLowerCase())) ||
+          b.packagingItemId.startsWith('sticker-')
+        );
       });
 
       if (existingStickerIndex !== -1) {
@@ -588,14 +630,28 @@ export default function ProductBOMBuilderPage() {
     });
   }, [products, productSearch, productFilterPreset]);
 
-  // Categorized packaging items for the 3 Studio sections
+  // Categorized packaging items for the Studio sections
   const boxItems = useMemo(() => {
-    return packagingItems.filter((pkg) => pkg.category === 'box');
-  }, [packagingItems]);
+    return packagingItems.filter((pkg) => {
+      const cat = typeof pkg.category === 'string' ? pkg.category.toLowerCase() : '';
+      return (
+        cat === 'box' ||
+        (boxCat && (cat === boxCat.id.toLowerCase() || cat === boxCat.name.toLowerCase())) ||
+        pkg.id.startsWith('box-')
+      );
+    });
+  }, [packagingItems, boxCat]);
 
   const stickerItems = useMemo(() => {
-    return packagingItems.filter((pkg) => pkg.category === 'sticker');
-  }, [packagingItems]);
+    return packagingItems.filter((pkg) => {
+      const cat = typeof pkg.category === 'string' ? pkg.category.toLowerCase() : '';
+      return (
+        cat === 'sticker' ||
+        (stickerCat && (cat === stickerCat.id.toLowerCase() || cat === stickerCat.name.toLowerCase())) ||
+        pkg.id.startsWith('sticker-')
+      );
+    });
+  }, [packagingItems, stickerCat]);
 
   const matchingStickerId = selectedProduct ? getMatchingStickerId(selectedProduct, packagingItems) : '';
 
@@ -631,8 +687,19 @@ export default function ProductBOMBuilderPage() {
   }, [stickerItems, showAllStickers, selectedProduct, matchingStickerId]);
 
   const accessoryItems = useMemo(() => {
-    return packagingItems.filter((pkg) => pkg.category === 'skewer' || pkg.category === 'other');
-  }, [packagingItems]);
+    return packagingItems.filter((pkg) => {
+      const cat = typeof pkg.category === 'string' ? pkg.category.toLowerCase() : '';
+      const isBox =
+        cat === 'box' ||
+        (boxCat && (cat === boxCat.id.toLowerCase() || cat === boxCat.name.toLowerCase())) ||
+        pkg.id.startsWith('box-');
+      const isSticker =
+        cat === 'sticker' ||
+        (stickerCat && (cat === stickerCat.id.toLowerCase() || cat === stickerCat.name.toLowerCase())) ||
+        pkg.id.startsWith('sticker-');
+      return !isBox && !isSticker;
+    });
+  }, [packagingItems, boxCat, stickerCat]);
 
   const renderMaterialCard = (pkg: PackagingItem) => {
     const existingInBOM = isItemInBOM(selectedProduct?.bom, pkg);
@@ -681,32 +748,43 @@ export default function ProductBOMBuilderPage() {
 
   // Color helper for categories
   const getCategoryBadge = (cat: PackagingCategory) => {
-    switch (cat) {
-      case 'box':
-        return {
-          label: 'Box',
-          bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-          icon: Boxes,
-        };
-      case 'sticker':
-        return {
-          label: 'UV Sticker',
-          bg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-          icon: Tag,
-        };
-      case 'skewer':
-        return {
-          label: 'Skewer',
-          bg: 'bg-amber-50 text-amber-800 border-amber-200',
-          icon: Layers,
-        };
-      default:
-        return {
-          label: 'Other',
-          bg: 'bg-purple-50 text-purple-800 border-purple-200',
-          icon: Package,
-        };
+    const catStr = typeof cat === 'string' ? cat : (cat as any)?.id || (cat as any)?.name || '';
+    const matched = categories.find(
+      (c) => c.id.toLowerCase() === catStr.toLowerCase() || c.name.toLowerCase() === catStr.toLowerCase()
+    );
+
+    if (
+      catStr.toLowerCase() === 'box' ||
+      (boxCat && (catStr.toLowerCase() === boxCat.id.toLowerCase() || catStr.toLowerCase() === boxCat.name.toLowerCase()))
+    ) {
+      return {
+        label: matched?.name || boxCat?.name || 'Box',
+        bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        icon: Boxes,
+      };
     }
+    if (
+      catStr.toLowerCase() === 'sticker' ||
+      (stickerCat && (catStr.toLowerCase() === stickerCat.id.toLowerCase() || catStr.toLowerCase() === stickerCat.name.toLowerCase()))
+    ) {
+      return {
+        label: matched?.name || stickerCat?.name || 'UV Sticker',
+        bg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+        icon: Tag,
+      };
+    }
+    if (catStr.toLowerCase() === 'skewer' || matched?.id === 'skewer') {
+      return {
+        label: matched?.name || 'Skewer',
+        bg: 'bg-amber-50 text-amber-800 border-amber-200',
+        icon: Layers,
+      };
+    }
+    return {
+      label: matched?.name || (typeof cat === 'string' ? cat : 'Other'),
+      bg: 'bg-purple-50 text-purple-800 border-purple-200',
+      icon: Package,
+    };
   };
 
   return (
@@ -1200,17 +1278,14 @@ export default function ProductBOMBuilderPage() {
                         <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
                           Add Packaging Materials to Recipe
                         </h4>
-                        <p className="text-[11px] text-slate-500 font-khmer">
-                          ជ្រើសរើសប្រអប់ ស្លាក និងសម្ភារៈបន្ថែមសម្រាប់ផលិតផលនេះ
-                        </p>
                       </div>
 
-                      {/* 1. CONTAINER BOX (ជ្រើសរើស ១ - Choose 1) */}
+                      {/* Slot 1: Box */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
                             <Boxes className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>1. CONTAINER BOX (ជ្រើសរើស ១ - Choose 1)</span>
+                            <span>1. {boxCat?.name || 'Box'}</span>
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1218,12 +1293,12 @@ export default function ProductBOMBuilderPage() {
                         </div>
                       </div>
 
-                      {/* 2. FRUIT STICKER (ជ្រើសរើស ១ - Choose 1) */}
+                      {/* Slot 2: Fruit Sticker */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
                             <Tag className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>2. FRUIT STICKER (ជ្រើសរើស ១ - Choose 1)</span>
+                            <span>2. {stickerCat?.name || 'UV Sticker'}</span>
                           </span>
                           <button
                             type="button"
@@ -1238,18 +1313,61 @@ export default function ProductBOMBuilderPage() {
                         </div>
                       </div>
 
-                      {/* 3. ACCESSORIES & OTHER (សម្ភារៈបន្ថែម) */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
-                            <Layers className="w-3.5 h-3.5 text-amber-600" />
-                            <span>3. ACCESSORIES &amp; OTHER (សម្ភារៈបន្ថែម)</span>
-                          </span>
+                      {/* Slot 3+: Skewers / Accessories / Custom Categories */}
+                      {accessoryCats.length > 0 ? (
+                        accessoryCats.map((cat, idx) => {
+                          const slotNum = 3 + idx;
+                          const catItems = packagingItems.filter((pkg) => {
+                            const c = typeof pkg.category === 'string' ? pkg.category.toLowerCase() : '';
+                            const isMatch = c === cat.id.toLowerCase() || c === cat.name.toLowerCase();
+                            if (isMatch) return true;
+                            // If this is the last category in accessoryCats, also include any orphaned/unassigned items
+                            if (idx === accessoryCats.length - 1) {
+                              const isBox =
+                                c === 'box' ||
+                                (boxCat && (c === boxCat.id.toLowerCase() || c === boxCat.name.toLowerCase())) ||
+                                pkg.id.startsWith('box-');
+                              const isSticker =
+                                c === 'sticker' ||
+                                (stickerCat && (c === stickerCat.id.toLowerCase() || c === stickerCat.name.toLowerCase())) ||
+                                pkg.id.startsWith('sticker-');
+                              const matchedEarlier = accessoryCats.slice(0, idx).some((prev) => {
+                                return c === prev.id.toLowerCase() || c === prev.name.toLowerCase();
+                              });
+                              return !isBox && !isSticker && !matchedEarlier;
+                            }
+                            return false;
+                          });
+
+                          if (catItems.length === 0 && idx > 0) return null;
+
+                          return (
+                            <div key={cat.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                                  <Layers className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>{slotNum}. {cat.name}</span>
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {catItems.map(renderMaterialCard)}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                              <Layers className="w-3.5 h-3.5 text-amber-600" />
+                              <span>3. {accessoryCat?.name || 'Skewer'}</span>
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {accessoryItems.map(renderMaterialCard)}
+                          </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {accessoryItems.map(renderMaterialCard)}
-                        </div>
-                      </div>
+                      )}
 
                       {/* Missing a packaging item? Link to Warehouse */}
                       <div className="pt-2 flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
