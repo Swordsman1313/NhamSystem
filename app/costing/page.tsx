@@ -395,17 +395,25 @@ export default function BatchCostingPage() {
     );
   }, [linkedInvoices]);
 
-  // Sync revenue from today's delivery invoices
-  const syncInvoicedRevenue = () => {
+  // Apply / Sync revenue from today's delivery invoices to batch record
+  const handleApplyRevenue = () => {
     if (totalDeliveredRevenueUSD === 0) {
-      showToast('No invoices found for this date to sync revenue.');
+      showToast('No invoices found for this date to apply revenue.');
       return;
     }
     const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
     setDeliveryRevenueInputUSD(rev);
     setRevenueApplied(true);
-    showToast(`Synced ${formatUSD(rev)} from today's delivery invoices`);
+    showToast(`Invoiced revenue (${formatUSD(rev)}) applied to batch record!`);
+
+    // Smooth scroll to reconciliation card
+    const card = document.getElementById('profit-reconciliation-card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
+
+  const syncInvoicedRevenue = handleApplyRevenue;
 
   // Auto-calculate Total Invoiced Units: Sum of boxes across those invoices
   const totalInvoicedUnits = React.useMemo(() => {
@@ -1117,6 +1125,32 @@ export default function BatchCostingPage() {
                   {formatUSD(dailyNetProfitUSD)} ({dailyNetMarginPercent}%)
                 </span>
               </div>
+            </div>
+
+            {/* Action Strip: Apply Revenue Button */}
+            <div className="relative z-10 mt-3 pt-2.5 border-t border-emerald-800/40 flex items-center justify-start">
+              <button
+                type="button"
+                onClick={handleApplyRevenue}
+                disabled={totalDeliveredRevenueUSD === 0}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer whitespace-nowrap ${
+                  revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white ring-2 ring-emerald-300/40'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-100" />
+                    <span>Revenue Applied ({formatUSD(totalDeliveredRevenueUSD)})</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Apply Revenue ({formatUSD(totalDeliveredRevenueUSD)}) to Batch Record</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
