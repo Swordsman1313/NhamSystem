@@ -334,10 +334,10 @@ export default function BatchCostingPage() {
   const fuelSharePerBoxKHR =
     totalBoxesYielded > 0 ? Math.round(fuelExpenseKHR / totalBoxesYielded) : 0;
 
-  // Total Landed Unit Cost (KHR) = Raw Fruit Share + Route Fuel Share + Weighted BOM packaging cost + Cold Wash Dip (10 KHR)
+  // Total Landed Unit Cost (KHR) = Raw Fruit Share + Route Fuel Share + Weighted BOM packaging cost
   const landedUnitCostKHR =
     totalBoxesYielded > 0
-      ? rawFruitCostPerBoxKHR + fuelSharePerBoxKHR + tubStickerBOM + coldWashBOM
+      ? rawFruitCostPerBoxKHR + fuelSharePerBoxKHR + tubStickerBOM
       : 0;
 
   const landedUnitCostUSD =
@@ -608,7 +608,7 @@ export default function BatchCostingPage() {
       packagingBOMPerBoxKHR: tubStickerBOM,
       totalPackagingBOMCostKHR: totalBatchPackagingCostKHR,
       isDynamicBOM: useDynamicBOM,
-      coldWashBOMKHR: coldWashBOM,
+      coldWashBOMKHR: 0,
       exchangeRate,
       yieldItems: yieldList,
       totalBoxesYielded,
@@ -711,13 +711,6 @@ export default function BatchCostingPage() {
         </div>
       </div>
 
-      {/* Breadcrumb Navigation Header */}
-      <div className="flex items-center space-x-2 text-xs text-slate-500 pb-1">
-        <span className="font-semibold text-slate-700">Production &amp; Inventory</span>
-        <span>/</span>
-        <span className="font-bold text-slate-900">Batch Yield Costing (គណនាថ្លៃដើមផលិត)</span>
-      </div>
-
       {/* Main Grid: Inputs (Left) and Real-Time Calculation Cards (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (7 Cols): Batch Costing Inputs & Yield Per SKU */}
@@ -753,7 +746,7 @@ export default function BatchCostingPage() {
                     type="number"
                     step="1000"
                     min="0"
-                    placeholder="90,000"
+                    placeholder="0"
                     value={marketSpendKHR || ''}
                     onChange={(e) => setMarketSpendKHR(parseInt(e.target.value, 10) || 0)}
                     className="w-full text-sm font-mono font-bold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
@@ -774,6 +767,7 @@ export default function BatchCostingPage() {
                     type="number"
                     step="500"
                     min="0"
+                    placeholder="0"
                     value={fuelExpenseKHR}
                     onChange={(e) => setFuelExpenseKHR(parseInt(e.target.value, 10) || 0)}
                     className="w-full text-sm font-mono font-bold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
@@ -782,9 +776,6 @@ export default function BatchCostingPage() {
                     ៛
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Delivery route fuel (default 8,000៛)
-                </span>
               </div>
             </div>
 
@@ -922,6 +913,62 @@ export default function BatchCostingPage() {
 
         {/* Right Column (5 Cols): Real-time Landed Cost & Profit Reconciliation */}
         <div className="lg:col-span-5 space-y-6">
+          {/* Card: Landed Cost Breakdown Formula */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Landed Unit Cost (Per Box)
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                Formula Output
+              </span>
+            </div>
+
+            <div className="my-4 text-center bg-gradient-to-br from-emerald-50 to-teal-50/60 p-4 rounded-xl border border-emerald-100">
+              <div className="text-3xl font-black text-emerald-900 font-mono">
+                ${landedUnitCostUSD.toFixed(2)}
+              </div>
+              <div className="text-sm font-bold text-emerald-700 mt-1">
+                {landedUnitCostKHR.toLocaleString()} KHR / box
+              </div>
+              <div className="text-[11px] text-slate-600 mt-1">
+                Based on {totalBoxesYielded} total packed boxes
+              </div>
+            </div>
+
+            {/* Formula Breakdown Table */}
+            <div className="space-y-2 text-xs divide-y divide-slate-100">
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-600">
+                  Raw Fruit Share ({marketSpendKHR.toLocaleString()}៛ / {totalBoxesYielded || 1}):
+                </span>
+                <span className="font-mono font-bold text-slate-900">
+                  {rawFruitCostPerBoxKHR.toLocaleString()} ៛
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-600">
+                  Route Fuel Share ({fuelExpenseKHR.toLocaleString()}៛ / {totalBoxesYielded || 1}):
+                </span>
+                <span className="font-mono font-bold text-slate-900">
+                  {fuelSharePerBoxKHR.toLocaleString()} ៛
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-600">Weighted BOM:</span>
+                <span className="font-mono font-bold text-slate-900">
+                  {tubStickerBOM.toLocaleString()} ៛
+                </span>
+              </div>
+              <div className="flex justify-between py-2 font-bold border-t border-slate-200 text-slate-900 text-sm">
+                <span>Total Landed Unit Cost:</span>
+                <span className="font-mono text-emerald-800">
+                  {landedUnitCostKHR.toLocaleString()} ៛ (${landedUnitCostUSD.toFixed(2)})
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Card: Daily Run Profit Reconciliation Hero Widget */}
           <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-950 text-white rounded-2xl p-5 shadow-md border border-emerald-500/40 relative overflow-hidden">
             {/* Glowing ambient background accents */}
@@ -939,9 +986,6 @@ export default function BatchCostingPage() {
                     Daily Run Profit Reconciliation
                   </h2>
                 </div>
-                <p className="text-[11px] text-emerald-300/80 font-khmer mt-0.5 leading-snug">
-                  ការផ្ទៀងផ្ទាត់ចំណូល ចំណាយ និងប្រាក់ចំណេញរត់ចែកជូនតាមហាងជាក់ស្តែង
-                </p>
               </div>
 
               {/* Date Indicator */}
@@ -1130,7 +1174,7 @@ export default function BatchCostingPage() {
                 {batches.some((b) => (b.date || '').startsWith(batchDate)) ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-                    <span>Batch Logged to History ({formatUSD(effectiveRevenueUSD)}) ✓</span>
+                    <span>Batch Logged to History ({formatUSD(totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : effectiveRevenueUSD)}) ✓</span>
                   </>
                 ) : (
                   <>
@@ -1139,186 +1183,6 @@ export default function BatchCostingPage() {
                   </>
                 )}
               </button>
-            </div>
-          </div>
-
-          {/* Card: Landed Cost Breakdown Formula */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Landed Unit Cost (Per Box)
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                Formula Output
-              </span>
-            </div>
-
-            <div className="my-4 text-center bg-gradient-to-br from-emerald-50 to-teal-50/60 p-4 rounded-xl border border-emerald-100">
-              <div className="text-3xl font-black text-emerald-900 font-mono">
-                ${landedUnitCostUSD.toFixed(2)}
-              </div>
-              <div className="text-sm font-bold text-emerald-700 mt-1">
-                {landedUnitCostKHR.toLocaleString()} KHR / box
-              </div>
-              <div className="text-[11px] text-slate-600 mt-1">
-                Based on {totalBoxesYielded} total packed boxes
-              </div>
-            </div>
-
-            {/* Formula Breakdown Breakdown Table */}
-            <div className="space-y-2 text-xs divide-y divide-slate-100">
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-600">
-                  Raw Fruit Share ({marketSpendKHR.toLocaleString()}៛ / {totalBoxesYielded || 1}):
-                </span>
-                <span className="font-mono font-bold text-slate-900">
-                  {rawFruitCostPerBoxKHR.toLocaleString()} ៛
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-600">
-                  Route Fuel Share ({fuelExpenseKHR.toLocaleString()}៛ / {totalBoxesYielded || 1}):
-                </span>
-                <span className="font-mono font-bold text-slate-900">
-                  {fuelSharePerBoxKHR.toLocaleString()} ៛
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-600">Tub &amp; UV Sticker BOM:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {tubStickerBOM.toLocaleString()} ៛
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-600">Cold Wash Dip BOM:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {coldWashBOM.toLocaleString()} ៛
-                </span>
-              </div>
-              <div className="flex justify-between py-2 font-bold border-t border-slate-200 text-slate-900 text-sm">
-                <span>Total Landed Unit Cost:</span>
-                <span className="font-mono text-emerald-800">
-                  {landedUnitCostKHR.toLocaleString()} ៛ (${landedUnitCostUSD.toFixed(2)})
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card: Profit Reconciliation Card */}
-          <div
-            id="profit-reconciliation-card"
-            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs transition duration-300"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Run Profit Reconciliation
-              </span>
-              <div className="flex items-center space-x-2">
-                {totalDeliveredRevenueUSD > 0 && (
-                  <button
-                    type="button"
-                    onClick={syncInvoicedRevenue}
-                    className={`text-xs font-bold flex items-center space-x-1 px-2 py-0.5 rounded transition cursor-pointer ${
-                      Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'text-emerald-700 hover:bg-emerald-50'
-                    }`}
-                    title="Sync revenue from today's invoices"
-                  >
-                    {Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
-                      <Check className="w-3 h-3 text-emerald-700 stroke-[3]" />
-                    ) : (
-                      <Sparkles className="w-3 h-3 text-emerald-600" />
-                    )}
-                    <span>Sync Invoices (${totalDeliveredRevenueUSD.toFixed(2)})</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleAutoFillRevenue}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-800 hover:underline flex items-center space-x-1 cursor-pointer"
-                  title="Calculate revenue from catalog wholesale prices"
-                >
-                  <span>Wholesale (${catalogExpectedRevenueUSD.toFixed(2)})</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Delivery Revenue Input */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold text-slate-700">
-                  Estimated Delivery Revenue ($ USD)
-                </label>
-                {totalDeliveredRevenueUSD > 0 && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 && (
-                  <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                    <span>Linked from Invoices</span>
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={deliveryRevenueInputUSD}
-                  onChange={(e) => {
-                    setDeliveryRevenueInputUSD(parseFloat(e.target.value) || 0);
-                    setRevenueApplied(false);
-                  }}
-                  className="w-full text-base font-mono font-bold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
-                  USD
-                </span>
-              </div>
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Typical store run: $40.00 – $46.00 (~162,000 – 186,000 KHR)
-              </span>
-            </div>
-
-            {/* Profit & Margin Metrics */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
-                  Net Profit (USD)
-                </span>
-                <div className="text-xl font-black text-emerald-900 font-mono mt-0.5">
-                  {formatUSD(netProfitUSD)}
-                </div>
-                <div className="text-[10px] text-emerald-700 font-medium">
-                  ≈ {formatKHR(netProfitKHR)}
-                </div>
-              </div>
-
-              <div className="p-3 bg-citrus-50 rounded-xl border border-citrus-200">
-                <span className="text-[10px] font-bold text-citrus-900 uppercase tracking-wider block">
-                  Gross Margin %
-                </span>
-                <div className="text-xl font-black text-citrus-950 font-mono mt-0.5">
-                  {grossMarginPercent}%
-                </div>
-                <div className="text-[10px] text-citrus-800 font-medium">
-                  {grossMarginPercent >= 30 ? 'Healthy Margin' : 'Thin Margin'}
-                </div>
-              </div>
-            </div>
-
-            {/* Total Batch Cost Summary */}
-            <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-1">
-              <div className="flex justify-between">
-                <span>Total Production Cost:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {formatUSD(totalProductionCostUSD)} ({totalProductionCostKHR.toLocaleString()} ៛)
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Expected Revenue:</span>
-                <span className="font-mono font-bold text-emerald-800">
-                  {formatUSD(effectiveRevenueUSD)}
-                </span>
-              </div>
             </div>
           </div>
         </div>
