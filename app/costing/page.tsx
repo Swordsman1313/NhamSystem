@@ -76,6 +76,33 @@ export default function BatchCostingPage() {
   const [deliveryRevenueInputUSD, setDeliveryRevenueInputUSD] = useState<number>(75.78);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Helper to extract SKU packed quantities from delivery invoices on a specific date
+  const getInvoiceSKUQuantities = (
+    date: string,
+    invoiceList: Invoice[],
+    productList: Product[]
+  ): Record<string, number> => {
+    const dayInvoices = invoiceList.filter((inv) => {
+      const invDate = (inv.invoiceDate || inv.createdAt || '').split('T')[0];
+      return invDate === date;
+    });
+
+    const counts: Record<string, number> = {};
+    productList.forEach((p) => {
+      counts[p.barcode] = 0;
+    });
+
+    dayInvoices.forEach((inv) => {
+      inv.items?.forEach((item) => {
+        if (item.barcode) {
+          counts[item.barcode] = (counts[item.barcode] || 0) + (Number(item.quantity) || 0);
+        }
+      });
+    });
+
+    return counts;
+  };
+
   const loadData = () => {
     const p = getProducts();
     const pkg = getPackagingItems();
@@ -88,25 +115,54 @@ export default function BatchCostingPage() {
     setBatches(b);
     setInvoices(inv);
 
-    // Default yield initialization matching today's 87 packed boxes across 6 SKUs
+    // Link SKU yield quantities directly from delivery invoices by default
     setYieldInputs((curr) => {
-      if (Object.keys(curr).length > 0) return curr;
-      const initialYields: Record<string, number> = {
-        '2016800000025': 24, // Sweet Melon Cubes 300G
-        '2016800000032': 13, // Baby Mango Bites
-        '2016800000049': 20, // Jackfruit Bites 300G
-        '2016800000094': 13, // Mixed Sour Fruits
-        '2016800000087': 16, // Jujube Bites
-        '2016800000070': 1,  // Jicama Bites
-      };
-      // Ensure all products are registered
-      p.forEach((item) => {
-        if (initialYields[item.barcode] === undefined) {
-          initialYields[item.barcode] = 0;
-        }
-      });
-      return initialYields;
+      if (Object.keys(curr).length === 0) {
+        return getInvoiceSKUQuantities(batchDate, inv, p);
+      }
+      return curr;
     });
+
+    // Also link delivery revenue from invoices if available
+    const dayInvoices = inv.filter((item) => {
+      const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
+      return invDate === batchDate;
+    });
+    const dayRevenue = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
+    if (dayRevenue > 0) {
+      setDeliveryRevenueInputUSD(Number(dayRevenue.toFixed(2)));
+    }
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setBatchDate(newDate);
+    const p = products.length > 0 ? products : getProducts();
+    const inv = invoices.length > 0 ? invoices : getInvoices();
+    const invoicedYields = getInvoiceSKUQuantities(newDate, inv, p);
+    setYieldInputs(invoicedYields);
+
+    const dayInvoices = inv.filter((item) => {
+      const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
+      return invDate === newDate;
+    });
+    const dayRevenue = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
+    if (dayRevenue > 0) {
+      setDeliveryRevenueInputUSD(Number(dayRevenue.toFixed(2)));
+    }
+  };
+
+  const syncFromInvoices = (targetDate = batchDate) => {
+    const invoicedYields = getInvoiceSKUQuantities(targetDate, invoices, products);
+    setYieldInputs(invoicedYields);
+
+    const dayInvoices = invoices.filter((item) => {
+      const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
+      return invDate === targetDate;
+    });
+    const dayRevenue = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
+    if (dayRevenue > 0) {
+      setDeliveryRevenueInputUSD(Number(dayRevenue.toFixed(2)));
+    }
   };
 
   useEffect(() => {
@@ -364,6 +420,11 @@ export default function BatchCostingPage() {
     const updated = [...todaySeeds, ...current.filter((c) => !todaySeeds.some((s) => s.invoiceNumber === c.invoiceNumber))];
     saveInvoices(updated);
     setInvoices(updated);
+
+    const p = products.length > 0 ? products : getProducts();
+    const invoicedYields = getInvoiceSKUQuantities(batchDate, updated, p);
+    setYieldInputs(invoicedYields);
+    setDeliveryRevenueInputUSD(75.78);
   };
 
   const handleLoadBatchForReconciliation = (record: BatchCostRecord) => {
@@ -514,7 +575,7 @@ export default function BatchCostingPage() {
                 <input
                   type="date"
                   value={batchDate}
-                  onChange={(e) => setBatchDate(e.target.value)}
+                  onChange={(e) => handleDateChange(e.target.value)}
                   className="w-full text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
               </div>
@@ -629,21 +690,39 @@ export default function BatchCostingPage() {
 
           {/* Card 2: Sellable Boxes Yielded per SKU */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
               <div>
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Sellable Boxes Packed per SKU (10 Fruits)
-                </h2>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Sellable Boxes Packed per SKU (10 Fruits)
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center space-x-1">
+                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                    <span>Linked from Invoices</span>
+                  </span>
+                </div>
                 <p className="text-xs text-slate-700 font-khmer mt-0.5">
-                  បញ្ចូលចំនួនប្រអប់ផ្លែឈើដែលវេចខ្ចប់បានពីការទិញដុំលើកនេះ (តម្លៃ BOM គណនាស្វ័យប្រវត្តិតាមរូបមន្ត)
+                  ចំនួនប្រអប់ភ្ជាប់ដោយស្វ័យប្រវត្តិតាមវិក្កយបត្រថ្ងៃនេះ ({formatDateDisplay(batchDate)}) • អ្នកក៏អាចកែប្រែដោយដៃបាន
                 </p>
               </div>
 
-              <div className="text-right">
-                <span className="text-xs text-slate-500 font-medium block">Total Yield</span>
-                <span className="text-lg font-black text-emerald-800">
-                  {totalBoxesYielded} <span className="text-xs font-normal text-slate-500">boxes</span>
-                </span>
+              <div className="flex items-center space-x-3 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => syncFromInvoices(batchDate)}
+                  className="px-2.5 py-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-50 rounded-lg border border-emerald-300 shadow-2xs inline-flex items-center space-x-1 transition cursor-pointer"
+                  title="Re-sync quantities directly from this date's invoices"
+                >
+                  <RotateCcw className="w-3 h-3 text-emerald-600" />
+                  <span>Sync Invoices</span>
+                </button>
+
+                <div className="text-right">
+                  <span className="text-xs text-slate-500 font-medium block">Total Yield</span>
+                  <span className="text-lg font-black text-emerald-800">
+                    {totalBoxesYielded} <span className="text-xs font-normal text-slate-500">boxes</span>
+                  </span>
+                </div>
               </div>
             </div>
 
