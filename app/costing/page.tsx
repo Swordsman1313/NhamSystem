@@ -422,6 +422,20 @@ export default function BatchCostingPage() {
     return Array.from(new Set(list));
   }, [linkedInvoices]);
 
+  // Check if current yieldInputs match today's invoiced quantities
+  const invoicedSKUCounts = React.useMemo(() => {
+    return getInvoiceSKUQuantities(batchDate, invoices, products);
+  }, [batchDate, invoices, products]);
+
+  const isYieldSynced = React.useMemo(() => {
+    if (products.length === 0) return false;
+    const hasInvoicedItems = Object.values(invoicedSKUCounts).some((qty) => (qty || 0) > 0);
+    if (!hasInvoicedItems) return false;
+    return products.every(
+      (p) => (yieldInputs[p.barcode] || 0) === (invoicedSKUCounts[p.barcode] || 0)
+    );
+  }, [products, yieldInputs, invoicedSKUCounts]);
+
   // 2. Automated Same-Day P&L Calculation:
   // - Total Day Revenue = Invoices Total ($75.78 USD)
   // - Total Day Expenses = 
@@ -653,9 +667,6 @@ export default function BatchCostingPage() {
               BOM Engine
             </span>
           </div>
-          <p className="text-xs text-slate-700 font-khmer mt-0.5">
-            ដោះស្រាយថ្លៃដើមផ្លែឈើទិញដុំពីផ្សារ គណនាថ្លៃដើមពិតប្រាកដក្នុងមួយប្រអប់ (រួមបញ្ចូលប្រអប់ ស្លាក និងសាំង)
-          </p>
         </div>
 
         <div className="flex items-center space-x-3">
@@ -742,7 +753,8 @@ export default function BatchCostingPage() {
                     type="number"
                     step="1000"
                     min="0"
-                    value={marketSpendKHR}
+                    placeholder="90,000"
+                    value={marketSpendKHR || ''}
                     onChange={(e) => setMarketSpendKHR(parseInt(e.target.value, 10) || 0)}
                     className="w-full text-sm font-mono font-bold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
@@ -750,9 +762,6 @@ export default function BatchCostingPage() {
                     ៛
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  e.g. 90,000៛ (Phsar Derm Kor)
-                </span>
               </div>
 
               {/* Route Fuel / Transport */}
@@ -779,62 +788,18 @@ export default function BatchCostingPage() {
               </div>
             </div>
 
-            {/* Dynamic Packaging BOM Overheads Strip (Linked to Products & Packaging) */}
-            <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 bg-slate-50/90 p-3 rounded-xl border border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="font-bold text-slate-900">
-                    {useDynamicBOM ? '⚡ Live Weighted BOM:' : 'Fixed BOM:'}
-                  </span>
-                  <span className="font-mono font-black text-emerald-800 text-sm">
-                    {tubStickerBOM.toLocaleString()} ៛ / box
-                  </span>
-                  {useDynamicBOM && (
-                    <span className="text-[10px] text-slate-500">
-                      (Total {formatKHR(totalBatchPackagingCostKHR)} for {totalBoxesYielded} boxes)
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setUseDynamicBOM(!useDynamicBOM)}
-                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline px-2 py-0.5 rounded bg-emerald-100/60"
-                  >
-                    {useDynamicBOM ? 'Switch to Manual Override' : 'Use Live Recipe BOM'}
-                  </button>
-                  <Link
-                    href="/products"
-                    className="text-[10px] text-slate-500 hover:text-slate-800 hover:underline"
-                  >
-                    Edit Recipes →
-                  </Link>
-                </div>
-              </div>
-
-              {!useDynamicBOM && (
-                <div className="flex items-center space-x-2 pt-1 border-t border-slate-200 text-xs">
-                  <span className="text-slate-600 font-semibold">Custom Packaging BOM (៛):</span>
-                  <input
-                    type="number"
-                    step="10"
-                    min="0"
-                    value={manualBOMOverrideKHR}
-                    onChange={(e) => setManualBOMOverrideKHR(parseInt(e.target.value, 10) || 0)}
-                    className="w-24 text-xs font-mono font-bold px-2 py-1 rounded border border-slate-300 bg-white"
-                  />
-                  <span className="text-[10px] text-slate-500">Overrides live fruit recipes</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
-                <span>
-                  Cold Wash Sanitization: <strong>{coldWashBOM.toLocaleString()} ៛/box</strong>
+            {/* Dynamic Packaging BOM Overheads Strip (Read-Only) */}
+            <div className="mt-4 bg-slate-50/90 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs">
+              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="font-bold text-slate-900">
+                  Live Weighted BOM:
                 </span>
-                <span className="font-mono">
-                  Exchange: <strong>1$ = {exchangeRate.toLocaleString()} ៛</strong>
+                <span className="font-mono font-black text-emerald-800 text-sm">
+                  {tubStickerBOM.toLocaleString()} ៛ / box
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  (Total {formatKHR(totalBatchPackagingCostKHR)} for {totalBoxesYielded} boxes)
                 </span>
               </div>
             </div>
@@ -844,29 +809,36 @@ export default function BatchCostingPage() {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
               <div>
-                <div className="flex items-center space-x-2">
-                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                    Sellable Boxes Packed per SKU (10 Fruits)
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center space-x-1">
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
-                    <span>Linked from Invoices</span>
-                  </span>
-                </div>
-                <p className="text-xs text-slate-700 font-khmer mt-0.5">
-                  ចំនួនប្រអប់ភ្ជាប់ដោយស្វ័យប្រវត្តិតាមវិក្កយបត្រថ្ងៃនេះ ({formatDateDisplay(batchDate)}) • អ្នកក៏អាចកែប្រែដោយដៃបាន
-                </p>
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  Sellable Boxes Packed per SKU (10 Fruits)
+                </h2>
               </div>
 
               <div className="flex items-center space-x-3 self-end sm:self-center">
                 <button
                   type="button"
-                  onClick={() => syncFromInvoices(batchDate)}
-                  className="px-2.5 py-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-50 rounded-lg border border-emerald-300 shadow-2xs inline-flex items-center space-x-1 transition cursor-pointer"
-                  title="Re-sync quantities directly from this date's invoices"
+                  onClick={() => {
+                    syncFromInvoices(batchDate);
+                    showToast("Synced box quantities from today's invoices");
+                  }}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-lg border shadow-2xs inline-flex items-center space-x-1 transition cursor-pointer ${
+                    isYieldSynced
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                      : 'bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-700 hover:text-emerald-900'
+                  }`}
+                  title={isYieldSynced ? "Box quantities match today's invoices" : "Re-sync quantities directly from this date's invoices"}
                 >
-                  <RotateCcw className="w-3 h-3 text-emerald-600" />
-                  <span>Sync Invoices</span>
+                  {isYieldSynced ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>✓ Synced</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Sync Invoices</span>
+                    </>
+                  )}
                 </button>
 
                 <div className="text-right">
