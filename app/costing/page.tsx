@@ -81,6 +81,14 @@ export default function BatchCostingPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [revenueApplied, setRevenueApplied] = useState(false);
   const [lastAutoSaved, setLastAutoSaved] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((curr) => (curr === msg ? null : curr));
+    }, 3200);
+  };
 
   // Helper to extract SKU packed quantities from delivery invoices on a specific date
   const getInvoiceSKUQuantities = (
@@ -228,12 +236,6 @@ export default function BatchCostingPage() {
     setRevenueApplied(true);
   };
 
-  const handleApplyRevenue = () => {
-    const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
-    setDeliveryRevenueInputUSD(rev);
-    setRevenueApplied(true);
-  };
-
   const handleResetDraft = () => {
     clearCostingDraft();
     setBatchDate(getTodayDateString());
@@ -367,7 +369,10 @@ export default function BatchCostingPage() {
 
   // Auto-fill delivery revenue from catalog prices
   const handleAutoFillRevenue = () => {
-    setDeliveryRevenueInputUSD(Number(catalogExpectedRevenueUSD.toFixed(2)));
+    const wholesale = Number(catalogExpectedRevenueUSD.toFixed(2));
+    setDeliveryRevenueInputUSD(wholesale);
+    setRevenueApplied(false);
+    showToast(`Loaded wholesale catalog expected revenue (${formatUSD(wholesale)})`);
   };
 
   // ==========================================
@@ -389,6 +394,39 @@ export default function BatchCostingPage() {
       0
     );
   }, [linkedInvoices]);
+
+  // Toggle between invoiced delivery revenue and catalog wholesale expected revenue
+  const handleToggleApplyRevenue = () => {
+    if (totalDeliveredRevenueUSD === 0) {
+      showToast('No invoices found for this date to apply revenue.');
+      return;
+    }
+
+    const isInvoicedApplied =
+      revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01;
+
+    if (isInvoicedApplied) {
+      // Toggle off -> revert to catalog wholesale revenue
+      const wholesale = Number(catalogExpectedRevenueUSD.toFixed(2));
+      setDeliveryRevenueInputUSD(wholesale);
+      setRevenueApplied(false);
+      showToast(`Revenue unapplied: Reverted to wholesale catalog expected revenue (${formatUSD(wholesale)})`);
+    } else {
+      // Apply invoiced revenue
+      const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
+      setDeliveryRevenueInputUSD(rev);
+      setRevenueApplied(true);
+      showToast(`Invoiced revenue (${formatUSD(rev)}) applied to batch reconciliation!`);
+
+      // Scroll to reconciliation card
+      const card = document.getElementById('profit-reconciliation-card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  };
+
+  const handleApplyRevenue = handleToggleApplyRevenue;
 
   // Auto-calculate Total Invoiced Units: Sum of boxes across those invoices
   const totalInvoicedUnits = React.useMemo(() => {
@@ -916,35 +954,32 @@ export default function BatchCostingPage() {
             <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-citrus-500/10 rounded-full blur-2xl pointer-events-none" />
 
             {/* Widget Header */}
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-emerald-800/50">
-              <div>
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-emerald-800/50">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center space-x-2">
-                  <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                     <Scale className="w-3.5 h-3.5" />
                   </span>
-                  <h2 className="text-sm font-black tracking-tight text-white uppercase">
+                  <h2 className="text-sm font-black tracking-tight text-white uppercase sm:whitespace-nowrap">
                     Daily Run Profit Reconciliation
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    Live P&amp;L
-                  </span>
                 </div>
-                <p className="text-[11px] text-emerald-300/80 font-khmer mt-0.5">
+                <p className="text-[11px] text-emerald-300/80 font-khmer mt-0.5 leading-snug">
                   ការផ្ទៀងផ្ទាត់ចំណូល ចំណាយ និងប្រាក់ចំណេញរត់ចែកជូនតាមហាងជាក់ស្តែង
                 </p>
               </div>
 
               {/* Date Indicator */}
-              <div className="flex items-center space-x-1.5 text-xs self-start sm:self-auto">
+              <div className="flex items-center space-x-1.5 text-xs self-start sm:self-auto shrink-0 whitespace-nowrap">
                 <span className="text-slate-400 text-[11px]">Run:</span>
-                <span className="font-mono font-bold text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded text-[11px] border border-emerald-700/60">
+                <span className="font-mono font-bold text-emerald-300 bg-emerald-900/60 px-2.5 py-1 rounded text-[11px] border border-emerald-700/60 whitespace-nowrap inline-block">
                   {formatDateDisplay(batchDate)}
                 </span>
                 {batchDate !== getTodayDateString() && (
                   <button
                     type="button"
                     onClick={() => setBatchDate(getTodayDateString())}
-                    className="text-[10px] font-bold text-citrus-400 hover:text-citrus-300 hover:underline ml-1"
+                    className="text-[10px] font-bold text-citrus-400 hover:text-citrus-300 hover:underline ml-1 whitespace-nowrap cursor-pointer"
                   >
                     Today
                   </button>
@@ -1068,38 +1103,38 @@ export default function BatchCostingPage() {
             {/* 3. Automated Same-Day P&L Formula Breakdown */}
             <div className="relative z-10 mt-3 p-3 rounded-xl bg-black/40 border border-white/5 text-[11px] space-y-1 font-mono">
               <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-sans mb-1 flex items-center justify-between">
-                <span>Automated Same-Day P&amp;L</span>
-                <span className="text-slate-400 text-[10px]">Rate: 1$ = {exchangeRate.toLocaleString()}៛</span>
+                <span className="whitespace-nowrap">Automated Same-Day P&amp;L</span>
+                <span className="text-slate-400 text-[10px] whitespace-nowrap">Rate: 1$ = {exchangeRate.toLocaleString()}៛</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span className="font-sans text-slate-400">Total Day Revenue:</span>
-                <span className="font-bold text-emerald-300">{formatUSD(totalDeliveredRevenueUSD)}</span>
+                <span className="font-sans text-slate-400 whitespace-nowrap">Total Day Revenue:</span>
+                <span className="font-bold text-emerald-300 whitespace-nowrap">{formatUSD(totalDeliveredRevenueUSD)}</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span className="font-sans text-slate-400">
+                <span className="font-sans text-slate-400 whitespace-nowrap">
                   Fruit Spend ({marketSpendKHR.toLocaleString()}៛ / {exchangeRate}):
                 </span>
-                <span>${sameDayFruitSpendUSD.toFixed(2)}</span>
+                <span className="whitespace-nowrap">${sameDayFruitSpendUSD.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span className="font-sans text-slate-400">
+                <span className="font-sans text-slate-400 whitespace-nowrap">
                   Route Fuel ({fuelExpenseKHR.toLocaleString()}៛ / {exchangeRate}):
                 </span>
-                <span>${sameDayFuelExpenseUSD.toFixed(2)}</span>
+                <span className="whitespace-nowrap">${sameDayFuelExpenseUSD.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span className="font-sans text-slate-400">
+                <span className="font-sans text-slate-400 whitespace-nowrap">
                   Packaging BOM ({totalInvoicedUnits} boxes):
                 </span>
-                <span>${totalInvoicedPackagingBOMCostUSD.toFixed(2)}</span>
+                <span className="whitespace-nowrap">${totalInvoicedPackagingBOMCostUSD.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-200 pt-1 border-t border-white/10 font-bold">
-                <span className="font-sans text-slate-300">Total Day Expenses:</span>
-                <span className="text-amber-300">{formatUSD(totalDayExpensesUSD)}</span>
+                <span className="font-sans text-slate-300 whitespace-nowrap">Total Day Expenses:</span>
+                <span className="text-amber-300 whitespace-nowrap">{formatUSD(totalDayExpensesUSD)}</span>
               </div>
               <div className="flex justify-between text-emerald-300 pt-1 border-t border-emerald-500/30 text-xs font-bold">
-                <span className="font-sans text-emerald-200">Daily Net Profit &amp; Margin:</span>
-                <span>
+                <span className="font-sans text-emerald-200 whitespace-nowrap">Daily Net Profit &amp; Margin:</span>
+                <span className="whitespace-nowrap">
                   {formatUSD(dailyNetProfitUSD)} ({dailyNetMarginPercent}%)
                 </span>
               </div>
@@ -1109,18 +1144,26 @@ export default function BatchCostingPage() {
             <div className="relative z-10 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t border-emerald-800/40">
               <button
                 type="button"
-                onClick={handleApplyRevenue}
+                onClick={handleToggleApplyRevenue}
                 disabled={totalDeliveredRevenueUSD === 0}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer whitespace-nowrap ${
                   revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-white ring-2 ring-emerald-300/40'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
                 } disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={
+                  revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
+                    ? 'Click to unapply and revert to wholesale catalog revenue'
+                    : 'Click to apply invoiced delivery revenue to batch reconciliation'
+                }
               >
                 {revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01 ? (
                   <>
                     <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-100" />
-                    <span>Revenue Applied ({formatUSD(totalDeliveredRevenueUSD)}) ✓</span>
+                    <span>Revenue Applied ({formatUSD(totalDeliveredRevenueUSD)})</span>
+                    <span className="text-[10px] text-emerald-100 bg-emerald-700/70 hover:bg-emerald-800/80 px-1.5 py-0.5 rounded ml-1 transition">
+                      Click to unapply
+                    </span>
                   </>
                 ) : (
                   <>
@@ -1132,7 +1175,7 @@ export default function BatchCostingPage() {
 
               <Link
                 href="/deliveries/new"
-                className="text-xs font-bold text-slate-300 hover:text-white inline-flex items-center space-x-1 transition self-end sm:self-auto"
+                className="text-xs font-bold text-slate-300 hover:text-white inline-flex items-center space-x-1 transition self-end sm:self-auto whitespace-nowrap"
               >
                 <span>Delivery DO Ledger</span>
                 <ExternalLink className="w-3 h-3" />
@@ -1203,7 +1246,10 @@ export default function BatchCostingPage() {
           </div>
 
           {/* Card: Profit Reconciliation Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div
+            id="profit-reconciliation-card"
+            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs transition duration-300"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Run Profit Reconciliation
@@ -1212,7 +1258,7 @@ export default function BatchCostingPage() {
                 {totalDeliveredRevenueUSD > 0 && (
                   <button
                     type="button"
-                    onClick={handleApplyRevenue}
+                    onClick={handleToggleApplyRevenue}
                     className={`text-xs font-bold flex items-center space-x-1 px-2 py-0.5 rounded transition cursor-pointer ${
                       revenueApplied && Math.abs(deliveryRevenueInputUSD - totalDeliveredRevenueUSD) < 0.01
                         ? 'bg-emerald-100 text-emerald-800 font-bold'
@@ -1445,6 +1491,14 @@ export default function BatchCostingPage() {
         onConfirm={() => setAlertModal({ isOpen: false, title: '', message: '' })}
         onCancel={() => setAlertModal({ isOpen: false, title: '', message: '' })}
       />
+
+      {/* Floating Interactive Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-xl bg-slate-900 text-white shadow-2xl border border-emerald-500/60 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }
