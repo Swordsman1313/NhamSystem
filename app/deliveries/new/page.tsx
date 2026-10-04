@@ -16,7 +16,6 @@ import {
   Eye,
   ArrowLeft,
   Store as StoreIcon,
-  Calendar,
   DollarSign,
   Package,
   Layers,
@@ -26,22 +25,6 @@ import {
   X,
   ChevronDown,
 } from 'lucide-react';
-
-const formatDisplayDate = (date: Date | string) => {
-  if (!date) return '';
-  let d: Date;
-  if (typeof date === 'string' && date.includes('-')) {
-    const parts = date.split('T')[0].split('-').map(Number);
-    d = new Date(parts[0], parts[1] - 1, parts[2]);
-  } else {
-    d = new Date(date);
-  }
-  const day = d.getDate();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = monthNames[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-};
 import {
   getProducts,
   getStores,
@@ -447,9 +430,6 @@ export default function NewDeliveryPage() {
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Create Invoice &amp; Delivery Note
             </h1>
-            <p className="text-xs text-slate-700 font-khmer mt-0.5">
-              បង្កើតវិក្កយបត្រពាណិជ្ជកម្ម និងប័ណ្ណដឹកជញ្ជូនទំនិញស្រស់ (DO)
-            </p>
           </div>
         </div>
 
@@ -610,9 +590,6 @@ export default function NewDeliveryPage() {
                   onChange={(e) => setInvoiceNumber(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Auto-formatted: INV-YYMM-XXX
-                </span>
               </div>
 
               {/* Invoice Date */}
@@ -626,16 +603,12 @@ export default function NewDeliveryPage() {
                   onChange={(e) => handleDateChange(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
-                <span className="text-xs text-emerald-800 font-bold font-mono mt-1.5 flex items-center space-x-1">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600 inline shrink-0" />
-                  <span>{formatDisplayDate(invoiceDate)}</span>
-                </span>
               </div>
 
               {/* Payment Terms & Due Date */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Terms / ថ្ងៃផុតកំណត់ (Net 15)
+                  Terms / ថ្ងៃផុតកំណត់ (Net {creditTermsDays})
                 </label>
                 <div className="flex items-center space-x-2">
                   <input
@@ -645,10 +618,6 @@ export default function NewDeliveryPage() {
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
                 </div>
-                <span className="text-xs text-emerald-800 font-bold font-mono mt-1.5 flex items-center space-x-1">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600 inline shrink-0" />
-                  <span>{formatDisplayDate(dueDate)} (Net {creditTermsDays})</span>
-                </span>
               </div>
             </div>
 
@@ -672,9 +641,6 @@ export default function NewDeliveryPage() {
                 <h2 className="text-base font-bold text-slate-900">
                   Master Fruit Catalog (10 SKUs) &amp; Custom Add-ons
                 </h2>
-                <p className="text-xs text-slate-700 font-khmer mt-0.5">
-                  បញ្ជាក់ចំនួនប្រអប់ផ្លែឈើសម្រាប់ដឹកជញ្ជូន (ចំនួន 0 នឹងមិនបង្ហាញលើឯកសារបោះពុម្ព)
-                </p>
               </div>
 
               {/* Quick Fill Actions */}
@@ -821,21 +787,27 @@ export default function NewDeliveryPage() {
                           </div>
                         </td>
 
-                        {/* Editable Unit Price */}
+                        {/* Wholesale Price ($) */}
                         <td className="py-2 px-3 text-right">
-                          <div className="flex items-center justify-end space-x-1">
-                            <span className="text-slate-400 font-mono">$</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={item.unitPrice}
-                              onChange={(e) =>
-                                updatePrice(item.id, parseFloat(e.target.value) || 0)
-                              }
-                              className="w-16 text-right font-mono font-medium text-xs border border-slate-200 rounded px-1.5 py-1 focus:bg-white focus:ring-1 focus:ring-emerald-500 text-slate-800"
-                            />
-                          </div>
+                          {item.isCustom ? (
+                            <div className="flex items-center justify-end space-x-1">
+                              <span className="text-slate-400 font-mono">$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={item.unitPrice}
+                                onChange={(e) =>
+                                  updatePrice(item.id, parseFloat(e.target.value) || 0)
+                                }
+                                className="w-16 text-right font-mono font-medium text-xs border border-slate-200 rounded px-1.5 py-1 focus:bg-white focus:ring-1 focus:ring-emerald-500 text-slate-800"
+                              />
+                            </div>
+                          ) : (
+                            <div className="font-mono font-bold text-slate-800 text-xs pr-1">
+                              ${Number(item.unitPrice).toFixed(2)}
+                            </div>
+                          )}
                         </td>
 
                         {/* Calculated Subtotal */}
@@ -871,9 +843,6 @@ export default function NewDeliveryPage() {
                   <span className="font-bold text-slate-900">
                     {activeItems.length} items with non-zero qty
                   </span>
-                </div>
-                <div className="text-xs text-slate-500">
-                  Rate used: 1 USD = {settings.exchangeRate.toLocaleString()} KHR
                 </div>
               </div>
 
