@@ -51,6 +51,31 @@ import {
 import { INITIAL_PRODUCTS } from '@/lib/initialData';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
+const PRODUCT_STICKER_MAP: Record<string, string> = {
+  '2016800000025': 'sticker-2016800000025',
+  '2016800000032': 'sticker-baby-mango',
+  '2016800000049': 'sticker-jackfruit',
+  '2016800000056': 'sticker-guava',
+  '2016800000063': 'sticker-papaya',
+  '2016800000070': 'sticker-jicama',
+  '2016800000087': 'sticker-jujube',
+  '2016800000094': 'sticker-mixed-sour',
+  '2016800000100': 'sticker-pickled-grapes',
+  '2016800000117': 'sticker-mixed-fresh',
+};
+
+const getMatchingStickerId = (prod: Product, items: PackagingItem[] = []): string => {
+  if (PRODUCT_STICKER_MAP[prod.barcode]) return PRODUCT_STICKER_MAP[prod.barcode];
+  const name = prod.name || prod.nameEn || '';
+  const nameMatch = items.find(
+    (p) =>
+      p.category === 'sticker' &&
+      name &&
+      p.name.toLowerCase().includes(name.split(' ')[0].toLowerCase())
+  );
+  return nameMatch ? nameMatch.id : `sticker-${prod.barcode}`;
+};
+
 export default function ProductBOMBuilderPage() {
   // Studio Display Mode: 'split' (Left list, right active recipe canvas) | 'grid' (All products cards overview)
   const [studioViewMode, setStudioViewMode] = useState<'split' | 'grid'>('split');
@@ -116,7 +141,7 @@ export default function ProductBOMBuilderPage() {
     const loadedPackaging = getPackagingItems();
     const loadedSettings = getSettings();
 
-    // Ensure 300g products default to box-big-300g (500 Riel) and aligned sticker IDs
+    // Ensure standard & 300g products have complete default recipes (Box + Matching Sticker + Skewer)
     let productsUpdated = false;
     loadedProducts = loadedProducts.map((p) => {
       const is300g =
@@ -124,9 +149,13 @@ export default function ProductBOMBuilderPage() {
         p.barcode === '2016800000049' ||
         p.barcode === '2016800000117' ||
         (p.nameEn || p.name || '').toLowerCase().includes('300g');
-      if (is300g && p.bom) {
-        let bomChanged = false;
-        const newBom = p.bom.map((item) => {
+
+      let bom = p.bom ? [...p.bom] : [];
+      let bomChanged = false;
+
+      // 1. Upgrade 300g products to box-big-300g and sticker-2016800000025
+      if (is300g) {
+        bom = bom.map((item) => {
           if (item.packagingItemId === 'box-small-std') {
             bomChanged = true;
             return { ...item, packagingItemId: 'box-big-300g' };
@@ -137,10 +166,43 @@ export default function ProductBOMBuilderPage() {
           }
           return item;
         });
-        if (bomChanged) {
-          productsUpdated = true;
-          return { ...p, bom: newBom };
+      }
+
+      // 2. Ensure container box exists (box-big-300g for 300g, box-small-std for others)
+      const expectedBoxId = is300g ? 'box-big-300g' : 'box-small-std';
+      const hasBox = bom.some((b) => b.packagingItemId.startsWith('box-'));
+      if (!hasBox) {
+        bom.unshift({ packagingItemId: expectedBoxId, quantity: 1 });
+        bomChanged = true;
+      }
+
+      // 3. Ensure matching fruit sticker exists (especially Papaya Cubes & standard fruit items)
+      const matchingSticker = getMatchingStickerId(p, loadedPackaging);
+      const hasSticker = bom.some((b) => {
+        const pkg = loadedPackaging.find((pk) => pk.id === b.packagingItemId);
+        return pkg?.category === 'sticker' || b.packagingItemId.startsWith('sticker-');
+      });
+
+      if (!hasSticker && matchingSticker) {
+        const boxIdx = bom.findIndex((b) => b.packagingItemId.startsWith('box-'));
+        if (boxIdx !== -1) {
+          bom.splice(boxIdx + 1, 0, { packagingItemId: matchingSticker, quantity: 1 });
+        } else {
+          bom.unshift({ packagingItemId: matchingSticker, quantity: 1 });
         }
+        bomChanged = true;
+      }
+
+      // 4. Ensure skewer exists
+      const hasSkewer = bom.some((b) => b.packagingItemId === 'skewer-wood' || b.packagingItemId.startsWith('skewer'));
+      if (!hasSkewer) {
+        bom.push({ packagingItemId: 'skewer-wood', quantity: 1 });
+        bomChanged = true;
+      }
+
+      if (bomChanged) {
+        productsUpdated = true;
+        return { ...p, bom };
       }
       return p;
     });
@@ -179,10 +241,16 @@ export default function ProductBOMBuilderPage() {
     if (!bom) return undefined;
     return bom.find((b) => {
       if (b.packagingItemId === pkg.id) return true;
-      if (pkg.barcodeRef && b.packagingItemId === `sticker-${pkg.barcodeRef}`) return true;
+      if (pkg.barcodeRef && (b.packagingItemId === `sticker-${pkg.barcodeRef}` || b.packagingItemId === pkg.barcodeRef)) return true;
       if (
         (pkg.id === 'sticker-sweet-melon' || pkg.id === 'sticker-2016800000025' || pkg.barcodeRef === '2016800000025') &&
         (b.packagingItemId === 'sticker-sweet-melon' || b.packagingItemId === 'sticker-2016800000025')
+      ) {
+        return true;
+      }
+      if (
+        (pkg.id === 'sticker-papaya' || pkg.id === 'sticker-papaya-cubes' || pkg.barcodeRef === '2016800000063') &&
+        (b.packagingItemId === 'sticker-papaya' || b.packagingItemId === 'sticker-papaya-cubes' || b.packagingItemId === 'sticker-2016800000063')
       ) {
         return true;
       }
@@ -192,16 +260,25 @@ export default function ProductBOMBuilderPage() {
 
   const packagingMap = useMemo(() => {
     const map = new Map<string, PackagingItem>(packagingItems.map((p) => [p.id, p]));
-    // Harmonize sticker aliases so Sweet Melon, Jackfruit, etc. reliably match
+    // Harmonize sticker aliases so Sweet Melon, Papaya, Jackfruit, etc. reliably match
     packagingItems.forEach((p) => {
       if (p.barcodeRef) {
         map.set(`sticker-${p.barcodeRef}`, p);
+        map.set(p.barcodeRef, p);
       }
       if (p.id === 'sticker-sweet-melon') {
         map.set('sticker-2016800000025', p);
       }
       if (p.id === 'sticker-2016800000025') {
         map.set('sticker-sweet-melon', p);
+      }
+      if (p.id === 'sticker-papaya') {
+        map.set('sticker-papaya-cubes', p);
+        map.set('sticker-2016800000063', p);
+      }
+      if (p.id === 'sticker-papaya-cubes') {
+        map.set('sticker-papaya', p);
+        map.set('sticker-2016800000063', p);
       }
     });
     return map;
@@ -400,32 +477,6 @@ export default function ProductBOMBuilderPage() {
     );
   };
 
-  // Find matching sticker for a product
-  const getMatchingStickerId = (prod: Product): string => {
-    const stickerMap: Record<string, string> = {
-      '2016800000025': 'sticker-2016800000025',
-      '2016800000032': 'sticker-baby-mango',
-      '2016800000049': 'sticker-jackfruit',
-      '2016800000056': 'sticker-guava',
-      '2016800000063': 'sticker-papaya',
-      '2016800000070': 'sticker-jicama',
-      '2016800000087': 'sticker-jujube',
-      '2016800000094': 'sticker-mixed-sour',
-      '2016800000100': 'sticker-pickled-grapes',
-      '2016800000117': 'sticker-mixed-fresh',
-    };
-    if (stickerMap[prod.barcode]) return stickerMap[prod.barcode];
-
-    // Try finding by name match
-    const nameMatch = packagingItems.find(
-      (p) =>
-        p.category === 'sticker' &&
-        prod.name &&
-        p.name.toLowerCase().includes(prod.name.split(' ')[0].toLowerCase())
-    );
-    return nameMatch ? nameMatch.id : `sticker-${prod.barcode}`;
-  };
-
   // --- Quick Edit Product Details ---
   const handleSaveProductDetails = () => {
     if (!selectedProduct) return;
@@ -546,7 +597,7 @@ export default function ProductBOMBuilderPage() {
     return packagingItems.filter((pkg) => pkg.category === 'sticker');
   }, [packagingItems]);
 
-  const matchingStickerId = selectedProduct ? getMatchingStickerId(selectedProduct) : '';
+  const matchingStickerId = selectedProduct ? getMatchingStickerId(selectedProduct, packagingItems) : '';
 
   const displayedStickerItems = useMemo(() => {
     if (showAllStickers) return stickerItems;
@@ -559,6 +610,13 @@ export default function ProductBOMBuilderPage() {
         (selectedProduct.barcode === '2016800000025' ||
           (selectedProduct.nameEn || selectedProduct.name || '').includes('Sweet Melon')) &&
         (p.id === 'sticker-2016800000025' || p.id === 'sticker-sweet-melon' || p.name.includes('Sweet Melon'))
+      ) {
+        return true;
+      }
+      if (
+        (selectedProduct.barcode === '2016800000063' ||
+          (selectedProduct.nameEn || selectedProduct.name || '').includes('Papaya')) &&
+        (p.id === 'sticker-papaya' || p.id === 'sticker-papaya-cubes' || p.barcodeRef === '2016800000063' || p.name.includes('Papaya'))
       ) {
         return true;
       }
@@ -1028,6 +1086,113 @@ export default function ProductBOMBuilderPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Active Recipe Ingredients (BOM) Section */}
+                    {selectedProduct.bom && selectedProduct.bom.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                            Active Recipe Ingredients (BOM)
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            {selectedProduct.bom.length} items linked
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {selectedProduct.bom.map((bomItem) => {
+                            const material =
+                              packagingItems.find((p) => p.id === bomItem.packagingItemId) ||
+                              packagingMap.get(bomItem.packagingItemId);
+                            if (!material) return null;
+
+                            const badge = getCategoryBadge(material.category);
+                            const unitCost = material.unitCostKHR ?? material.costPerUnitKHR ?? 0;
+                            const lineTotalKHR = unitCost * bomItem.quantity;
+
+                            return (
+                              <div
+                                key={bomItem.packagingItemId}
+                                className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 flex items-center justify-between gap-3 transition"
+                              >
+                                <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                  <div
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                      badge ? badge.bg : 'bg-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    {badge ? <badge.icon className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-extrabold text-xs text-slate-900 truncate">
+                                        {material.name}
+                                      </span>
+                                      {badge && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded uppercase bg-white border border-slate-200 text-slate-600">
+                                          {badge.label}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 font-mono">
+                                      Unit: {formatKHR(unitCost)} • Stock: {material.onHand ?? 0} pcs
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3 shrink-0">
+                                  {/* Touch-friendly 44px Stepper */}
+                                  <div className="flex items-center space-x-1.5 bg-white border border-slate-200 p-1 rounded-xl shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAdjustItemQty(bomItem.packagingItemId, -1)}
+                                      className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold transition text-base active:scale-95 touch-manipulation"
+                                      title="Decrease quantity"
+                                      aria-label="Decrease quantity"
+                                    >
+                                      <Minus className="w-4 h-4" />
+                                    </button>
+                                    <span className="w-8 text-center font-mono font-black text-sm text-slate-900">
+                                      {bomItem.quantity}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAdjustItemQty(bomItem.packagingItemId, 1)}
+                                      className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 flex items-center justify-center font-bold transition text-base active:scale-95 touch-manipulation"
+                                      title="Increase quantity"
+                                      aria-label="Increase quantity"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                  </div>
+
+                                  {/* Subtotal KHR */}
+                                  <div className="text-right min-w-[70px]">
+                                    <div className="font-mono font-bold text-xs text-slate-900">
+                                      {formatKHR(lineTotalKHR)}
+                                    </div>
+                                    <div className="font-mono text-[9px] text-slate-400">
+                                      ≈ {formatUSD(lineTotalKHR / (exchangeRate || 4050))}
+                                    </div>
+                                  </div>
+
+                                  {/* Trash Delete Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFromBOM(bomItem.packagingItemId)}
+                                    className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                                    title="Remove from recipe"
+                                    aria-label="Remove from recipe"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Packaging Materials Slots & Recipe Builder */}
                     <div className="space-y-4">

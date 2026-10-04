@@ -129,7 +129,7 @@ export const INITIAL_PACKAGING_ITEMS: PackagingItem[] = [
   },
   {
     id: 'sticker-papaya',
-    name: 'UV Sticker - Papaya',
+    name: 'UV Sticker - Papaya Cubes',
     khmerName: 'ស្លាក UV ល្ហុងទុំស្រស់',
     category: 'sticker',
     unitCostKHR: 110,
@@ -219,10 +219,13 @@ export function getPackagingItems(): PackagingItem[] {
   const rawList = getItem<any[]>(STORAGE_KEYS.PACKAGING, INITIAL_PACKAGING_ITEMS);
   return rawList.map((item) => {
     const unitCost = Number(item.unitCostKHR ?? item.costPerUnitKHR ?? 0);
+    const name = item.id === 'sticker-papaya' && (item.name === 'UV Sticker - Papaya' || !item.name)
+      ? 'UV Sticker - Papaya Cubes'
+      : item.name;
     return {
       ...item,
       id: item.id,
-      name: item.name,
+      name: name,
       khmerName: item.khmerName || '',
       category: item.category || 'other',
       unitCostKHR: unitCost,
