@@ -167,11 +167,14 @@ export default function SummaryStatement({
             <td className="border border-black py-2 px-3 text-center font-bold text-xs">
               {totalQty}
             </td>
-            <td className="border border-black py-2 px-2.5 text-center font-bold">
-              $
+            <td className="border border-black py-2 px-2.5 text-center text-slate-500">
+              -
             </td>
-            <td className="border border-black py-2 px-2.5 text-right font-mono font-bold text-xs">
-              {totalUSD.toFixed(2)}
+            <td className="border border-black py-2 px-2.5">
+              <div className="flex justify-between w-full font-mono font-bold text-xs">
+                <span>$</span>
+                <span>{totalUSD.toFixed(2)}</span>
+              </div>
             </td>
           </tr>
         </tfoot>

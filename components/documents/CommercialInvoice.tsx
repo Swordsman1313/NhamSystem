@@ -193,16 +193,16 @@ export default function CommercialInvoice({
         <tfoot>
           <tr className="border-t-2 border-black font-bold">
             <td
-              colSpan={5}
+              colSpan={6}
               className="border border-black py-2 px-3 text-center font-khmer font-bold"
             >
               សរុបរួម / Total Amount (USD)
             </td>
-            <td className="border border-black py-2 px-2.5 text-center font-bold">
-              $
-            </td>
-            <td className="border border-black py-2 px-2.5 text-right font-mono font-bold text-xs">
-              {totalUSD.toFixed(2)}
+            <td className="border border-black py-2 px-2.5">
+              <div className="flex justify-between w-full font-mono font-bold text-xs">
+                <span>$</span>
+                <span>{totalUSD.toFixed(2)}</span>
+              </div>
             </td>
           </tr>
         </tfoot>
