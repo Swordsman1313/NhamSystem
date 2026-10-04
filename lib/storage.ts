@@ -409,16 +409,22 @@ export function savePackagingCategories(categories: PackagingCategoryRecord[]): 
   }
 }
 
-export function addPackagingCategory(name: string): PackagingCategoryRecord {
+export const saveCategories = savePackagingCategories;
+export const getCategories = getPackagingCategories;
+
+export function addPackagingCategory(name: string): PackagingCategoryRecord | null {
   const cleanName = name.trim();
+  if (!cleanName) return null;
+  const current = getPackagingCategories();
+  const existing = current.find((c) => c.name.toLowerCase() === cleanName.toLowerCase());
+  if (existing) return null;
+
   const id =
     cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
-  const current = getPackagingCategories();
-  const existing = current.find((c) => c.id === id || c.name.toLowerCase() === cleanName.toLowerCase());
-  if (existing) return existing;
+  const uniqueId = current.some((c) => c.id === id) ? `${id}-${Date.now().toString().slice(-4)}` : id;
 
   const newCat: PackagingCategoryRecord = {
-    id,
+    id: uniqueId,
     name: cleanName,
     isProtected: false,
   };
@@ -432,6 +438,49 @@ export function updatePackagingCategory(cat: PackagingCategoryRecord): Packaging
   const updated = current.map((c) => (c.id === cat.id ? { ...c, name: cat.name.trim() } : c));
   savePackagingCategories(updated);
   return cat;
+}
+
+export function renamePackagingCategory(categoryId: string, newName: string): { success: boolean; error?: string; oldName?: string } {
+  const cleanName = newName.trim();
+  if (!cleanName) return { success: false, error: 'Category name cannot be blank.' };
+
+  const current = getPackagingCategories();
+  const cat = current.find((c) => c.id === categoryId);
+  if (!cat) return { success: false, error: 'Category not found.' };
+
+  const duplicate = current.find(
+    (c) => c.id !== categoryId && c.name.toLowerCase() === cleanName.toLowerCase()
+  );
+  if (duplicate) return { success: false, error: `Category "${cleanName}" already exists.` };
+
+  const oldName = cat.name;
+  cat.name = cleanName;
+  savePackagingCategories(current);
+
+  // Cascade update all items in packagingItems
+  const items = getPackagingItems();
+  let updatedAny = false;
+  const updatedItems = items.map((item) => {
+    const itemCat = typeof item.category === 'string' ? item.category : (item.category as any)?.id || (item.category as any)?.name;
+    if (
+      itemCat === oldName ||
+      itemCat?.toLowerCase() === oldName.toLowerCase() ||
+      (!cat.isProtected && (itemCat === categoryId || itemCat?.toLowerCase() === categoryId.toLowerCase()))
+    ) {
+      updatedAny = true;
+      return {
+        ...item,
+        category: cleanName,
+      };
+    }
+    return item;
+  });
+
+  if (updatedAny) {
+    savePackagingItems(updatedItems);
+  }
+
+  return { success: true, oldName };
 }
 
 export function deletePackagingCategory(id: string): boolean {

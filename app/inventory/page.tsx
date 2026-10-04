@@ -23,6 +23,8 @@ import {
   Edit3,
   Trash2,
   FolderPlus,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { InventoryItem, InventoryCategory, PackagingCategory, PackagingCategoryRecord } from '@/lib/types';
 import {
@@ -37,6 +39,9 @@ import {
   updatePackagingItem,
   addPackagingItem,
   getPackagingCategories,
+  savePackagingCategories,
+  savePackagingItems,
+  getPackagingItems,
   addPackagingCategory,
   updatePackagingCategory,
   deletePackagingCategory,
@@ -54,6 +59,8 @@ export default function InventoryDashboardPage() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<PackagingCategoryRecord | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState<string>('');
 
   // Restock Modal State
   const [restockModalOpen, setRestockModalOpen] = useState(false);
@@ -115,14 +122,97 @@ export default function InventoryDashboardPage() {
 
   const handleCreateCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName.trim()) {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
       triggerToast('Please enter a category name.');
       return;
     }
-    const created = addPackagingCategory(newCategoryName.trim());
+    const duplicate = categories.some((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (duplicate) {
+      triggerToast(`Category "${trimmed}" already exists.`);
+      return;
+    }
+
+    const slug = (str: string) =>
+      str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `cat-${Date.now()}`;
+    const id = slug(trimmed);
+    const uniqueId = categories.some((c) => c.id === id) ? `${id}-${Date.now().toString().slice(-4)}` : id;
+
+    const newCategory: PackagingCategoryRecord = {
+      id: uniqueId,
+      name: trimmed,
+      isProtected: false,
+    };
+    const updated = [...categories, newCategory];
+    setCategories(updated);
+    savePackagingCategories(updated);
     setNewCategoryName('');
-    setCategories(getPackagingCategories());
-    triggerToast(`Created packaging category "${created.name}".`);
+    triggerToast(`Created packaging category "${trimmed}".`);
+  };
+
+  const handleStartRename = (cat: PackagingCategoryRecord) => {
+    setEditingCategoryId(cat.id);
+    setEditingCategoryName(cat.name);
+  };
+
+  const handleCancelRename = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+  };
+
+  const handleSaveRename = (cat: PackagingCategoryRecord) => {
+    const trimmed = editingCategoryName.trim();
+    if (!trimmed) {
+      triggerToast('Category name cannot be empty.');
+      return;
+    }
+    if (trimmed === cat.name) {
+      setEditingCategoryId(null);
+      return;
+    }
+    const isDuplicate = categories.some(
+      (c) => c.id !== cat.id && c.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      triggerToast(`Category "${trimmed}" already exists.`);
+      return;
+    }
+
+    const oldName = cat.name;
+    const newName = trimmed;
+
+    // a. Update category's name in categories list
+    const updatedCategories = categories.map((c) =>
+      c.id === cat.id ? { ...c, name: newName } : c
+    );
+    setCategories(updatedCategories);
+    savePackagingCategories(updatedCategories);
+
+    // b. Cascade update all items in packagingItems:
+    // find all materials where item.category === oldName and update them to item.category = newName
+    const currentItems = getPackagingItems();
+    let cascadeCount = 0;
+    const updatedItems = currentItems.map((item) => {
+      const itemCat = typeof item.category === 'string' ? item.category : (item.category as any)?.id || (item.category as any)?.name;
+      if (itemCat === oldName || itemCat?.toLowerCase() === oldName.toLowerCase()) {
+        cascadeCount++;
+        return {
+          ...item,
+          category: newName,
+        };
+      }
+      return item;
+    });
+
+    // c. Save both updated categories and updated packaging items to LocalStorage
+    if (cascadeCount > 0) {
+      savePackagingItems(updatedItems);
+      setItems(getInventory());
+    }
+
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+    triggerToast(`Renamed category to "${newName}"${cascadeCount > 0 ? ` and updated ${cascadeCount} linked material(s)` : ''}.`);
   };
 
   const handleConfirmDeleteCategory = () => {
@@ -1125,44 +1215,118 @@ export default function InventoryDashboardPage() {
                 Active Categories ({categories.length})
               </div>
               {categories.map((cat) => {
-                const count = items.filter((i) => i.category === cat.id).length;
+                const count = items.filter((item) => {
+                  const itemCat = typeof item.category === 'string' ? item.category : (item.category as any)?.id || (item.category as any)?.name;
+                  return (
+                    itemCat?.toLowerCase() === cat.id?.toLowerCase() ||
+                    itemCat?.toLowerCase() === cat.name?.toLowerCase()
+                  );
+                }).length;
                 const isCore = cat.isProtected || cat.id === 'box' || cat.id === 'sticker' || cat.id === 'skewer';
+                const isEditing = editingCategoryId === cat.id;
+
                 return (
                   <div
                     key={cat.id}
-                    className="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 flex items-center justify-between text-xs transition"
+                    className="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 flex items-center justify-between text-xs transition gap-2"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold shrink-0">
                         <Layers className="w-4 h-4" />
                       </div>
-                      <div>
-                        <div className="font-bold text-slate-900 flex items-center space-x-1.5">
-                          <span>{cat.name}</span>
-                          <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                            {cat.id}
-                          </span>
+                      {isEditing ? (
+                        <div className="flex items-center space-x-1.5 flex-1 min-w-0">
+                          <input
+                            type="text"
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveRename(cat);
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                handleCancelRename();
+                              }
+                            }}
+                            autoFocus
+                            placeholder="Category name..."
+                            className="w-full px-2.5 py-1 text-xs font-bold border border-indigo-400 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveRename(cat)}
+                            className="p-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 transition shrink-0 cursor-pointer"
+                            title="Save name"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelRename}
+                            className="p-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-300 transition shrink-0 cursor-pointer"
+                            title="Cancel"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          {count} {count === 1 ? 'material item' : 'material items'} linked
+                      ) : (
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-slate-900 flex items-center space-x-1.5">
+                            <span className="truncate">{cat.name}</span>
+                            <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                              {cat.id}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            {count} material items linked
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1.5 shrink-0">
+                      {/* Pencil Icon Button (for all categories including core categories) */}
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartRename(cat)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                          title={`Rename "${cat.name}" category`}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
                       {isCore ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Core system category required by Fruit Products BOM">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200"
+                          title="Core system category required by Fruit Products BOM"
+                        >
                           Core System
                         </span>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => setCategoryToDelete(cat)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                          title="Delete this custom category"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="relative group">
+                          <button
+                            type="button"
+                            disabled={count > 0}
+                            onClick={() => {
+                              if (count === 0) setCategoryToDelete(cat);
+                            }}
+                            className={`p-1.5 rounded-lg transition ${
+                              count > 0
+                                ? 'text-slate-300 cursor-not-allowed opacity-40'
+                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer'
+                            }`}
+                            title={
+                              count > 0
+                                ? 'Cannot delete category with active materials. Reassign or delete the items first.'
+                                : `Delete "${cat.name}" category`
+                            }
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
