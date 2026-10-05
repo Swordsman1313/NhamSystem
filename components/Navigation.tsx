@@ -17,8 +17,10 @@ import {
   Boxes,
   ChevronRight,
   ShieldCheck,
+  Cloud,
 } from 'lucide-react';
 import { getSettings } from '@/lib/storage';
+import { initCloudSync } from '@/lib/cloudSync';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -26,6 +28,9 @@ export default function Navigation() {
   const [exchangeRate, setExchangeRate] = useState<number>(4050);
 
   useEffect(() => {
+    // Initialize Cloud Sync across devices
+    initCloudSync();
+
     const updateRate = () => {
       const s = getSettings();
       setExchangeRate(s.exchangeRate || 4050);
@@ -276,11 +281,16 @@ export default function Navigation() {
 
           {/* Status Indicator */}
           <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
-            <span className="flex items-center space-x-1.5">
+            <span className="flex items-center space-x-1.5" title="Connected to Supabase Cloud - All devices in sync">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-medium text-slate-600">Ops Online</span>
+              <span className="font-semibold text-slate-700 flex items-center gap-1">
+                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                Cloud Sync
+              </span>
             </span>
-            <span className="font-mono text-[10px]">v1.2</span>
+            <span className="font-mono text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+              Live
+            </span>
           </div>
         </div>
       </aside>
@@ -445,7 +455,34 @@ export default function Navigation() {
               ))}
             </div>
 
-
+            {/* Drawer Footer */}
+            <div className="pt-3 border-t border-slate-100 space-y-2 shrink-0">
+              <Link
+                href="/settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700"
+              >
+                <div className="flex items-center space-x-2">
+                  <Coins className="w-4 h-4 text-amber-500" />
+                  <span>Exchange Rate:</span>
+                </div>
+                <span className="font-mono font-bold text-slate-900">
+                  1$ = {exchangeRate.toLocaleString()} ៛
+                </span>
+              </Link>
+              <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                <span className="flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-semibold text-slate-700 flex items-center gap-1">
+                    <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                    Cloud Sync
+                  </span>
+                </span>
+                <span className="font-mono text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                  Live
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}

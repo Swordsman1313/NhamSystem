@@ -16,6 +16,21 @@ import {
   INITIAL_INVOICES,
   INITIAL_BATCH_COSTS,
 } from './initialData';
+import {
+  syncSettingsToCloud,
+  syncStoreToCloud,
+  deleteStoreFromCloud,
+  syncProductToCloud,
+  deleteProductFromCloud,
+  syncPackagingToCloud,
+  deletePackagingFromCloud,
+  syncCategoryToCloud,
+  deleteCategoryFromCloud,
+  syncInvoiceToCloud,
+  deleteInvoiceFromCloud,
+  syncBatchToCloud,
+  deleteBatchFromCloud,
+} from './cloudSync';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'nhamnham_ops_products',
@@ -254,6 +269,7 @@ export function savePackagingItems(items: PackagingItem[]): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('packaging_updated'));
     window.dispatchEvent(new Event('inventory_updated'));
+    normalized.forEach((item) => syncPackagingToCloud(item));
   }
 }
 
@@ -293,6 +309,7 @@ export function updatePackagingItem(item: PackagingItem): void {
 export function deletePackagingItem(id: string): void {
   const current = getPackagingItems();
   savePackagingItems(current.filter((i) => i.id !== id));
+  deletePackagingFromCloud(id);
 }
 
 // Product Normalizer & Helper
@@ -350,6 +367,7 @@ export function saveProducts(products: Product[]): void {
   setItem(STORAGE_KEYS.PRODUCTS, normalized);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('products_updated'));
+    normalized.forEach((p) => syncProductToCloud(p));
   }
 }
 
@@ -376,6 +394,7 @@ export function updateProduct(product: Product): void {
 export function deleteProduct(idOrBarcode: string): void {
   const current = getProducts();
   saveProducts(current.filter((p) => p.id !== idOrBarcode && p.barcode !== idOrBarcode));
+  deleteProductFromCloud(idOrBarcode);
 }
 
 // Packaging Categories CRUD
@@ -406,6 +425,7 @@ export function savePackagingCategories(categories: PackagingCategoryRecord[]): 
   setItem(STORAGE_KEYS.CATEGORIES, categories);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('categories_updated'));
+    categories.forEach((c) => syncCategoryToCloud(c));
   }
 }
 
@@ -490,6 +510,7 @@ export function deletePackagingCategory(id: string): boolean {
   const current = getPackagingCategories();
   const updated = current.filter((c) => c.id !== id);
   savePackagingCategories(updated);
+  deleteCategoryFromCloud(id);
   return true;
 }
 
@@ -513,6 +534,7 @@ export function saveStores(stores: Store[]): void {
   setItem(STORAGE_KEYS.STORES, stores);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('stores_updated'));
+    stores.forEach((s) => syncStoreToCloud(s));
   }
 }
 
@@ -564,6 +586,7 @@ export function deleteStore(idOrCode: string): void {
   const current = getStores();
   const updated = current.filter((s) => s.id !== idOrCode && s.code !== idOrCode);
   saveStores(updated);
+  deleteStoreFromCloud(idOrCode);
 }
 
 export function toggleStoreActive(idOrCode: string): Store | null {
@@ -583,6 +606,10 @@ export function getSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   setItem(STORAGE_KEYS.SETTINGS, settings);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+    syncSettingsToCloud(settings);
+  }
 }
 
 // Invoices
@@ -594,6 +621,7 @@ export function saveInvoices(invoices: Invoice[]): void {
   setItem(STORAGE_KEYS.INVOICES, invoices);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('invoices_updated'));
+    invoices.forEach((inv) => syncInvoiceToCloud(inv));
   }
 }
 
@@ -616,6 +644,7 @@ export function updateInvoice(invoice: Invoice): void {
 export function deleteInvoice(id: string): void {
   const current = getInvoices();
   saveInvoices(current.filter((i) => i.id !== id));
+  deleteInvoiceFromCloud(id);
 }
 
 // Batches
@@ -627,6 +656,7 @@ export function saveBatches(batches: BatchCostRecord[]): void {
   setItem(STORAGE_KEYS.BATCHES, batches);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('batches_updated'));
+    batches.forEach((b) => syncBatchToCloud(b));
   }
 }
 
@@ -640,6 +670,7 @@ export function addBatch(batch: BatchCostRecord): BatchCostRecord {
 export function deleteBatch(id: string): void {
   const current = getBatches();
   saveBatches(current.filter((b) => b.id !== id));
+  deleteBatchFromCloud(id);
 }
 
 // Sequential Invoice Number Generator: INV-YYMM-XXX
