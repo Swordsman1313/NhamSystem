@@ -544,7 +544,7 @@ export default function NewDeliveryPage() {
         <div className="space-y-6">
           {/* Top Form Controls: Store, Date, Auto-Numbering, Terms */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Store Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -675,8 +675,8 @@ export default function NewDeliveryPage() {
               </div>
             </div>
 
-            {/* Items Table */}
-            <div className="overflow-x-auto">
+            {/* Desktop Items Table (md: and above) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                   <tr>
@@ -835,6 +835,124 @@ export default function NewDeliveryPage() {
               </table>
             </div>
 
+            {/* Mobile Touch-Friendly Card List (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {lineItems.map((item, index) => {
+                const lineTotal = Number(item.quantity) * Number(item.unitPrice);
+                const isNonZero = Number(item.quantity) > 0;
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`p-3.5 flex items-center justify-between gap-3 transition-colors ${
+                      isNonZero ? 'bg-emerald-50/50' : 'bg-white'
+                    }`}
+                  >
+                    {/* Left: Fruit name, Khmer subtitle, and unit price */}
+                    <div className="min-w-0 flex-1">
+                      {item.isCustom ? (
+                        <div className="space-y-1.5 mb-1.5">
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) =>
+                              setLineItems((prev) =>
+                                prev.map((i) =>
+                                  i.id === item.id ? { ...i, name: e.target.value } : i
+                                )
+                              )
+                            }
+                            placeholder="Custom item name"
+                            className="w-full text-xs font-bold border border-slate-300 rounded px-2 py-1 text-slate-900 bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={item.khmerName}
+                            onChange={(e) =>
+                              setLineItems((prev) =>
+                                prev.map((i) =>
+                                  i.id === item.id ? { ...i, khmerName: e.target.value } : i
+                                )
+                              )
+                            }
+                            placeholder="ឈ្មោះជាភាសាខ្មែរ"
+                            className="w-full text-xs font-khmer border border-slate-300 rounded px-2 py-1 text-slate-700 bg-white"
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm leading-snug">
+                            {item.name}
+                          </div>
+                          <div className="text-[11px] text-emerald-800 font-khmer">
+                            {item.khmerName}
+                          </div>
+                        </div>
+                      )}
+                      <div className="mt-1 flex items-center space-x-2 text-xs">
+                        <span className="font-mono font-bold text-slate-800">
+                          ${Number(item.unitPrice).toFixed(2)}
+                        </span>
+                        <span className="text-slate-400">•</span>
+                        <span className="text-slate-500 font-medium">{item.uom}</span>
+                        {isNonZero && (
+                          <>
+                            <span className="text-slate-400">•</span>
+                            <span className="font-mono font-bold text-emerald-800">
+                              Subtotal: ${lineTotal.toFixed(2)}
+                            </span>
+                          </>
+                        )}
+                        {item.isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomItem(item.id)}
+                            className="text-red-500 hover:text-red-700 text-[11px] font-bold underline ml-1"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Stepper component with minimum 44×44px touch targets */}
+                    <div className="flex items-center space-x-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, Number(item.quantity) - 1)}
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold text-xl flex items-center justify-center transition active:scale-95 touch-manipulation"
+                        aria-label={`Decrease ${item.name}`}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.quantity === 0 ? '' : item.quantity}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateQuantity(item.id, parseInt(e.target.value, 10) || 0)
+                        }
+                        className={`w-12 h-11 text-center font-bold text-base rounded-xl border focus:ring-2 focus:ring-emerald-500 focus:outline-hidden touch-manipulation ${
+                          isNonZero
+                            ? 'border-emerald-500 bg-white text-slate-900 font-black shadow-xs'
+                            : 'border-slate-200 bg-slate-50 text-slate-400'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, Number(item.quantity) + 1)}
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-emerald-900 font-bold text-xl flex items-center justify-center transition active:scale-95 touch-manipulation"
+                        aria-label={`Increase ${item.name}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Totals Summary Footer */}
             <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -970,6 +1088,44 @@ export default function NewDeliveryPage() {
               placeholder="e.g. Morning 8:00 AM delivery to front chiller; received by Linda"
               className="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             />
+          </div>
+
+          {/* Mobile Sticky Summary Footer (above mobile navigation bar) */}
+          <div className="md:hidden sticky bottom-16 bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 rounded-2xl shadow-xl z-30 flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-tight">
+                Total: {totalQuantity} boxes
+              </span>
+              <div className="font-mono font-black text-slate-900 text-lg leading-tight">
+                {formatUSD(totalAmountUSD)}
+              </div>
+              <div className="text-[10px] text-emerald-700 font-semibold leading-tight">
+                ≈ {formatKHR(totalAmountKHR)}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveInvoice}
+              disabled={totalQuantity === 0}
+              className={`min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center space-x-1.5 touch-manipulation ${
+                totalQuantity > 0
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+              }`}
+            >
+              {savedSuccess ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-white" />
+                  <span>Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save to Ledger</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       ) : activeTab === 'preview_invoice' ? (

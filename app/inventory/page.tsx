@@ -515,107 +515,107 @@ export default function InventoryDashboardPage() {
       </div>
 
       {/* 3 Core Summary Cards (User Requested) + Asset Valuation Tile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Summary Card 1: Total Boxes On-Hand */}
-        <div className="bg-white rounded-2xl p-5 border border-emerald-200 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition-colors">
+        <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-emerald-200 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              1. Total Boxes On-Hand
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+              1. Total Boxes
             </span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-              <Boxes className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <Boxes className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2 sm:mt-3">
+            <div className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {totalBoxes.toLocaleString()}{' '}
-              <span className="text-sm font-semibold text-slate-500">boxes</span>
+              <span className="text-xs sm:text-sm font-semibold text-slate-500">boxes</span>
             </div>
-            <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs flex-wrap gap-1">
               <span className="text-slate-600">
-                Small Std: <strong className="text-emerald-800">{smallBoxes.toLocaleString()}</strong>
+                Sm: <strong className="text-emerald-800">{smallBoxes.toLocaleString()}</strong>
               </span>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-300 hidden sm:inline">•</span>
               <span className="text-slate-600">
-                Big 300G: <strong className="text-emerald-800">{bigBoxes.toLocaleString()}</strong>
+                Big: <strong className="text-emerald-800">{bigBoxes.toLocaleString()}</strong>
               </span>
             </div>
           </div>
         </div>
 
         {/* Summary Card 2: Total Stickers On-Hand */}
-        <div className="bg-white rounded-2xl p-5 border border-indigo-200 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-colors">
+        <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-indigo-200 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              2. Total Stickers On-Hand
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+              2. Total Stickers
             </span>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
-              <Tag className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+              <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-3xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2 sm:mt-3">
+            <div className="flex items-baseline space-x-1 sm:space-x-2">
+              <span className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {totalStickers.toLocaleString()}
               </span>
-              <span className="text-sm font-semibold text-slate-500">pcs (10 SKUs)</span>
+              <span className="text-[11px] sm:text-sm font-semibold text-slate-500">pcs</span>
             </div>
-            <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs">
               {lowStockStickers.length > 0 ? (
                 <span className="inline-flex items-center text-amber-700 font-bold">
-                  <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-500" />
-                  {lowStockStickers.length} SKUs &lt; 25 pcs
+                  <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-amber-500" />
+                  {lowStockStickers.length} low
                 </span>
               ) : (
-                <span className="inline-flex items-center text-emerald-700 font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                  All 10 SKUs healthy (≥ 25)
+                <span className="inline-flex items-center text-emerald-700 font-semibold truncate">
+                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-emerald-600 shrink-0" />
+                  Healthy
                 </span>
               )}
-              <span className="text-[11px] text-slate-400">110៛/pc</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400">110៛/pc</span>
             </div>
           </div>
         </div>
 
         {/* Summary Card 3: Total Skewers On-Hand */}
-        <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-xs flex flex-col justify-between hover:border-amber-300 transition-colors">
+        <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-amber-200 shadow-xs flex flex-col justify-between hover:border-amber-300 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              3. Total Skewers On-Hand
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+              3. Total Skewers
             </span>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-              <Layers className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2 sm:mt-3">
+            <div className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {totalSkewers.toLocaleString()}{' '}
-              <span className="text-sm font-semibold text-slate-500">skewers</span>
+              <span className="text-[11px] sm:text-sm font-semibold text-slate-500">pcs</span>
             </div>
-            <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs">
               <span className="text-slate-600">
-                1:1 consumption per box
+                1:1 box
               </span>
-              <span className="text-[11px] text-slate-400">30៛/pc</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400">30៛/pc</span>
             </div>
           </div>
         </div>
 
         {/* Card 4: Packaging Asset Valuation */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Total Packaging Capital
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Packaging Capital
             </span>
-            <div className="w-10 h-10 rounded-xl bg-white/10 text-citrus-300 flex items-center justify-center">
-              <Coins className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-citrus-300 flex items-center justify-center shrink-0">
+              <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-mono">
+          <div className="mt-2 sm:mt-3">
+            <div className="text-xl sm:text-3xl font-black text-white tracking-tight font-mono">
               {formatUSD(totalValuationUSD)}
             </div>
-            <div className="mt-2.5 pt-2.5 border-t border-white/10 text-xs">
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-white/10 text-[11px] sm:text-xs">
               <span className="text-slate-300">
                 ≈ {formatKHR(totalValuationKHR)}
               </span>
@@ -625,9 +625,9 @@ export default function InventoryDashboardPage() {
       </div>
 
       {/* Search & Category Filter Navigation */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search */}
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative w-full sm:flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -639,7 +639,7 @@ export default function InventoryDashboardPage() {
         </div>
 
         {/* Filter Badges */}
-        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl overflow-x-auto max-w-full">
+        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0 sm:px-1 max-w-full">
           <button
             onClick={() => setCategoryFilter('all')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
@@ -844,8 +844,8 @@ export default function InventoryDashboardPage() {
 
       {/* Restock Modal */}
       {restockModalOpen && selectedItem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-3">
@@ -973,8 +973,8 @@ export default function InventoryDashboardPage() {
 
       {/* Edit Material & Unit Cost Modal */}
       {editModalOpen && selectedEditItem && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
@@ -1097,8 +1097,8 @@ export default function InventoryDashboardPage() {
 
       {/* Create New Raw Packaging Material Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
@@ -1214,8 +1214,8 @@ export default function InventoryDashboardPage() {
 
       {/* Packaging Categories Management Modal */}
       {categoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-3">

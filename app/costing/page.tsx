@@ -669,7 +669,7 @@ export default function BatchCostingPage() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           {lastAutoSaved && (
             <div className="flex items-center space-x-2">
               <span className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium inline-flex items-center">
@@ -690,7 +690,7 @@ export default function BatchCostingPage() {
           <button
             onClick={handleSaveBatch}
             disabled={totalBoxesYielded === 0}
-            className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-xs transition ${
+            className={`inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-xs transition w-full sm:w-auto ${
               totalBoxesYielded > 0
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -712,7 +712,7 @@ export default function BatchCostingPage() {
       </div>
 
       {/* Main Grid: Inputs (Left) and Real-Time Calculation Cards (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
         {/* Left Column (7 Cols): Batch Costing Inputs & Yield Per SKU */}
         <div className="lg:col-span-7 space-y-6">
           {/* Card 1: Batch Spend & Overheads */}
@@ -1165,7 +1165,7 @@ export default function BatchCostingPage() {
                 type="button"
                 onClick={handleApplyRevenue}
                 disabled={totalBoxesYielded === 0}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition inline-flex items-center space-x-1.5 shadow-xs cursor-pointer whitespace-nowrap ${
+                className={`w-full sm:w-auto px-3.5 py-2.5 sm:py-2 rounded-xl text-xs font-bold transition inline-flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer truncate sm:whitespace-nowrap ${
                   batches.some((b) => (b.date || '').startsWith(batchDate))
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-white ring-2 ring-emerald-300/40'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
@@ -1173,13 +1173,13 @@ export default function BatchCostingPage() {
               >
                 {batches.some((b) => (b.date || '').startsWith(batchDate)) ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-                    <span>Batch Logged to History ({formatUSD(totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : effectiveRevenueUSD)})</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-100 shrink-0" />
+                    <span className="truncate">Batch Logged to History ({formatUSD(totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : effectiveRevenueUSD)})</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Apply Revenue &amp; Save to History ({formatUSD(totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : effectiveRevenueUSD)})</span>
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <span className="truncate">Apply Revenue &amp; Save ({formatUSD(totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : effectiveRevenueUSD)})</span>
                   </>
                 )}
               </button>

@@ -9,11 +9,45 @@
   --foreground: #0f172a;
 }
 
+html, body {
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-kantumruy), 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* iOS Safari Safe Area Utilities */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pb-safe {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+}
+
+/* Prevent iOS Safari 16px auto-zoom on input focus */
+@media screen and (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Hide scrollbars for horizontally scrollable filter bars while retaining scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .font-khmer {

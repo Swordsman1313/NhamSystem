@@ -26,6 +26,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -50,10 +51,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-slate-50/60 text-slate-900 antialiased flex flex-col md:flex-row">
+      <body className="min-h-[100dvh] bg-slate-50/60 text-slate-900 antialiased flex flex-col md:flex-row">
         <Navigation />
-        <div className="flex-1 min-w-0 md:pl-64 lg:pl-72 flex flex-col min-h-screen">
-          <main className="flex-1 w-full pb-16">{children}</main>
+        <div className="flex-1 min-w-0 md:pl-64 lg:pl-72 flex flex-col min-h-[100dvh]">
+          <main className="flex-1 w-full pb-24 md:pb-16">{children}</main>
         </div>
       </body>
     </html>

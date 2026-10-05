@@ -452,31 +452,31 @@ function DeliveriesLedgerContent() {
 
       {/* Interactive Modal for Document Viewing & Printing */}
       {modalOpen && selectedInvoice && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-4xl w-full max-h-[92dvh] sm:max-h-[95vh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 flex flex-col pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-0 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="no-print p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
-              <div className="flex items-center space-x-3">
+            <div className="no-print p-3 sm:p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 sticky top-0 bg-white z-10">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-bold">
                   <button
                     onClick={() => setModalDocType('invoice')}
-                    className={`px-3 py-1.5 rounded-md transition ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md transition ${
                       modalDocType === 'invoice'
                         ? 'bg-emerald-700 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Commercial Invoice
+                    Invoice
                   </button>
                   <button
                     onClick={() => setModalDocType('do')}
-                    className={`px-3 py-1.5 rounded-md transition ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md transition ${
                       modalDocType === 'do'
                         ? 'bg-brand-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Delivery Note (DO)
+                    DO Note
                   </button>
                 </div>
                 <span className="font-mono text-xs font-bold text-slate-700">
@@ -487,10 +487,11 @@ function DeliveriesLedgerContent() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => triggerCleanPrint()}
-                  className="inline-flex items-center space-x-1.5 bg-slate-900 hover:bg-black text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs"
+                  className="inline-flex items-center space-x-1.5 bg-slate-900 hover:bg-black text-white px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Print Document</span>
+                  <span className="hidden sm:inline">Print Document</span>
+                  <span className="sm:hidden">Print</span>
                 </button>
                 <button
                   onClick={() => setModalOpen(false)}
