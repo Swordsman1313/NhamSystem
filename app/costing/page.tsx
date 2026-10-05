@@ -1207,19 +1207,19 @@ export default function BatchCostingPage() {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
               <tr>
-                <th className="py-2.5 px-4">Batch #</th>
-                <th className="py-2.5 px-3">Date</th>
-                <th className="py-2.5 px-3 text-right">Market Spend</th>
-                <th className="py-2.5 px-3 text-center">Yield</th>
-                <th className="py-2.5 px-3 text-right">Landed Cost / Box</th>
-                <th className="py-2.5 px-3 text-right">Revenue</th>
-                <th className="py-2.5 px-3 text-right">Net Profit</th>
-                <th className="py-2.5 px-3 text-center">Margin</th>
-                <th className="py-2.5 px-3 text-right">Action</th>
+                <th className="py-2.5 px-4 whitespace-nowrap">Batch #</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Date</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Market Spend</th>
+                <th className="py-2.5 px-3 text-center whitespace-nowrap">Yield</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Landed Cost / Box</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Revenue</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Net Profit</th>
+                <th className="py-2.5 px-3 text-center whitespace-nowrap">Margin</th>
+                <th className="py-2.5 px-3 text-right whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

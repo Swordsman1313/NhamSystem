@@ -679,9 +679,152 @@ export default function InventoryDashboardPage() {
         </div>
       </div>
 
-      {/* Packaging Inventory Table */}
+      {/* Packaging Inventory List: Desktop Table (hidden on mobile) + Mobile Stacked Cards */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Clean Stacked Cards (< md) */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {filteredItems.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 italic text-xs">
+              No packaging items match your current filter.
+            </div>
+          ) : (
+            filteredItems.map((item) => {
+              const isLow = item.onHand <= item.lowStockThreshold;
+              const isZero = item.onHand === 0;
+              const totalValue = item.onHand * item.costPerUnitKHR;
+
+              const categoryStr = typeof item.category === 'string' ? item.category : (item.category as any)?.id || 'box';
+              const catObj = categories.find((c) => c.id === categoryStr);
+              const categoryLabel: string = catObj?.name || (categoryStr === 'box' ? 'Box' : categoryStr === 'sticker' ? 'UV Sticker' : categoryStr === 'skewer' ? 'Skewer' : categoryStr);
+              const isBox = categoryStr === 'box';
+              const isSticker = categoryStr === 'sticker';
+              const isSkewer = categoryStr === 'skewer';
+
+              const colorClass = isBox
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : isSticker
+                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                : isSkewer
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-purple-50 text-purple-800 border-purple-200';
+
+              return (
+                <div
+                  key={item.id}
+                  className={`p-4 space-y-3 transition-colors ${
+                    isZero ? 'bg-red-50/20' : isLow ? 'bg-amber-50/20' : 'bg-white'
+                  }`}
+                >
+                  {/* Card Header: Item Name (Khmer + English) + Category Badge + Stock Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-slate-900 text-sm leading-snug">
+                        {item.name}
+                      </div>
+                      {item.khmerName && (
+                        <div className="text-[11px] text-slate-600 font-khmer mt-0.5">
+                          {item.khmerName}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-1.5 shrink-0 flex-wrap justify-end gap-y-1">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${colorClass}`}>
+                        {categoryLabel}
+                      </span>
+                      {isZero ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
+                          <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                          Out
+                        </span>
+                      ) : isLow ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                          Low
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5 text-emerald-600" />
+                          In Stock
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Body: Grid with On-Hand Quantity, Unit Cost, and Total Value */}
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-medium block">On-Hand</span>
+                      <span
+                        className={`font-mono font-black text-sm block ${
+                          isZero ? 'text-red-600' : isLow ? 'text-amber-700' : 'text-slate-900'
+                        }`}
+                      >
+                        {item.onHand.toLocaleString()} <span className="text-[10px] font-normal text-slate-500">pcs</span>
+                      </span>
+                      <span className="text-[9px] text-slate-400 block">Min: {item.lowStockThreshold}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-medium block">Unit Cost</span>
+                      <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">
+                        {formatKHR(item.costPerUnitKHR)}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block font-mono">
+                        ≈ {formatUSD(item.costPerUnitKHR / exchangeRate)}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-500 font-medium block">Total Value</span>
+                      <span className="font-mono font-black text-slate-900 text-xs mt-0.5 block">
+                        {formatKHR(totalValue)}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block font-mono">
+                        ≈ {formatUSD(totalValue / exchangeRate)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Footer: Barcode chip (if sticker) + Action buttons */}
+                  <div className="flex items-center justify-between pt-1 text-xs">
+                    <div>
+                      {item.barcodeRef ? (
+                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 inline-block border border-slate-200">
+                          Barcode: {item.barcodeRef}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">No barcode</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditItem(item)}
+                        className="min-h-[36px] px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95"
+                        title="Edit unit cost & stock settings"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openRestock(item)}
+                        className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Restock</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Standard Table (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
               <tr>

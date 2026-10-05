@@ -953,8 +953,8 @@ export default function NewDeliveryPage() {
               })}
             </div>
 
-            {/* Totals Summary Footer */}
-            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Totals Summary Footer (Desktop only: hidden md:flex to avoid double stacking on mobile) */}
+            <div className="hidden md:flex p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center space-x-3 text-sm">
                   <span className="text-slate-600 font-medium">Included SKUs:</span>
@@ -1091,7 +1091,7 @@ export default function NewDeliveryPage() {
           </div>
 
           {/* Mobile Sticky Summary Footer (above mobile navigation bar) */}
-          <div className="md:hidden sticky bottom-16 bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 rounded-2xl shadow-xl z-30 flex items-center justify-between gap-3">
+          <div className="md:hidden sticky bottom-[60px] md:bottom-0 bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 rounded-2xl shadow-xl z-30 flex items-center justify-between gap-3">
             <div>
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-tight">
                 Total: {totalQuantity} boxes
