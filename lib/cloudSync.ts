@@ -42,14 +42,35 @@ function getLocal<T>(key: string, fallback: T): T {
   }
 }
 
+let listenersAttached = false;
+
 /**
  * Initialize Cloud Synchronization:
  * 1. Pull latest cloud data into localStorage.
  * 2. If cloud is empty, seed cloud with local data.
  * 3. Subscribe to Realtime Postgres Changes across devices.
+ * 4. Auto-re-sync on window focus / tab visibility change (e.g. unlocking phone).
+ * 5. Background polling every 10s as a fallback.
  */
 export async function initCloudSync(): Promise<void> {
   if (!isSupabaseConfigured || typeof window === 'undefined') return;
+
+  if (!listenersAttached) {
+    listenersAttached = true;
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        pullAllFromCloud();
+      }
+    });
+    window.addEventListener('focus', () => {
+      pullAllFromCloud();
+    });
+    // Fallback periodic sync every 10 seconds for mobile stability
+    setInterval(() => {
+      pullAllFromCloud();
+    }, 10000);
+  }
+
   if (syncInitialized) return;
   syncInitialized = true;
 
@@ -59,6 +80,10 @@ export async function initCloudSync(): Promise<void> {
   } catch (err) {
     console.warn('Cloud sync init error (using local storage):', err);
   }
+}
+
+export async function forceSyncCloud(): Promise<void> {
+  await pullAllFromCloud();
 }
 
 /**
@@ -76,8 +101,11 @@ export async function pullAllFromCloud(): Promise<void> {
       .single();
 
     if (!settingsErr && settingsRow?.data) {
-      setLocal(STORAGE_KEYS.SETTINGS, settingsRow.data);
+      const current = getLocal<any>(STORAGE_KEYS.SETTINGS, {});
+      const merged = { ...current, ...settingsRow.data };
+      setLocal(STORAGE_KEYS.SETTINGS, merged);
       window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('settings_updated', { detail: merged }));
     } else if (settingsErr && settingsErr.code === 'PGRST116') {
       // Row not found, push local settings to cloud
       const localSettings = getLocal<any>(STORAGE_KEYS.SETTINGS, null);
@@ -275,20 +303,32 @@ export async function pullAllFromCloud(): Promise<void> {
   }
 }
 
+let realtimeChannel: any = null;
+
 /**
  * Setup Supabase Realtime Channels to react to changes made on other devices
  */
 function setupRealtimeSubscription(): void {
   try {
-    supabase
-      .channel('nham_realtime_channel')
+    if (realtimeChannel) {
+      try {
+        supabase.removeChannel(realtimeChannel);
+      } catch (e) {}
+    }
+
+    realtimeChannel = supabase
+      .channel('nham_realtime_sync')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'nham_settings' },
         (payload) => {
           if (payload.new && (payload.new as any).data) {
-            setLocal(STORAGE_KEYS.SETTINGS, (payload.new as any).data);
+            const incoming = (payload.new as any).data;
+            const current = getLocal<any>(STORAGE_KEYS.SETTINGS, {});
+            const merged = { ...current, ...incoming };
+            setLocal(STORAGE_KEYS.SETTINGS, merged);
             window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new CustomEvent('settings_updated', { detail: merged }));
           }
         }
       )
@@ -327,7 +367,11 @@ function setupRealtimeSubscription(): void {
           pullAllFromCloud();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          window.dispatchEvent(new CustomEvent('cloud_sync_live', { detail: true }));
+        }
+      });
   } catch (err) {
     console.warn('Realtime subscription error:', err);
   }

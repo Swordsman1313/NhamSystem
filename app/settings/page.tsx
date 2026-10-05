@@ -24,6 +24,7 @@ import {
   Check,
   Search,
   X,
+  RefreshCw,
 } from 'lucide-react';
 import {
   getSettings,
@@ -42,6 +43,7 @@ import {
 } from '@/lib/storage';
 import { AppSettings, Store, Product } from '@/lib/types';
 import { resetInventory } from '@/lib/inventoryStore';
+import { syncSettingsToCloud, forceSyncCloud } from '@/lib/cloudSync';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function SettingsPage() {
@@ -77,6 +79,9 @@ export default function SettingsPage() {
     variant?: 'danger' | 'warning' | 'info' | 'success';
   }>({ isOpen: false, title: '', message: '' });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const loadData = () => {
     setSettingsState(getSettings());
     setStoresState(getStores());
@@ -85,19 +90,36 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadData();
-    const handleStoresUpdated = () => loadData();
-    window.addEventListener('stores_updated', handleStoresUpdated);
-    window.addEventListener('storage', handleStoresUpdated);
+    const handleUpdate = () => loadData();
+    const handleSettingsUpdated = (e: any) => {
+      if (e.detail) {
+        setSettingsState(e.detail);
+      } else {
+        loadData();
+      }
+    };
+    window.addEventListener('stores_updated', handleUpdate);
+    window.addEventListener('settings_updated', handleSettingsUpdated);
+    window.addEventListener('storage', handleUpdate);
     return () => {
-      window.removeEventListener('stores_updated', handleStoresUpdated);
-      window.removeEventListener('storage', handleStoresUpdated);
+      window.removeEventListener('stores_updated', handleUpdate);
+      window.removeEventListener('settings_updated', handleSettingsUpdated);
+      window.removeEventListener('storage', handleUpdate);
     };
   }, []);
 
-  const handleSaveSettings = () => {
-    saveSettings(settings);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 2500);
+  const handleSaveSettings = async () => {
+    try {
+      setIsSaving(true);
+      saveSettings(settings);
+      await syncSettingsToCloud(settings);
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 2500);
+    } catch (err) {
+      console.error('Error saving settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openNewStoreModal = () => {
@@ -279,22 +301,46 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleSaveSettings}
-          className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm self-start sm:self-auto"
-        >
-          {saveToast ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-white" />
-              <span>Settings Saved!</span>
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              <span>Save Changes</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={async () => {
+              setIsSyncing(true);
+              await forceSyncCloud();
+              loadData();
+              setTimeout(() => setIsSyncing(false), 600);
+            }}
+            disabled={isSyncing}
+            title="Force pull all fresh data from Supabase Cloud"
+            className="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold px-3.5 py-2.5 rounded-xl border border-slate-300 shadow-xs transition text-xs sm:text-sm active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 text-emerald-600 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+          </button>
+
+          <button
+            onClick={handleSaveSettings}
+            disabled={isSaving}
+            className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                <span>Saving to Cloud...</span>
+              </>
+            ) : saveToast ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>Saved &amp; Synced!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Save Changes</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

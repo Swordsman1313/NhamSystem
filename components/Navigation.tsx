@@ -36,8 +36,21 @@ export default function Navigation() {
       setExchangeRate(s.exchangeRate || 4050);
     };
     updateRate();
+
+    const handleSettingsUpdated = (e: any) => {
+      if (e.detail?.exchangeRate) {
+        setExchangeRate(Number(e.detail.exchangeRate));
+      } else {
+        updateRate();
+      }
+    };
+
+    window.addEventListener('settings_updated', handleSettingsUpdated);
     window.addEventListener('storage', updateRate);
-    return () => window.removeEventListener('storage', updateRate);
+    return () => {
+      window.removeEventListener('settings_updated', handleSettingsUpdated);
+      window.removeEventListener('storage', updateRate);
+    };
   }, []);
 
   // Close mobile drawer on route change
