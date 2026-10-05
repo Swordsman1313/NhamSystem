@@ -545,7 +545,7 @@ export default function SettingsPage() {
                 className="inline-flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl shadow-2xs transition transform active:scale-95 text-xs self-start sm:self-auto cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Add Store</span>
+                <span>Add Store</span>
               </button>
             </div>
 

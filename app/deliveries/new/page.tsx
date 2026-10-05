@@ -557,7 +557,7 @@ export default function NewDeliveryPage() {
                     className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center space-x-1 cursor-pointer"
                   >
                     <Plus className="w-3 h-3 text-emerald-600" />
-                    <span>+ New Store</span>
+                    <span>New Store</span>
                   </button>
                 </div>
                 <StoreSelect

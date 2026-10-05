@@ -177,7 +177,7 @@ function DeliveriesLedgerContent() {
           className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm self-start sm:self-auto"
         >
           <PlusCircle className="w-4 h-4" />
-          <span>+ Create Delivery Note</span>
+          <span>Create Delivery Note</span>
         </Link>
       </div>
 
