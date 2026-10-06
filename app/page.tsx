@@ -40,6 +40,13 @@ export default function DashboardPage() {
   const [settings, setSettings] = useState<AppSettings>(getSettings());
   const [loading, setLoading] = useState(true);
 
+  type DatePreset = 'today' | 'yesterday' | '7days' | '30days' | 'custom';
+  const [datePreset, setDatePreset] = useState<DatePreset>('today');
+  const [customRange, setCustomRange] = useState({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+  });
+
   const loadData = () => {
     setInvoices(getInvoices());
     setBatches(getBatches());
@@ -54,39 +61,109 @@ export default function DashboardPage() {
     return () => window.removeEventListener('storage', loadData);
   }, []);
 
-  // Financial KPIs
-  const totalReceivablesUSD = invoices
+  // Helper to determine the active date boundaries
+  const getActiveDateRange = () => {
+    const now = new Date();
+    const formatYMD = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const todayStr = formatYMD(now);
+
+    if (datePreset === 'today') {
+      return { start: todayStr, end: todayStr };
+    }
+    if (datePreset === 'yesterday') {
+      const yest = new Date(now);
+      yest.setDate(yest.getDate() - 1);
+      const yestStr = formatYMD(yest);
+      return { start: yestStr, end: yestStr };
+    }
+    if (datePreset === '7days') {
+      const past7 = new Date(now);
+      past7.setDate(past7.getDate() - 6);
+      return { start: formatYMD(past7), end: todayStr };
+    }
+    if (datePreset === '30days') {
+      const past30 = new Date(now);
+      past30.setDate(past30.getDate() - 29);
+      return { start: formatYMD(past30), end: todayStr };
+    }
+    return { start: customRange.startDate, end: customRange.endDate };
+  };
+
+  const { start: activeStart, end: activeEnd } = getActiveDateRange();
+
+  // Dynamic Subtitle for active timeframe
+  const getSubtitle = () => {
+    if (datePreset === 'today') {
+      return `Operational metrics for: ${formatDateDisplay(activeStart)}`;
+    }
+    if (datePreset === 'yesterday') {
+      return `Operational metrics for: ${formatDateDisplay(activeStart)}`;
+    }
+    if (datePreset === '7days') {
+      return `Last 7 Days (${formatDateDisplay(activeStart)} – ${formatDateDisplay(activeEnd)})`;
+    }
+    if (datePreset === '30days') {
+      return `Last 30 Days (${formatDateDisplay(activeStart)} – ${formatDateDisplay(activeEnd)})`;
+    }
+    return `Custom Range (${formatDateDisplay(activeStart)} – ${formatDateDisplay(activeEnd)})`;
+  };
+
+  // Filtered Invoices based on Active Date Range
+  const filteredInvoices = invoices.filter((inv) => {
+    const invDate = (inv.invoiceDate || inv.createdAt || '').split('T')[0];
+    return invDate >= activeStart && invDate <= activeEnd;
+  });
+
+  // Financial KPIs calculated dynamically from filtered range
+  const totalReceivablesUSD = filteredInvoices
     .filter((inv) => inv.status === 'pending')
-    .reduce((sum, inv) => sum + (inv.totalAmountUSD || 0), 0);
+    .reduce((sum, inv) => sum + (Number(inv.totalAmountUSD) || 0), 0);
 
   const totalReceivablesKHR = Math.round(totalReceivablesUSD * (settings.exchangeRate || 4050));
 
-  const totalPaidRevenueUSD = invoices
+  const totalPaidRevenueUSD = filteredInvoices
     .filter((inv) => inv.status !== 'pending')
-    .reduce((sum, inv) => sum + (inv.totalAmountUSD || 0), 0);
+    .reduce((sum, inv) => sum + (Number(inv.totalAmountUSD) || 0), 0);
 
-  const totalAllRevenueUSD = invoices.reduce(
-    (sum, inv) => sum + (inv.totalAmountUSD || 0),
+  const totalAllRevenueUSD = filteredInvoices.reduce(
+    (sum, inv) => sum + (Number(inv.totalAmountUSD) || 0),
     0
   );
 
-  const totalUnitsDelivered = invoices.reduce(
-    (sum, inv) => sum + (inv.totalQuantity || 0),
+  const totalUnitsDelivered = filteredInvoices.reduce(
+    (sum, inv) => sum + (Number(inv.totalQuantity) || 0),
     0
   );
 
-  const pendingInvoicesCount = invoices.filter((inv) => inv.status === 'pending').length;
+  const pendingInvoicesCount = filteredInvoices.filter((inv) => inv.status === 'pending').length;
+  const paidInvoicesCount = filteredInvoices.filter((inv) => inv.status !== 'pending').length;
 
-  // Costing KPIs from batches
-  const latestBatch = batches[0];
-  const displayLandedCostUSD =
-    batches.length > 0 && latestBatch?.landedUnitCostUSD
-      ? latestBatch.landedUnitCostUSD.toFixed(2)
-      : '0.40';
-  const displayLandedCostKHR =
-    batches.length > 0 && latestBatch?.landedUnitCostKHR
-      ? latestBatch.landedUnitCostKHR
-      : 1599;
+  const periodStores = new Set(
+    filteredInvoices.map((i) => i.shipTo || i.customerName || i.storeCode).filter(Boolean)
+  );
+  const branchesDeliveredCount = periodStores.size || (filteredInvoices.length > 0 ? 1 : 0);
+  const avgBoxesPerDelivery = filteredInvoices.length > 0 ? Math.round(totalUnitsDelivered / filteredInvoices.length) : 0;
+
+  // Dynamic Landed Cost from Batches (most recent batch run)
+  const sortedBatches = [...batches].sort(
+    (a, b) => new Date(b.date || b.createdAt || '').getTime() - new Date(a.date || a.createdAt || '').getTime()
+  );
+  const batchesInRange = sortedBatches.filter((b) => {
+    const d = (b.date || b.createdAt || '').split('T')[0];
+    return d >= activeStart && d <= activeEnd;
+  });
+  const latestBatch = batchesInRange.length > 0 ? batchesInRange[0] : sortedBatches[0];
+  const landedCostUSD = latestBatch
+    ? (latestBatch.landedUnitCostUSD ?? latestBatch.landedCostUSD ?? 0)
+    : 0;
+  const landedCostKHR = latestBatch
+    ? (latestBatch.landedUnitCostKHR ?? latestBatch.landedCostKHR ?? 0)
+    : 0;
 
   // Toggle invoice status directly from dashboard
   const handleMarkAsPaid = (inv: Invoice) => {
@@ -101,17 +178,74 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-      {/* Minimal Top Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+      {/* Header & Date Range Filter Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Overview</h1>
-          <p className="text-xs text-slate-500">Live operational metrics &amp; delivery ledger</p>
+          <div className="flex items-center space-x-2">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Overview</h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Ops Live
+            </span>
+          </div>
+          <p className="text-xs font-medium text-slate-500 mt-1">
+            {getSubtitle()}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Ops Online
-          </span>
+
+        {/* Filter Bar with Quick Preset Pills & Custom Picker */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          {/* Preset Pills */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-medium overflow-x-auto no-scrollbar -mx-4 sm:mx-0 px-4 sm:px-1 whitespace-nowrap py-1">
+            {(
+              [
+                { id: 'today', label: 'Today' },
+                { id: 'yesterday', label: 'Yesterday' },
+                { id: '7days', label: '7 Days' },
+                { id: '30days', label: '30 Days' },
+                { id: 'custom', label: 'Custom' },
+              ] as const
+            ).map((pill) => {
+              const isActive = datePreset === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setDatePreset(pill.id)}
+                  className={
+                    isActive
+                      ? 'bg-emerald-600 text-white font-semibold shadow-xs transition px-3 py-1.5 rounded-lg cursor-pointer'
+                      : 'text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg transition cursor-pointer'
+                  }
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Date Inputs (when Custom is selected) */}
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
+              <input
+                type="date"
+                value={customRange.startDate}
+                onChange={(e) =>
+                  setCustomRange((prev) => ({ ...prev, startDate: e.target.value }))
+                }
+                className="px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-emerald-500 shadow-2xs font-mono"
+              />
+              <span className="text-slate-400 text-xs font-medium">➔</span>
+              <input
+                type="date"
+                value={customRange.endDate}
+                onChange={(e) =>
+                  setCustomRange((prev) => ({ ...prev, endDate: e.target.value }))
+                }
+                className="px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-emerald-500 shadow-2xs font-mono"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -136,7 +270,9 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">{pendingInvoicesCount} invoices pending</span>
+            <span className="text-slate-500 font-medium">
+              {pendingInvoicesCount} {pendingInvoicesCount === 1 ? 'invoice' : 'invoices'} pending
+            </span>
             <Link
               href="/deliveries?status=pending"
               className="text-emerald-700 font-semibold hover:underline inline-flex items-center"
@@ -161,7 +297,7 @@ export default function DashboardPage() {
               {formatUSD(totalPaidRevenueUSD)}
             </div>
             <div className="text-xs font-semibold text-emerald-700 mt-0.5">
-              From settled store invoices
+              {paidInvoicesCount} {paidInvoicesCount === 1 ? 'settled invoice' : 'settled invoices'}
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
@@ -186,11 +322,15 @@ export default function DashboardPage() {
               <span className="text-sm font-semibold text-slate-500 font-normal">boxes</span>
             </div>
             <div className="text-xs font-semibold text-teal-700 mt-0.5">
-              Across 3 partner branches
+              {branchesDeliveredCount > 0
+                ? `Across ${branchesDeliveredCount} ${branchesDeliveredCount === 1 ? 'partner branch' : 'partner branches'}`
+                : 'No deliveries in period'}
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">Avg ~30 boxes / delivery</span>
+            <span className="text-slate-500 font-medium">
+              Avg ~{avgBoxesPerDelivery} boxes / delivery
+            </span>
             <Link
               href="/statements"
               className="text-teal-700 font-semibold hover:underline inline-flex items-center"
@@ -212,15 +352,17 @@ export default function DashboardPage() {
           </div>
           <div className="mt-3">
             <div className="text-2xl font-black text-slate-900 tracking-tight">
-              ${displayLandedCostUSD}{' '}
+              ${landedCostUSD.toFixed(2)}{' '}
               <span className="text-sm font-semibold text-slate-500 font-normal">/ box</span>
             </div>
             <div className="text-xs font-semibold text-lime-800 mt-0.5">
-              Fruit + Weighted BOM + Route Fuel
+              {latestBatch ? `Batch ${latestBatch.batchNumber} (${formatDateDisplay(latestBatch.date)})` : 'Fruit + Weighted BOM + Route Fuel'}
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">≈ {displayLandedCostKHR.toLocaleString()} ៛ / box</span>
+            <span className="text-slate-500 font-medium">
+              ≈ {landedCostKHR.toLocaleString()} ៛ / box
+            </span>
             <Link
               href="/costing"
               className="text-lime-800 font-semibold hover:underline inline-flex items-center"
@@ -248,7 +390,7 @@ export default function DashboardPage() {
               href="/deliveries"
               className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline flex items-center space-x-1"
             >
-              <span>View All ({invoices.length})</span>
+              <span>View All ({filteredInvoices.length})</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -267,56 +409,74 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {invoices.slice(0, 5).map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                      {inv.invoiceNumber}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-900">{inv.shipTo}</div>
-                      <div className="text-[11px] text-slate-600">{inv.customerName}</div>
-                    </td>
-                    <td className="py-3 px-3 text-center text-slate-600 font-medium">
-                      {formatDateDisplay(inv.invoiceDate)}
-                    </td>
-                    <td className="py-3 px-3 text-center font-bold text-slate-900">
-                      {inv.totalQuantity}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                      {formatUSD(inv.totalAmountUSD)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {inv.status === 'pending' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Net 15
-                        </span>
-                      ) : inv.status === 'paid_aba' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Paid ABA
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                          Paid Cash
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {inv.status === 'pending' ? (
+                {filteredInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center text-slate-400">
+                      <div className="space-y-2">
+                        <p className="italic">No delivery invoices recorded for this time window.</p>
                         <button
-                          onClick={() => handleMarkAsPaid(inv)}
-                          className="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] border border-emerald-200 transition"
-                          title="Mark Paid via ABA"
+                          type="button"
+                          onClick={() => setDatePreset('7days')}
+                          className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition inline-flex items-center space-x-1 cursor-pointer"
                         >
-                          Mark Paid
+                          <span>Switch to Past 7 Days</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
                         </button>
-                      ) : (
-                        <span className="text-[11px] text-slate-600">Settled</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredInvoices.slice(0, 5).map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                        {inv.invoiceNumber}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-slate-900">{inv.shipTo}</div>
+                        <div className="text-[11px] text-slate-600">{inv.customerName}</div>
+                      </td>
+                      <td className="py-3 px-3 text-center text-slate-600 font-medium">
+                        {formatDateDisplay(inv.invoiceDate)}
+                      </td>
+                      <td className="py-3 px-3 text-center font-bold text-slate-900">
+                        {inv.totalQuantity}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                        {formatUSD(inv.totalAmountUSD)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {inv.status === 'pending' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Net 15
+                          </span>
+                        ) : inv.status === 'paid_aba' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Paid ABA
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            Paid Cash
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {inv.status === 'pending' ? (
+                          <button
+                            onClick={() => handleMarkAsPaid(inv)}
+                            className="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] border border-emerald-200 transition cursor-pointer"
+                            title="Mark Paid via ABA"
+                          >
+                            Mark Paid
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-slate-600">Settled</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -343,7 +503,7 @@ export default function DashboardPage() {
               {stores
                 .filter((s) => s.isActive !== false)
                 .map((store) => {
-                  const storeInvoices = invoices.filter(
+                  const storeInvoices = filteredInvoices.filter(
                     (inv) => inv.storeCode === store.code || inv.shipTo === store.shipTo
                   );
                   const storePending = storeInvoices

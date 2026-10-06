@@ -83,8 +83,8 @@ export default function Sidebar() {
     {
       category: 'OPERATIONS',
       items: [
-        { name: 'Dashboard / Overview', href: '/', icon: LayoutDashboard },
-        { name: 'New Invoice / DO', href: '/deliveries/new', icon: PlusCircle },
+        { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+        { name: 'New Invoice', href: '/deliveries/new', icon: PlusCircle },
         { name: 'Deliveries & AR', href: '/deliveries', icon: Truck },
         { name: 'Statements', href: '/statements', icon: FileSpreadsheet },
       ],
@@ -92,7 +92,7 @@ export default function Sidebar() {
     {
       category: 'PRODUCTION & STOCK',
       items: [
-        { name: 'Packaging Warehouse', href: '/inventory', icon: Package },
+        { name: 'Warehouse', href: '/inventory', icon: Package },
         { name: 'Products & BOM', href: '/products', icon: Boxes },
         { name: 'Batch Costing', href: '/costing', icon: Calculator },
       ],
@@ -131,7 +131,7 @@ export default function Sidebar() {
             </Link>
 
             {/* Ops Live Status Pill */}
-            <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+            <div className="px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Ops Live</span>
             </div>
@@ -146,7 +146,7 @@ export default function Sidebar() {
           >
             <div className="flex items-center space-x-2 text-xs text-slate-400 group-hover:text-slate-600 transition-colors truncate">
               <Search className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Search (⌘K)...</span>
+              <span className="truncate">Quick search...</span>
             </div>
             <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white border border-slate-200 rounded shadow-xs text-slate-500 shrink-0">
               ⌘K
@@ -158,7 +158,7 @@ export default function Sidebar() {
         <div className="flex-1 overflow-y-auto py-2 space-y-4 min-h-0">
           {navSections.map((section) => (
             <div key={section.category} className="space-y-0.5">
-              <div className="text-[11px] font-semibold text-slate-400 tracking-wider px-5 pt-3 pb-1 uppercase">
+              <div className="mt-5 mb-1.5 px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                 {section.category}
               </div>
 
@@ -170,10 +170,10 @@ export default function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-4 py-2.5 mx-3 rounded-xl flex items-center gap-3 text-sm font-medium transition ${
+                    className={`flex items-center gap-3 text-sm transition ${
                       active
-                        ? 'bg-emerald-50 text-emerald-800 font-semibold relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1.5 before:bg-emerald-600 before:rounded-r-full shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        ? 'bg-emerald-50 text-emerald-800 font-semibold border-l-4 border-emerald-600 rounded-r-xl rounded-l-none pl-3 pr-4 py-2.5 mr-3'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-4 py-2.5 mx-3 rounded-xl'
                     }`}
                   >
                     <Icon

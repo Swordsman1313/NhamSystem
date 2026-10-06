@@ -131,6 +131,8 @@ export interface BatchCostRecord {
   fuelSharePerBoxKHR: number;
   landedUnitCostKHR: number;
   landedUnitCostUSD: number;
+  landedCostKHR?: number;
+  landedCostUSD?: number;
   deliveryRevenueUSD: number;
   netProfitUSD: number;
   netProfitKHR: number;
