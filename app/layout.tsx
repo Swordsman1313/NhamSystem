@@ -11,7 +11,10 @@ const kantumruy = Kantumruy_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Nham Nham Ops - B2B Fresh Fruit Operating System',
+  title: {
+    default: 'Dashboard | Nham Nham Ops',
+    template: '%s | Nham Nham Ops',
+  },
   description:
     'Dedicated Operating System for Nham Nham B2B Fresh Fruit Distribution: Delivery Notes, Commercial Invoices, Batch-Yield Costing, and Store Reconciliation Statements.',
   keywords: ['Nham Nham', 'Fresh Fruit', 'B2B Cambodia', 'Invoicing', 'Batch Yield Costing', 'Delivery Note'],
