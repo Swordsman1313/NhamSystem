@@ -358,93 +358,14 @@ export default function BatchCostingPage() {
     }
   }, [batches, invoices, products, packagingItems, settings]);
 
-  // Fixed BOM Overheads
+  // Fixed BOM Overheads & Currency
   const coldWashBOM = settings.defaultColdWashKHR || 10;
   const exchangeRate = settings.exchangeRate || 4050;
 
-  // Real-time Calculations: dynamically recalculates exact sum of all entered box quantities
-  const totalBoxesYielded = Object.values(yieldInputs).reduce(
-    (sum, qty) => sum + (Number(qty) || 0),
-    0
-  );
-
-  // Total packaging cost for all yielded boxes in this batch
-  const totalBatchPackagingCostKHR = products.reduce((sum, p) => {
-    const count = Number(yieldInputs[p.barcode]) || 0;
-    return sum + count * getProductBOMCostKHR(p);
-  }, 0);
-
-  // Effective total packaging BOM cost for all boxes in batch
-  const effectiveTotalPackagingBOMCostKHR = useDynamicBOM
-    ? totalBatchPackagingCostKHR
-    : totalBoxesYielded * (manualBOMOverrideKHR || settings.defaultTubStickerKHR || 500);
-
-  // Dynamic weighted BOM per box
-  const dynamicWeightedBOMPerBoxKHR =
-    totalBoxesYielded > 0
-      ? Math.round(effectiveTotalPackagingBOMCostKHR / totalBoxesYielded)
-      : (settings.defaultTubStickerKHR || 500);
-
-  // Effective BOM per box to use in landed cost breakdown
-  const tubStickerBOM = useDynamicBOM
-    ? dynamicWeightedBOMPerBoxKHR
-    : manualBOMOverrideKHR;
-
-  // Actual Total Production Cost (KHR & USD) calculated directly from actual expenditures (Fruit + Fuel + BOM)
-  // This eliminates per-box integer rounding leakage and keeps batch cost perfectly aligned with daily run P&L
-  const totalProductionCostKHR =
-    totalBoxesYielded > 0
-      ? marketSpendKHR + fuelExpenseKHR + effectiveTotalPackagingBOMCostKHR
-      : 0;
-  const totalProductionCostUSD =
-    totalBoxesYielded > 0 ? totalProductionCostKHR / exchangeRate : 0;
-
-  // Landed Unit Cost (Per Box)
-  const landedUnitCostKHR =
-    totalBoxesYielded > 0
-      ? Math.round(totalProductionCostKHR / totalBoxesYielded)
-      : 0;
-  const landedUnitCostUSD =
-    totalBoxesYielded > 0 ? Number((totalProductionCostUSD / totalBoxesYielded).toFixed(2)) : 0;
-
-  // Component breakdown per box for display
-  const rawFruitCostPerBoxKHR =
-    totalBoxesYielded > 0 ? Math.round(marketSpendKHR / totalBoxesYielded) : 0;
-  const fuelSharePerBoxKHR =
-    totalBoxesYielded > 0 ? Math.round(fuelExpenseKHR / totalBoxesYielded) : 0;
-
-  // Expected standard revenue if all yielded boxes are sold at wholesale list price
-  const catalogExpectedRevenueUSD = products.reduce((sum, p) => {
-    const count = Number(yieldInputs[p.barcode]) || 0;
-    return sum + count * (p.wholesalePriceUSD ?? p.wholesalePrice ?? 0);
-  }, 0);
-
-  // Delivery Revenue & Profit Reconciliation
-  const effectiveRevenueUSD = deliveryRevenueInputUSD || catalogExpectedRevenueUSD;
-
-  // Net Profit (USD) = Estimated Delivery Revenue - Total Production Cost
-  const netProfitUSD = Number((effectiveRevenueUSD - totalProductionCostUSD).toFixed(2));
-  const netProfitKHR = Math.round(netProfitUSD * exchangeRate);
-
-  // Gross Margin % = (Net Profit / Estimated Delivery Revenue) * 100
-  const grossMarginPercent =
-    effectiveRevenueUSD > 0
-      ? Number(((netProfitUSD / effectiveRevenueUSD) * 100).toFixed(1))
-      : 0;
-
-  // Auto-fill delivery revenue from catalog prices
-  const handleAutoFillRevenue = () => {
-    const wholesale = Number(catalogExpectedRevenueUSD.toFixed(2));
-    setDeliveryRevenueInputUSD(wholesale);
-    setRevenueApplied(false);
-    showToast(`Loaded wholesale catalog expected revenue (${formatUSD(wholesale)})`);
-  };
-
   // ==========================================
-  // DAILY RUN PROFIT RECONCILIATION ENGINE
+  // UNIFIED MASTER CALCULATION ENGINE
   // ==========================================
-  // 1. Connect Invoices to Batch Run by Date:
-  // Scan the delivery ledger and pull all invoices created on that same date
+  // Invoices Linked & Invoiced Units on the Batch Date
   const linkedInvoices = React.useMemo(() => {
     return invoices.filter((inv) => {
       const invDate = (inv.invoiceDate || inv.createdAt || '').split('T')[0];
@@ -452,7 +373,6 @@ export default function BatchCostingPage() {
     });
   }, [invoices, batchDate]);
 
-  // Auto-calculate Total Delivered Revenue: Sum of all invoice totals for that date
   const totalDeliveredRevenueUSD = React.useMemo(() => {
     return linkedInvoices.reduce(
       (sum, inv) => sum + (Number(inv.totalAmountUSD) || 0),
@@ -460,18 +380,6 @@ export default function BatchCostingPage() {
     );
   }, [linkedInvoices]);
 
-  const syncInvoicedRevenue = () => {
-    if (totalDeliveredRevenueUSD === 0) {
-      showToast('No invoices found for this date to sync revenue.');
-      return;
-    }
-    const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
-    setDeliveryRevenueInputUSD(rev);
-    setRevenueApplied(true);
-    showToast(`Synced ${formatUSD(rev)} from today's delivery invoices`);
-  };
-
-  // Auto-calculate Total Invoiced Units: Sum of boxes across those invoices
   const totalInvoicedUnits = React.useMemo(() => {
     return linkedInvoices.reduce(
       (sum, inv) => sum + (Number(inv.totalQuantity) || 0),
@@ -479,7 +387,6 @@ export default function BatchCostingPage() {
     );
   }, [linkedInvoices]);
 
-  // Unique stores count and names
   const linkedStores = React.useMemo(() => {
     const list = linkedInvoices
       .map((inv) => inv.shipTo || inv.customerName || inv.storeCode)
@@ -487,7 +394,6 @@ export default function BatchCostingPage() {
     return Array.from(new Set(list));
   }, [linkedInvoices]);
 
-  // Check if current yieldInputs match today's invoiced quantities
   const invoicedSKUCounts = React.useMemo(() => {
     return getInvoiceSKUQuantities(batchDate, invoices, products);
   }, [batchDate, invoices, products]);
@@ -501,54 +407,95 @@ export default function BatchCostingPage() {
     );
   }, [products, yieldInputs, invoicedSKUCounts]);
 
-  // 2. Automated Same-Day P&L Calculation:
-  // - Total Day Revenue = Invoices Total ($75.78 USD)
-  // - Total Day Expenses = 
-  //     (Fruit Market Spend KHR / 4050) + 
-  //     (Route Fuel KHR / 4050) + 
-  //     (Total Packaging BOM Cost for the 87 boxes)
-  const sameDayFruitSpendUSD = marketSpendKHR / exchangeRate;
-  const sameDayFuelExpenseUSD = fuelExpenseKHR / exchangeRate;
-
-  // Total Packaging BOM Cost for the invoiced boxes
-  const totalInvoicedPackagingBOMCostKHR = React.useMemo(() => {
-    if (totalInvoicedUnits === 0) return 0;
-
-    let bomSum = 0;
-    if (useDynamicBOM) {
-      linkedInvoices.forEach((inv) => {
-        inv.items?.forEach((item) => {
-          const prod = products.find((p) => p.barcode === item.barcode);
-          const itemBOM = prod ? getProductBOMCostKHR(prod) : tubStickerBOM;
-          bomSum += itemBOM * (Number(item.quantity) || 0);
-        });
-      });
-    } else {
-      bomSum = totalInvoicedUnits * tubStickerBOM;
+  const getProductBOMCost = (skuId: string): number => {
+    if (!useDynamicBOM) {
+      return manualBOMOverrideKHR || settings.defaultTubStickerKHR || 500;
     }
+    const prod = products.find((p) => p.barcode === skuId || p.id === skuId);
+    return prod ? getProductBOMCostKHR(prod) : (settings.defaultTubStickerKHR || 500);
+  };
 
-    if (bomSum === 0 && totalInvoicedUnits > 0) {
-      bomSum = totalInvoicedUnits * (tubStickerBOM || 872);
+  const packedQuantities = yieldInputs;
+  const totalYieldBoxes = Object.values(packedQuantities).reduce(
+    (sum, qty) => sum + (Number(qty) || 0),
+    0
+  );
+
+  // 1. Packaging BOM from SKU inputs
+  const totalBOMCostKHR = Object.entries(packedQuantities).reduce((acc, [skuId, qty]) => {
+    return acc + (getProductBOMCost(skuId) * (Number(qty) || 0));
+  }, 0);
+  const weightedBOMPerBoxKHR = totalYieldBoxes > 0 ? Math.round(totalBOMCostKHR / totalYieldBoxes) : (manualBOMOverrideKHR || settings.defaultTubStickerKHR || 500);
+  const packagingBOMUSD = totalBOMCostKHR / exchangeRate;
+
+  // 2. Total Run Costs
+  const fruitSpendKHR = marketSpendKHR;
+  const routeFuelKHR = fuelExpenseKHR;
+  const totalDayExpensesKHR = fruitSpendKHR + routeFuelKHR + totalBOMCostKHR;
+  const totalRunCostUSD = totalDayExpensesKHR / exchangeRate;
+
+  // 3. Landed Cost Per Box
+  const landedCostKHR = totalYieldBoxes > 0 ? Math.round(totalDayExpensesKHR / totalYieldBoxes) : 0;
+  const landedCostUSD = totalYieldBoxes > 0 ? totalRunCostUSD / totalYieldBoxes : 0;
+  const rawFruitCostPerBoxKHR = totalYieldBoxes > 0 ? Math.round(fruitSpendKHR / totalYieldBoxes) : 0;
+  const fuelSharePerBoxKHR = totalYieldBoxes > 0 ? Math.round(routeFuelKHR / totalYieldBoxes) : 0;
+
+  // Expected catalog revenue
+  const catalogExpectedRevenueUSD = products.reduce((sum, p) => {
+    const count = Number(packedQuantities[p.barcode]) || 0;
+    return sum + count * (p.wholesalePriceUSD ?? p.wholesalePrice ?? 0);
+  }, 0);
+
+  // Unified Effective Revenue (manual override if user entered, or invoices if available, else catalog)
+  const effectiveDeliveredRevenueUSD = deliveryRevenueInputUSD > 0
+    ? deliveryRevenueInputUSD
+    : (totalDeliveredRevenueUSD > 0 ? totalDeliveredRevenueUSD : catalogExpectedRevenueUSD);
+
+  // 4. Profit & Reconciliation
+  const netProfitUSD = Number((effectiveDeliveredRevenueUSD - totalRunCostUSD).toFixed(2));
+  const netProfitKHR = Math.round(netProfitUSD * exchangeRate);
+  const grossMarginPercent = effectiveDeliveredRevenueUSD > 0
+    ? Number(((netProfitUSD / effectiveDeliveredRevenueUSD) * 100).toFixed(1))
+    : 0;
+
+  // Aliases for unified consistency across existing JSX elements
+  const totalBoxesYielded = totalYieldBoxes;
+  const landedUnitCostKHR = landedCostKHR;
+  const landedUnitCostUSD = landedCostUSD;
+  const tubStickerBOM = weightedBOMPerBoxKHR;
+  const dynamicWeightedBOMPerBoxKHR = weightedBOMPerBoxKHR;
+  const effectiveTotalPackagingBOMCostKHR = totalBOMCostKHR;
+  const totalBatchPackagingCostKHR = totalBOMCostKHR;
+  const totalProductionCostKHR = totalDayExpensesKHR;
+  const totalProductionCostUSD = totalRunCostUSD;
+  const totalDayExpensesUSD = totalRunCostUSD;
+  const dailyNetProfitUSD = netProfitUSD;
+  const dailyNetProfitKHR = netProfitKHR;
+  const dailyNetMarginPercent = grossMarginPercent;
+  const sameDayFruitSpendUSD = fruitSpendKHR / exchangeRate;
+  const sameDayFuelExpenseUSD = routeFuelKHR / exchangeRate;
+  const totalInvoicedPackagingBOMCostUSD = packagingBOMUSD;
+  const effectiveRevenueUSD = effectiveDeliveredRevenueUSD;
+
+  // Sync revenue utility
+  const syncInvoicedRevenue = () => {
+    if (totalDeliveredRevenueUSD === 0) {
+      showToast('No invoices found for this date to sync revenue.');
+      return;
     }
-    return bomSum;
-  }, [linkedInvoices, totalInvoicedUnits, useDynamicBOM, products, tubStickerBOM, packagingItems, settings]);
+    const rev = Number(totalDeliveredRevenueUSD.toFixed(2));
+    setDeliveryRevenueInputUSD(rev);
+    setRevenueApplied(true);
+    showToast(`Synced ${formatUSD(rev)} from today's delivery invoices`);
+  };
 
-  const totalInvoicedPackagingBOMCostUSD =
-    totalInvoicedPackagingBOMCostKHR / exchangeRate;
-
-  const totalDayExpensesUSD =
-    sameDayFruitSpendUSD + sameDayFuelExpenseUSD + totalInvoicedPackagingBOMCostUSD;
-  const totalDayExpensesKHR = Math.round(totalDayExpensesUSD * exchangeRate);
-
-  // Daily Net Profit ($ USD & KHR) = Total Day Revenue - Total Day Expenses
-  const dailyNetProfitUSD = Number((totalDeliveredRevenueUSD - totalDayExpensesUSD).toFixed(2));
-  const dailyNetProfitKHR = Math.round(dailyNetProfitUSD * exchangeRate);
-
-  // Daily Net Margin % = (Daily Net Profit / Total Day Revenue) * 100
-  const dailyNetMarginPercent =
-    totalDeliveredRevenueUSD > 0
-      ? Number(((dailyNetProfitUSD / totalDeliveredRevenueUSD) * 100).toFixed(1))
-      : 0;
+  // Auto-fill delivery revenue from catalog prices
+  const handleAutoFillRevenue = () => {
+    const wholesale = Number(catalogExpectedRevenueUSD.toFixed(2));
+    setDeliveryRevenueInputUSD(wholesale);
+    setRevenueApplied(false);
+    showToast(`Loaded wholesale catalog expected revenue (${formatUSD(wholesale)})`);
+  };
 
   // Seed demo invoices if none exist on this date
   const handleSeedTodayInvoices = () => {
@@ -670,20 +617,10 @@ export default function BatchCostingPage() {
         boxes: currentYields[p.barcode] || 0,
       }));
 
-    // If saving with reconciled invoices for this day, align EXACTLY with Daily Run Profit Reconciliation!
-    const isMatchingReconciliation = totalDeliveredRevenueUSD > 0 && Math.abs(rev - totalDeliveredRevenueUSD) < 0.05;
-
-    const calcNetProfitUSD = isMatchingReconciliation
-      ? Number(dailyNetProfitUSD.toFixed(2))
-      : Number((rev - totalProductionCostUSD).toFixed(2));
-
-    const calcNetProfitKHR = isMatchingReconciliation
-      ? dailyNetProfitKHR
-      : Math.round(calcNetProfitUSD * exchangeRate);
-
-    const calcGrossMarginPercent = isMatchingReconciliation
-      ? dailyNetMarginPercent
-      : (rev > 0 ? Number(((calcNetProfitUSD / rev) * 100).toFixed(1)) : 0);
+    // Unified calculation matching Master Engine exactly across cards and history:
+    const calcNetProfitUSD = Number((rev - totalRunCostUSD).toFixed(2));
+    const calcNetProfitKHR = Math.round(calcNetProfitUSD * exchangeRate);
+    const calcGrossMarginPercent = rev > 0 ? Number(((calcNetProfitUSD / rev) * 100).toFixed(1)) : 0;
 
     // Check if an existing batch should be updated (loaded via Reconcile or matching date)
     const existingIndex = editingBatchId

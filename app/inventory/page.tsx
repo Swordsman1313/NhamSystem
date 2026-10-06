@@ -443,6 +443,12 @@ export default function InventoryDashboardPage() {
 
   const skewerItems = items.filter((i) => i.category === 'skewer');
   const totalSkewers = skewerItems.reduce((acc, i) => acc + Number(i.onHand || 0), 0);
+  const skewerItem = items.find(
+    (m) =>
+      (typeof m.category === 'string' ? m.category : (m.category as any)?.id || '').toLowerCase().includes('skewer') ||
+      m.id?.toLowerCase().includes('skewer')
+  );
+  const skewerCost = skewerItem?.unitCostKHR ?? skewerItem?.costPerUnitKHR ?? 0;
 
   // Total Packaging Capital ($) = sum(item.onHand * (item.unitCostKHR / 4050))
   const totalValuationUSD = items.reduce((sum, item) => {
@@ -619,7 +625,7 @@ export default function InventoryDashboardPage() {
               <span className="text-slate-600">
                 1:1 box
               </span>
-              <span className="text-[10px] sm:text-[11px] text-slate-400">30៛/pc</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-semibold">{skewerCost} ៛/pc</span>
             </div>
           </div>
         </div>
@@ -823,14 +829,6 @@ export default function InventoryDashboardPage() {
                     <div className="flex items-center space-x-1.5">
                       <button
                         type="button"
-                        onClick={() => handleDeleteItem(item)}
-                        className="min-h-[36px] min-w-[36px] p-2 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-bold transition flex items-center justify-center shadow-2xs active:scale-95 cursor-pointer"
-                        title={`Delete "${item.name}"`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => openEditItem(item)}
                         className="min-h-[36px] px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer"
                         title="Edit unit cost & stock settings"
@@ -992,14 +990,6 @@ export default function InventoryDashboardPage() {
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end space-x-1.5">
                           <button
-                            type="button"
-                            onClick={() => handleDeleteItem(item)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                            title={`Delete "${item.name}"`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button
                             onClick={() => openEditItem(item)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition cursor-pointer"
                             title="Edit unit cost & stock settings"
@@ -1126,7 +1116,12 @@ export default function InventoryDashboardPage() {
               <div className="flex items-center justify-between text-slate-600">
                 <span>Estimated Batch Cost:</span>
                 <span className="font-mono font-bold text-slate-800">
-                  {formatKHR(addedQty * selectedItem.costPerUnitKHR)}
+                  {(() => {
+                    const unitCost = Number(selectedItem.unitCostKHR ?? selectedItem.costPerUnitKHR ?? 0);
+                    const batchCostKHR = (Number(addedQty) || 0) * unitCost;
+                    const batchCostUSD = batchCostKHR / (exchangeRate || 4000);
+                    return `${batchCostKHR.toLocaleString()} ៛ (≈ $${batchCostUSD.toFixed(2)})`;
+                  })()}
                 </span>
               </div>
             </div>
@@ -1274,29 +1269,37 @@ export default function InventoryDashboardPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (selectedEditItem) {
-                      handleDeleteItem(selectedEditItem);
+                    if (!selectedEditItem) return;
+                    if (
+                      window.confirm(
+                        `Are you sure you want to delete ${selectedEditItem.name}? This will remove it from inventory.`
+                      )
+                    ) {
+                      deletePackagingItem(selectedEditItem.id);
+                      setEditModalOpen(false);
+                      loadData();
+                      triggerToast(`Deleted "${selectedEditItem.name}" from inventory.`);
                     }
                   }}
-                  className="px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                  className="text-rose-600 hover:bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer flex items-center space-x-1.5"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete</span>
+                  <span>🗑️</span>
+                  <span>Delete Material</span>
                 </button>
 
                 <div className="flex items-center space-x-2.5">
                   <button
                     type="button"
                     onClick={() => setEditModalOpen(false)}
-                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                    className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                    className="px-5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
                   >
-                    Save &amp; Sync
+                    Save Changes
                   </button>
                 </div>
               </div>
