@@ -111,7 +111,7 @@ export default function Sidebar() {
         {/* Top Section: Header & Command Bar */}
         <div className="shrink-0">
           {/* Top Bar */}
-          <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+          <div className="px-5 pt-5 pb-3 flex items-center">
             <Link href="/" className="flex items-center space-x-2.5 group">
               <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/70 p-1 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-200 shrink-0">
                 <img
@@ -129,12 +129,6 @@ export default function Sidebar() {
                 </span>
               </div>
             </Link>
-
-            {/* Ops Live Status Pill */}
-            <div className="whitespace-nowrap px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5 flex-shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span>Ops Live</span>
-            </div>
           </div>
 
           {/* Search & Command Palette Trigger */}
