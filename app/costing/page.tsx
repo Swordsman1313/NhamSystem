@@ -28,6 +28,7 @@ import {
   getProducts,
   getSettings,
   getBatches,
+  saveBatches,
   addBatch,
   deleteBatch,
   generateNextBatchNumber,
@@ -78,6 +79,7 @@ export default function BatchCostingPage() {
   // Yield Inputs per SKU
   const [yieldInputs, setYieldInputs] = useState<Record<string, number>>({});
   const [deliveryRevenueInputUSD, setDeliveryRevenueInputUSD] = useState<number>(75.78);
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [revenueApplied, setRevenueApplied] = useState(false);
   const [lastAutoSaved, setLastAutoSaved] = useState<string | null>(null);
@@ -299,6 +301,63 @@ export default function BatchCostingPage() {
     }, 0);
   };
 
+  // Auto-align batches if any had legacy rounding discrepancies on load
+  const hasAlignedRef = React.useRef(false);
+  useEffect(() => {
+    if (!batches.length || !invoices.length || !products.length || hasAlignedRef.current) return;
+    hasAlignedRef.current = true;
+    let updated = false;
+    const aligned = batches.map((record) => {
+      const dayInvoices = invoices.filter((item) => {
+        const invDate = (item.invoiceDate || item.createdAt || '').split('T')[0];
+        return invDate === record.date;
+      });
+      const dayRevenue = dayInvoices.reduce((sum, item) => sum + (Number(item.totalAmountUSD) || 0), 0);
+      const dayUnits = dayInvoices.reduce((sum, item) => sum + (Number(item.totalQuantity) || 0), 0);
+
+      if (dayInvoices.length > 0 && Math.abs((record.deliveryRevenueUSD || 0) - dayRevenue) < 0.05) {
+        const fruitUSD = record.marketSpendKHR / record.exchangeRate;
+        const fuelUSD = record.fuelExpenseKHR / record.exchangeRate;
+        let bomSum = 0;
+        dayInvoices.forEach((item) => {
+          item.items?.forEach((it) => {
+            const prod = products.find((pr) => pr.barcode === it.barcode);
+            const itemBOM = prod ? getProductBOMCostKHR(prod) : (record.tubStickerBOMKHR || 500);
+            bomSum += itemBOM * (Number(it.quantity) || 0);
+          });
+        });
+        if (bomSum === 0 && dayUnits > 0) {
+          bomSum = dayUnits * (record.tubStickerBOMKHR || 500);
+        }
+        const bomUSD = bomSum / record.exchangeRate;
+        const trueExpUSD = fruitUSD + fuelUSD + bomUSD;
+        const trueNetProfitUSD = Number((dayRevenue - trueExpUSD).toFixed(2));
+        const trueNetProfitKHR = Math.round(trueNetProfitUSD * record.exchangeRate);
+        const trueMargin = dayRevenue > 0 ? Number(((trueNetProfitUSD / dayRevenue) * 100).toFixed(1)) : 0;
+
+        if (
+          Math.abs((record.netProfitUSD || 0) - trueNetProfitUSD) >= 0.01 ||
+          Math.abs((record.grossMarginPercent || 0) - trueMargin) >= 0.1 ||
+          !record.netProfitKHR
+        ) {
+          updated = true;
+          return {
+            ...record,
+            netProfitUSD: trueNetProfitUSD,
+            netProfitKHR: trueNetProfitKHR,
+            grossMarginPercent: trueMargin,
+          };
+        }
+      }
+      return record;
+    });
+
+    if (updated) {
+      saveBatches(aligned);
+      setBatches(aligned);
+    }
+  }, [batches, invoices, products, packagingItems, settings]);
+
   // Fixed BOM Overheads
   const coldWashBOM = settings.defaultColdWashKHR || 10;
   const exchangeRate = settings.exchangeRate || 4050;
@@ -315,38 +374,44 @@ export default function BatchCostingPage() {
     return sum + count * getProductBOMCostKHR(p);
   }, 0);
 
+  // Effective total packaging BOM cost for all boxes in batch
+  const effectiveTotalPackagingBOMCostKHR = useDynamicBOM
+    ? totalBatchPackagingCostKHR
+    : totalBoxesYielded * (manualBOMOverrideKHR || settings.defaultTubStickerKHR || 500);
+
   // Dynamic weighted BOM per box
   const dynamicWeightedBOMPerBoxKHR =
     totalBoxesYielded > 0
-      ? Math.round(totalBatchPackagingCostKHR / totalBoxesYielded)
+      ? Math.round(effectiveTotalPackagingBOMCostKHR / totalBoxesYielded)
       : (settings.defaultTubStickerKHR || 500);
 
-  // Effective BOM per box to use in landed cost calculation
+  // Effective BOM per box to use in landed cost breakdown
   const tubStickerBOM = useDynamicBOM
     ? dynamicWeightedBOMPerBoxKHR
     : manualBOMOverrideKHR;
 
-  // Raw Fruit Share (KHR) = Fruit Market Spend (KHR) / totalBoxesYielded
-  const rawFruitCostPerBoxKHR =
-    totalBoxesYielded > 0 ? Math.round(marketSpendKHR / totalBoxesYielded) : 0;
+  // Actual Total Production Cost (KHR & USD) calculated directly from actual expenditures (Fruit + Fuel + BOM)
+  // This eliminates per-box integer rounding leakage and keeps batch cost perfectly aligned with daily run P&L
+  const totalProductionCostKHR =
+    totalBoxesYielded > 0
+      ? marketSpendKHR + fuelExpenseKHR + effectiveTotalPackagingBOMCostKHR
+      : 0;
+  const totalProductionCostUSD =
+    totalBoxesYielded > 0 ? totalProductionCostKHR / exchangeRate : 0;
 
-  // Route Fuel Share (KHR) = Route Fuel Expense (KHR) / totalBoxesYielded
-  const fuelSharePerBoxKHR =
-    totalBoxesYielded > 0 ? Math.round(fuelExpenseKHR / totalBoxesYielded) : 0;
-
-  // Total Landed Unit Cost (KHR) = Raw Fruit Share + Route Fuel Share + Weighted BOM packaging cost
+  // Landed Unit Cost (Per Box)
   const landedUnitCostKHR =
     totalBoxesYielded > 0
-      ? rawFruitCostPerBoxKHR + fuelSharePerBoxKHR + tubStickerBOM
+      ? Math.round(totalProductionCostKHR / totalBoxesYielded)
       : 0;
-
   const landedUnitCostUSD =
-    totalBoxesYielded > 0 ? Number((landedUnitCostKHR / exchangeRate).toFixed(2)) : 0;
+    totalBoxesYielded > 0 ? Number((totalProductionCostUSD / totalBoxesYielded).toFixed(2)) : 0;
 
-  // Total Production Cost (USD) = (Total Landed Unit Cost * totalBoxesYielded) / 4050
-  const totalProductionCostUSD =
-    totalBoxesYielded > 0 ? (landedUnitCostKHR * totalBoxesYielded) / exchangeRate : 0;
-  const totalProductionCostKHR = Math.round(totalProductionCostUSD * exchangeRate);
+  // Component breakdown per box for display
+  const rawFruitCostPerBoxKHR =
+    totalBoxesYielded > 0 ? Math.round(marketSpendKHR / totalBoxesYielded) : 0;
+  const fuelSharePerBoxKHR =
+    totalBoxesYielded > 0 ? Math.round(fuelExpenseKHR / totalBoxesYielded) : 0;
 
   // Expected standard revenue if all yielded boxes are sold at wholesale list price
   const catalogExpectedRevenueUSD = products.reduce((sum, p) => {
@@ -476,7 +541,7 @@ export default function BatchCostingPage() {
   const totalDayExpensesKHR = Math.round(totalDayExpensesUSD * exchangeRate);
 
   // Daily Net Profit ($ USD & KHR) = Total Day Revenue - Total Day Expenses
-  const dailyNetProfitUSD = totalDeliveredRevenueUSD - totalDayExpensesUSD;
+  const dailyNetProfitUSD = Number((totalDeliveredRevenueUSD - totalDayExpensesUSD).toFixed(2));
   const dailyNetProfitKHR = Math.round(dailyNetProfitUSD * exchangeRate);
 
   // Daily Net Margin % = (Daily Net Profit / Total Day Revenue) * 100
@@ -548,6 +613,7 @@ export default function BatchCostingPage() {
   };
 
   const handleLoadBatchForReconciliation = (record: BatchCostRecord) => {
+    setEditingBatchId(record.id);
     setBatchDate(record.date);
     setMarketSpendKHR(record.marketSpendKHR);
     setFuelExpenseKHR(record.fuelExpenseKHR);
@@ -565,11 +631,21 @@ export default function BatchCostingPage() {
       setYieldInputs(loadedYields);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(`Loaded ${record.batchNumber} for reconciliation`);
   };
 
   // Save Batch to Ledger & History Table
   const handleSaveBatchWithRevenue = (appliedRevUSD?: number) => {
-    if (totalBoxesYielded === 0) {
+    // If saving from Daily Run Reconciliation, auto-sync yield if needed
+    let currentYields = yieldInputs;
+    let currentBoxes = totalBoxesYielded;
+    if (appliedRevUSD !== undefined && totalInvoicedUnits > 0 && currentBoxes !== totalInvoicedUnits) {
+      currentYields = getInvoiceSKUQuantities(batchDate, invoices, products);
+      currentBoxes = Object.values(currentYields).reduce((sum, qty) => sum + (Number(qty) || 0), 0);
+      setYieldInputs(currentYields);
+    }
+
+    if (currentBoxes === 0) {
       setAlertModal({
         isOpen: true,
         title: 'No Boxes Yielded',
@@ -586,52 +662,106 @@ export default function BatchCostingPage() {
     setRevenueApplied(true);
 
     const yieldList: BatchYieldItem[] = products
-      .filter((p) => (yieldInputs[p.barcode] || 0) > 0)
+      .filter((p) => (currentYields[p.barcode] || 0) > 0)
       .map((p) => ({
         barcode: p.barcode,
         name: p.name,
         khmerName: p.khmerName,
-        boxes: yieldInputs[p.barcode] || 0,
+        boxes: currentYields[p.barcode] || 0,
       }));
 
-    const calcNetProfitUSD = Number((rev - totalProductionCostUSD).toFixed(2));
-    const calcNetProfitKHR = Math.round((rev - totalProductionCostUSD) * exchangeRate);
-    const calcGrossMarginPercent = rev > 0 ? Number(((calcNetProfitUSD / rev) * 100).toFixed(1)) : 0;
+    // If saving with reconciled invoices for this day, align EXACTLY with Daily Run Profit Reconciliation!
+    const isMatchingReconciliation = totalDeliveredRevenueUSD > 0 && Math.abs(rev - totalDeliveredRevenueUSD) < 0.05;
 
-    const newRecord: BatchCostRecord = {
-      id: `batch-${Date.now()}`,
-      batchNumber: generateNextBatchNumber(batchDate),
-      date: batchDate,
-      marketSpendKHR,
-      fuelExpenseKHR,
-      tubStickerBOMKHR: tubStickerBOM,
-      packagingBOMPerBoxKHR: tubStickerBOM,
-      totalPackagingBOMCostKHR: totalBatchPackagingCostKHR,
-      isDynamicBOM: useDynamicBOM,
-      coldWashBOMKHR: 0,
-      exchangeRate,
-      yieldItems: yieldList,
-      totalBoxesYielded,
-      rawFruitCostPerBoxKHR,
-      fuelSharePerBoxKHR,
-      landedUnitCostKHR,
-      landedUnitCostUSD,
-      deliveryRevenueUSD: rev,
-      netProfitUSD: calcNetProfitUSD,
-      netProfitKHR: calcNetProfitKHR,
-      grossMarginPercent: calcGrossMarginPercent,
-      createdAt: new Date().toISOString(),
-      notes,
-    };
+    const calcNetProfitUSD = isMatchingReconciliation
+      ? Number(dailyNetProfitUSD.toFixed(2))
+      : Number((rev - totalProductionCostUSD).toFixed(2));
 
-    addBatch(newRecord);
-    setBatches(getBatches());
-    clearCostingDraft();
-    setLastAutoSaved(null);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
+    const calcNetProfitKHR = isMatchingReconciliation
+      ? dailyNetProfitKHR
+      : Math.round(calcNetProfitUSD * exchangeRate);
 
-    showToast(`✓ Batch ${newRecord.batchNumber} saved & logged to Production History!`);
+    const calcGrossMarginPercent = isMatchingReconciliation
+      ? dailyNetMarginPercent
+      : (rev > 0 ? Number(((calcNetProfitUSD / rev) * 100).toFixed(1)) : 0);
+
+    // Check if an existing batch should be updated (loaded via Reconcile or matching date)
+    const existingIndex = editingBatchId
+      ? batches.findIndex((b) => b.id === editingBatchId)
+      : batches.findIndex((b) => (b.date || '').startsWith(batchDate));
+
+    if (existingIndex >= 0) {
+      const existing = batches[existingIndex];
+      const updatedRecord: BatchCostRecord = {
+        ...existing,
+        marketSpendKHR,
+        fuelExpenseKHR,
+        tubStickerBOMKHR: tubStickerBOM,
+        packagingBOMPerBoxKHR: tubStickerBOM,
+        totalPackagingBOMCostKHR: effectiveTotalPackagingBOMCostKHR,
+        isDynamicBOM: useDynamicBOM,
+        coldWashBOMKHR: 0,
+        exchangeRate,
+        yieldItems: yieldList,
+        totalBoxesYielded: currentBoxes,
+        rawFruitCostPerBoxKHR,
+        fuelSharePerBoxKHR,
+        landedUnitCostKHR,
+        landedUnitCostUSD,
+        deliveryRevenueUSD: rev,
+        netProfitUSD: calcNetProfitUSD,
+        netProfitKHR: calcNetProfitKHR,
+        grossMarginPercent: calcGrossMarginPercent,
+        notes: notes || existing.notes,
+      };
+
+      const updatedBatches = [...batches];
+      updatedBatches[existingIndex] = updatedRecord;
+      saveBatches(updatedBatches);
+      setBatches(updatedBatches);
+      clearCostingDraft();
+      setLastAutoSaved(null);
+      setSavedSuccess(true);
+      setEditingBatchId(null);
+      setTimeout(() => setSavedSuccess(false), 2500);
+
+      showToast(`✓ Batch ${existing.batchNumber} reconciled and updated in History!`);
+    } else {
+      const newRecord: BatchCostRecord = {
+        id: `batch-${Date.now()}`,
+        batchNumber: generateNextBatchNumber(batchDate),
+        date: batchDate,
+        marketSpendKHR,
+        fuelExpenseKHR,
+        tubStickerBOMKHR: tubStickerBOM,
+        packagingBOMPerBoxKHR: tubStickerBOM,
+        totalPackagingBOMCostKHR: effectiveTotalPackagingBOMCostKHR,
+        isDynamicBOM: useDynamicBOM,
+        coldWashBOMKHR: 0,
+        exchangeRate,
+        yieldItems: yieldList,
+        totalBoxesYielded: currentBoxes,
+        rawFruitCostPerBoxKHR,
+        fuelSharePerBoxKHR,
+        landedUnitCostKHR,
+        landedUnitCostUSD,
+        deliveryRevenueUSD: rev,
+        netProfitUSD: calcNetProfitUSD,
+        netProfitKHR: calcNetProfitKHR,
+        grossMarginPercent: calcGrossMarginPercent,
+        createdAt: new Date().toISOString(),
+        notes,
+      };
+
+      addBatch(newRecord);
+      setBatches(getBatches());
+      clearCostingDraft();
+      setLastAutoSaved(null);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
+
+      showToast(`✓ Batch ${newRecord.batchNumber} saved & logged to Production History!`);
+    }
 
     // Smooth scroll down to the history table so the user sees the new row immediately!
     const table = document.getElementById('batch-history-table');
@@ -641,10 +771,15 @@ export default function BatchCostingPage() {
   };
 
   const handleSaveBatch = () => handleSaveBatchWithRevenue();
-  const handleApplyRevenue = () =>
+  const handleApplyRevenue = () => {
+    if (totalInvoicedUnits > 0 && totalBoxesYielded !== totalInvoicedUnits) {
+      const syncedYields = getInvoiceSKUQuantities(batchDate, invoices, products);
+      setYieldInputs(syncedYields);
+    }
     handleSaveBatchWithRevenue(
       totalDeliveredRevenueUSD > 0 ? Number(totalDeliveredRevenueUSD.toFixed(2)) : undefined
     );
+  };
 
   const handleDeleteBatch = (id: string, num: string) => {
     setDeleteConfirm({
@@ -1065,11 +1200,26 @@ export default function BatchCostingPage() {
                   {totalInvoicedUnits}{' '}
                   <span className="text-xs font-normal text-slate-400">boxes</span>
                 </div>
-                <div className="text-[10px] text-emerald-400 mt-0.5 truncate">
+                <div className="text-[10px] mt-0.5 truncate flex items-center justify-between">
                   {totalBoxesYielded === totalInvoicedUnits && totalInvoicedUnits > 0 ? (
                     <span className="text-emerald-300 font-semibold">✓ Matches Yield ({totalBoxesYielded})</span>
                   ) : (
-                    <span className="text-slate-400">Yield: {totalBoxesYielded} boxes</span>
+                    <>
+                      <span className="text-slate-400">Yield: {totalBoxesYielded} boxes</span>
+                      {totalInvoicedUnits > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const syncedYields = getInvoiceSKUQuantities(batchDate, invoices, products);
+                            setYieldInputs(syncedYields);
+                            showToast(`Synced yield quantities to today's invoices (${totalInvoicedUnits} boxes)`);
+                          }}
+                          className="text-[10px] text-citrus-300 hover:text-citrus-200 underline font-semibold ml-2 cursor-pointer"
+                        >
+                          Sync to {totalInvoicedUnits}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1253,8 +1403,13 @@ export default function BatchCostingPage() {
                     <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
                       {formatUSD(b.deliveryRevenueUSD)}
                     </td>
-                    <td className="py-3 px-3 text-right font-mono font-bold text-emerald-700">
-                      {formatUSD(b.netProfitUSD)}
+                    <td className="py-3 px-3 text-right font-mono font-bold">
+                      <span className="text-emerald-700 block">
+                        {formatUSD(b.netProfitUSD)}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium block">
+                        ({formatKHR(b.netProfitKHR || Math.round(b.netProfitUSD * (b.exchangeRate || exchangeRate)))})
+                      </span>
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-citrus-100 text-citrus-900 border border-citrus-300">
