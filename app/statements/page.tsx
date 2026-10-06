@@ -188,17 +188,17 @@ export default function StatementsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="no-print bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="no-print bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto min-w-0 max-w-full">
           {/* Store Selector */}
-          <div>
+          <div className="w-full sm:w-80 min-w-0 max-w-full">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Select Client Store / សាខា
             </label>
             <select
               value={selectedStoreCode}
               onChange={(e) => setSelectedStoreCode(e.target.value)}
-              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              className="w-full max-w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden truncate"
             >
               {stores.map((s) => (
                 <option key={s.code} value={s.code}>
@@ -209,7 +209,7 @@ export default function StatementsPage() {
           </div>
 
           {/* Month Selector */}
-          <div>
+          <div className="w-full sm:w-auto shrink-0">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Billing Month / សម្រាប់ខែ
             </label>
@@ -217,7 +217,7 @@ export default function StatementsPage() {
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              className="w-full sm:w-auto bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
             />
           </div>
         </div>
