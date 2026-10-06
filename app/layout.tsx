@@ -53,7 +53,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-[100dvh] bg-slate-50/60 text-slate-900 antialiased flex flex-col md:flex-row">
         <Navigation />
-        <div className="flex-1 min-w-0 md:pl-64 lg:pl-72 flex flex-col min-h-[100dvh]">
+        <div className="flex-1 min-w-0 md:pl-64 flex flex-col min-h-[100dvh]">
           <main className="flex-1 w-full pb-24 md:pb-16">{children}</main>
         </div>
       </body>

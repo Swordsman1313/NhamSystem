@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getSettings } from '@/lib/storage';
 import { initCloudSync } from '@/lib/cloudSync';
+import Sidebar from './Sidebar';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -151,8 +152,17 @@ export default function Navigation() {
   ];
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
-    return pathname.startsWith(href);
+    if (href === '/') {
+      return pathname === '/';
+    }
+    // Prevent "/deliveries" from matching when on "/deliveries/new"
+    if (href === '/deliveries') {
+      return pathname === '/deliveries';
+    }
+    if (href === '/deliveries/new') {
+      return pathname === '/deliveries/new';
+    }
+    return pathname === href || pathname.startsWith(href + '/');
   };
 
   const getPageTitle = () => {
@@ -180,133 +190,7 @@ export default function Navigation() {
       {/* ======================================================== */}
       {/* 1. DESKTOP FIXED LEFT SIDEBAR (>= md)                    */}
       {/* ======================================================== */}
-      <aside className="no-print hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-64 lg:w-72 bg-white border-r border-slate-200/90 shadow-xs flex-col justify-between overflow-y-auto">
-        {/* Top Brand Header */}
-        <div className="p-5 border-b border-slate-100">
-          <Link href="/" className="flex items-center space-x-3 group">
-            {/* Transparent Brand Fruit Logo */}
-            <div className="w-14 h-14 shrink-0 flex items-center justify-center p-1 rounded-2xl bg-amber-50/50 border border-amber-200/60 shadow-xs group-hover:scale-105 transition-transform duration-200">
-              <img
-                src="/logo.png"
-                alt="Nham Nham Fruit Logo"
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold text-slate-900 text-lg tracking-tight truncate">
-                  Nham Nham
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  OPS
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-khmer mt-0.5 truncate">
-                ប្រព័ន្ធគ្រប់គ្រងផ្លែឈើស្រស់ B2B
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Center: Categorized Navigation Menu Items */}
-        <div className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
-          {navSections.map((section, sIdx) => (
-            <div key={section.title} className="space-y-1">
-              <div className="px-3 flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                <span>{section.title}</span>
-                <span className="font-khmer font-normal text-slate-400 text-[9px]">{section.khmerTitle}</span>
-              </div>
-
-              {section.items.map((item) => {
-                const active = isActive(item.href);
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                      active
-                        ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                        : item.highlight
-                        ? 'bg-emerald-50/80 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/80'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <Icon
-                        className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          active
-                            ? 'text-white'
-                            : item.highlight
-                            ? 'text-emerald-700'
-                            : 'text-slate-500'
-                        }`}
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="truncate leading-tight">{item.name}</span>
-                          {item.badge && !active && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={`text-[10px] font-khmer font-normal truncate mt-0.5 ${
-                            active
-                              ? 'text-emerald-100'
-                              : 'text-slate-400 group-hover:text-slate-600'
-                          }`}
-                        >
-                          {item.khmer}
-                        </span>
-                      </div>
-                    </div>
-
-                    {active && (
-                      <ChevronRight className="w-3.5 h-3.5 text-white/80 shrink-0 ml-1" />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom Footer: Exchange Rate & System Status */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/60 space-y-3">
-          {/* Exchange Rate Badge */}
-          <Link
-            href="/settings"
-            title="Click to change exchange rate in Settings"
-            className="flex items-center justify-between px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/40 transition text-xs font-semibold"
-          >
-            <div className="flex items-center space-x-2">
-              <Coins className="w-4 h-4 text-amber-500" />
-              <span>Exchange Rate:</span>
-            </div>
-            <span className="font-mono font-bold text-slate-900">
-              1$ = {exchangeRate.toLocaleString()} ៛
-            </span>
-          </Link>
-
-          {/* Status Indicator */}
-          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
-            <span className="flex items-center space-x-1.5" title="Connected to Supabase Cloud - All devices in sync">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-semibold text-slate-700 flex items-center gap-1">
-                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                Cloud Sync
-              </span>
-            </span>
-            <span className="font-mono text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
-              Live
-            </span>
-          </div>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* ======================================================== */}
       {/* 2. MINIMAL MOBILE STICKY TOP BAR (< md)                  */}
