@@ -248,30 +248,30 @@ export default function DashboardPage() {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Unpaid Receivables */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-amber-300 transition-colors">
+        <div className="bg-white rounded-xl p-3.5 sm:p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-amber-300 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Pending AR (Net 15)
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 sm:mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
               {formatUSD(totalReceivablesUSD)}
             </div>
-            <div className="text-xs font-semibold text-amber-700 mt-0.5">
+            <div className="text-[11px] font-semibold text-amber-700 mt-0.5 sm:mt-1">
               ≈ {formatKHR(totalReceivablesKHR)}
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">
+          <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-400">
+            <span className="text-slate-500 font-medium truncate">
               {pendingInvoicesCount} {pendingInvoicesCount === 1 ? 'invoice' : 'invoices'} pending
             </span>
             <Link
               href="/deliveries?status=pending"
-              className="text-emerald-700 font-semibold hover:underline inline-flex items-center"
+              className="text-emerald-700 font-semibold hover:underline inline-flex items-center shrink-0 ml-2"
             >
               Track AR <ChevronRight className="w-3 h-3 ml-0.5" />
             </Link>
@@ -279,57 +279,57 @@ export default function DashboardPage() {
         </div>
 
         {/* Card 2: Settled Cash/ABA Revenue */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-emerald-300 transition-colors">
+        <div className="bg-white rounded-xl p-3.5 sm:p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-emerald-300 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Collected Revenue
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 sm:mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
               {formatUSD(totalPaidRevenueUSD)}
             </div>
-            <div className="text-xs font-semibold text-emerald-700 mt-0.5">
+            <div className="text-[11px] font-semibold text-emerald-700 mt-0.5 sm:mt-1">
               {paidInvoicesCount} {paidInvoicesCount === 1 ? 'settled invoice' : 'settled invoices'}
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-400">
             <span className="text-slate-500 font-medium">Settled Invoices</span>
             <span className="text-emerald-700 font-semibold font-mono">ABA Active</span>
           </div>
         </div>
 
         {/* Card 3: Units Delivered */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-teal-300 transition-colors">
+        <div className="bg-white rounded-xl p-3.5 sm:p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-teal-300 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Boxes Delivered
             </span>
-            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 sm:mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
               {totalUnitsDelivered.toLocaleString()}{' '}
-              <span className="text-sm font-semibold text-slate-500 font-normal">boxes</span>
+              <span className="text-sm font-normal text-slate-500">boxes</span>
             </div>
-            <div className="text-xs font-semibold text-teal-700 mt-0.5">
+            <div className="text-[11px] font-semibold text-teal-700 mt-0.5 sm:mt-1 truncate">
               {branchesDeliveredCount > 0
                 ? `Across ${branchesDeliveredCount} ${branchesDeliveredCount === 1 ? 'partner branch' : 'partner branches'}`
                 : 'No deliveries in period'}
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">
+          <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-400">
+            <span className="text-slate-500 font-medium truncate">
               Avg ~{avgBoxesPerDelivery} boxes / delivery
             </span>
             <Link
               href="/statements"
-              className="text-teal-700 font-semibold hover:underline inline-flex items-center"
+              className="text-teal-700 font-semibold hover:underline inline-flex items-center shrink-0 ml-2"
             >
               Reconcile <ChevronRight className="w-3 h-3 ml-0.5" />
             </Link>
@@ -337,31 +337,31 @@ export default function DashboardPage() {
         </div>
 
         {/* Card 4: Landed Unit Cost BOM */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-citrus-400 transition-colors">
+        <div className="bg-white rounded-xl p-3.5 sm:p-5 border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-citrus-400 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Landed Unit Cost
             </span>
-            <div className="w-8 h-8 rounded-lg bg-lime-50 text-lime-700 flex items-center justify-center">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-lime-50 text-lime-700 flex items-center justify-center shrink-0">
               <Calculator className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="mt-2.5 sm:mt-3">
+            <div className="text-2xl font-bold text-slate-900 tracking-tight">
               ${landedCostUSD.toFixed(2)}{' '}
-              <span className="text-sm font-semibold text-slate-500 font-normal">/ box</span>
+              <span className="text-sm font-normal text-slate-500">/ box</span>
             </div>
-            <div className="text-xs font-semibold text-lime-800 mt-0.5">
+            <div className="text-[11px] font-semibold text-lime-800 mt-0.5 sm:mt-1 truncate">
               {latestBatch ? `Batch ${latestBatch.batchNumber} (${formatDateDisplay(latestBatch.date)})` : 'Fruit + Weighted BOM + Route Fuel'}
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-medium">
+          <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-400">
+            <span className="text-slate-500 font-medium truncate">
               ≈ {landedCostKHR.toLocaleString()} ៛ / box
             </span>
             <Link
               href="/costing"
-              className="text-lime-800 font-semibold hover:underline inline-flex items-center"
+              className="text-lime-800 font-semibold hover:underline inline-flex items-center shrink-0 ml-2"
             >
               Batch Costing <ChevronRight className="w-3 h-3 ml-0.5" />
             </Link>
