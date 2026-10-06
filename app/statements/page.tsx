@@ -180,7 +180,7 @@ export default function StatementsPage() {
 
         <button
           onClick={handlePrint}
-          className="inline-flex items-center space-x-2 bg-slate-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm self-start sm:self-auto cursor-pointer"
+          className="hidden sm:inline-flex items-center space-x-2 bg-slate-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm self-start sm:self-auto cursor-pointer"
         >
           <Printer className="w-4 h-4" />
           <span>Print Summary Statement (A4)</span>
@@ -222,11 +222,13 @@ export default function StatementsPage() {
           </div>
         </div>
 
-        {/* Quick Month Metrics Pill */}
-        <div className="flex items-center space-x-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+        {/* Quick Month Metrics Pill (Desktop only - mobile uses dedicated Statement Card below) */}
+        <div className="hidden sm:flex items-center space-x-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
           <div>
             <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Orders</span>
-            <span className="font-bold text-slate-900">{matchingInvoices.length} invoices</span>
+            <span className="font-bold text-slate-900">
+              {matchingInvoices.length} {matchingInvoices.length === 1 ? 'invoice' : 'invoices'}
+            </span>
           </div>
           <div className="pl-4 border-l border-slate-200">
             <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Qty</span>
@@ -264,7 +266,9 @@ export default function StatementsPage() {
           <div className="grid grid-cols-2 gap-2.5">
             <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Orders</span>
-              <span className="text-base font-black text-slate-800">{matchingInvoices.length} invoices</span>
+              <span className="text-base font-black text-slate-800">
+                {matchingInvoices.length} {matchingInvoices.length === 1 ? 'invoice' : 'invoices'}
+              </span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Boxes</span>
@@ -313,7 +317,7 @@ export default function StatementsPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Included Invoices ({matchingInvoices.length})
+              Included {matchingInvoices.length === 1 ? 'Invoice' : 'Invoices'} ({matchingInvoices.length})
             </h3>
             <span className="text-[11px] text-slate-400 font-medium">Sorted by date</span>
           </div>
