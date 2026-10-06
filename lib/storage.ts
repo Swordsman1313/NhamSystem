@@ -19,16 +19,22 @@ import {
 import {
   syncSettingsToCloud,
   syncStoreToCloud,
+  syncAllStoresToCloud,
   deleteStoreFromCloud,
   syncProductToCloud,
+  syncAllProductsToCloud,
   deleteProductFromCloud,
   syncPackagingToCloud,
+  syncAllPackagingToCloud,
   deletePackagingFromCloud,
   syncCategoryToCloud,
+  syncAllCategoriesToCloud,
   deleteCategoryFromCloud,
   syncInvoiceToCloud,
+  syncAllInvoicesToCloud,
   deleteInvoiceFromCloud,
   syncBatchToCloud,
+  syncAllBatchesToCloud,
   deleteBatchFromCloud,
 } from './cloudSync';
 
@@ -272,7 +278,7 @@ export function savePackagingItems(items: PackagingItem[]): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('packaging_updated'));
     window.dispatchEvent(new Event('inventory_updated'));
-    normalized.forEach((item) => syncPackagingToCloud(item));
+    syncAllPackagingToCloud(normalized);
   }
 }
 
@@ -370,7 +376,7 @@ export function saveProducts(products: Product[]): void {
   setItem(STORAGE_KEYS.PRODUCTS, normalized);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('products_updated'));
-    normalized.forEach((p) => syncProductToCloud(p));
+    syncAllProductsToCloud(normalized);
   }
 }
 
@@ -428,7 +434,7 @@ export function savePackagingCategories(categories: PackagingCategoryRecord[]): 
   setItem(STORAGE_KEYS.CATEGORIES, categories);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('categories_updated'));
-    categories.forEach((c) => syncCategoryToCloud(c));
+    syncAllCategoriesToCloud(categories);
   }
 }
 
@@ -537,7 +543,7 @@ export function saveStores(stores: Store[]): void {
   setItem(STORAGE_KEYS.STORES, stores);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('stores_updated'));
-    stores.forEach((s) => syncStoreToCloud(s));
+    syncAllStoresToCloud(stores);
   }
 }
 
@@ -624,7 +630,7 @@ export function saveInvoices(invoices: Invoice[]): void {
   setItem(STORAGE_KEYS.INVOICES, invoices);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('invoices_updated'));
-    invoices.forEach((inv) => syncInvoiceToCloud(inv));
+    syncAllInvoicesToCloud(invoices);
   }
 }
 
@@ -646,6 +652,30 @@ export function updateInvoice(invoice: Invoice): void {
 
 export function deleteInvoice(id: string): void {
   const current = getInvoices();
+  const target = current.find((i) => i.id === id);
+
+  // Restore deducted packaging materials back to warehouse inventory
+  if (target && target.deductedItems && target.deductedItems.length > 0) {
+    const pkgItems = getPackagingItems();
+    let pkgChanged = false;
+    const restored = pkgItems.map((pkg) => {
+      const match = target.deductedItems?.find((d) => d.itemId === pkg.id);
+      if (match && match.qty > 0) {
+        pkgChanged = true;
+        const currentStock = Number(pkg.currentStock ?? pkg.onHand ?? 0);
+        return {
+          ...pkg,
+          onHand: currentStock + match.qty,
+          currentStock: currentStock + match.qty,
+        };
+      }
+      return pkg;
+    });
+    if (pkgChanged) {
+      savePackagingItems(restored);
+    }
+  }
+
   saveInvoices(current.filter((i) => i.id !== id));
   deleteInvoiceFromCloud(id);
 }
@@ -659,7 +689,7 @@ export function saveBatches(batches: BatchCostRecord[]): void {
   setItem(STORAGE_KEYS.BATCHES, batches);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('batches_updated'));
-    batches.forEach((b) => syncBatchToCloud(b));
+    syncAllBatchesToCloud(batches);
   }
 }
 

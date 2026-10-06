@@ -43,14 +43,32 @@ function getLocal<T>(key: string, fallback: T): T {
 }
 
 let listenersAttached = false;
+let isSyncing = false;
+let syncTimeout: NodeJS.Timeout | null = null;
+
+/**
+ * Debounced sync with in-flight lock to prevent multiple database queries
+ * from firing simultaneously when several items update or realtime events cascade.
+ */
+export const debouncedPullAll = (delayMs: number = 600) => {
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(async () => {
+    if (isSyncing) return;
+    try {
+      isSyncing = true;
+      await pullAllFromCloud();
+    } finally {
+      isSyncing = false;
+    }
+  }, delayMs);
+};
 
 /**
  * Initialize Cloud Synchronization:
- * 1. Pull latest cloud data into localStorage.
- * 2. If cloud is empty, seed cloud with local data.
- * 3. Subscribe to Realtime Postgres Changes across devices.
- * 4. Auto-re-sync on window focus / tab visibility change (e.g. unlocking phone).
- * 5. Background polling every 10s as a fallback.
+ * 1. Pull latest cloud data into localStorage with debounce.
+ * 2. If cloud is empty, seed cloud with local data using single batched queries.
+ * 3. Subscribe to Realtime Postgres Changes across devices (debounced).
+ * 4. Auto-re-sync on window focus, tab visibility change, or network reconnect.
  */
 export async function initCloudSync(): Promise<void> {
   if (!isSupabaseConfigured || typeof window === 'undefined') return;
@@ -59,23 +77,22 @@ export async function initCloudSync(): Promise<void> {
     listenersAttached = true;
     window.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        pullAllFromCloud();
+        debouncedPullAll(300);
       }
     });
     window.addEventListener('focus', () => {
-      pullAllFromCloud();
+      debouncedPullAll(300);
     });
-    // Fallback periodic sync every 10 seconds for mobile stability
-    setInterval(() => {
-      pullAllFromCloud();
-    }, 10000);
+    window.addEventListener('online', () => {
+      debouncedPullAll(300);
+    });
   }
 
   if (syncInitialized) return;
   syncInitialized = true;
 
   try {
-    await pullAllFromCloud();
+    debouncedPullAll(100);
     setupRealtimeSubscription();
   } catch (err) {
     console.warn('Cloud sync init error (using local storage):', err);
@@ -83,7 +100,13 @@ export async function initCloudSync(): Promise<void> {
 }
 
 export async function forceSyncCloud(): Promise<void> {
-  await pullAllFromCloud();
+  if (isSyncing) return;
+  try {
+    isSyncing = true;
+    await pullAllFromCloud();
+  } finally {
+    isSyncing = false;
+  }
 }
 
 /**
@@ -137,8 +160,8 @@ export async function pullAllFromCloud(): Promise<void> {
     } else if (!storesErr && storesRows && storesRows.length === 0) {
       // Cloud stores empty, seed from local
       const localStores = getLocal<Store[]>(STORAGE_KEYS.STORES, []);
-      for (const s of localStores) {
-        await syncStoreToCloud(s);
+      if (localStores.length > 0) {
+        await syncAllStoresToCloud(localStores);
       }
     }
 
@@ -165,8 +188,8 @@ export async function pullAllFromCloud(): Promise<void> {
       window.dispatchEvent(new Event('products_updated'));
     } else if (!prodErr && productsRows && productsRows.length === 0) {
       const localProducts = getLocal<Product[]>(STORAGE_KEYS.PRODUCTS, []);
-      for (const p of localProducts) {
-        await syncProductToCloud(p);
+      if (localProducts.length > 0) {
+        await syncAllProductsToCloud(localProducts);
       }
     }
 
@@ -193,8 +216,8 @@ export async function pullAllFromCloud(): Promise<void> {
       window.dispatchEvent(new Event('inventory_updated'));
     } else if (!pkgErr && pkgRows && pkgRows.length === 0) {
       const localPkg = getLocal<PackagingItem[]>(STORAGE_KEYS.PACKAGING, []);
-      for (const item of localPkg) {
-        await syncPackagingToCloud(item);
+      if (localPkg.length > 0) {
+        await syncAllPackagingToCloud(localPkg);
       }
     }
 
@@ -213,8 +236,8 @@ export async function pullAllFromCloud(): Promise<void> {
       window.dispatchEvent(new Event('categories_updated'));
     } else if (!catErr && catRows && catRows.length === 0) {
       const localCats = getLocal<PackagingCategoryRecord[]>(STORAGE_KEYS.CATEGORIES, []);
-      for (const c of localCats) {
-        await syncCategoryToCloud(c);
+      if (localCats.length > 0) {
+        await syncAllCategoriesToCloud(localCats);
       }
     }
 
@@ -252,8 +275,8 @@ export async function pullAllFromCloud(): Promise<void> {
       window.dispatchEvent(new Event('invoices_updated'));
     } else if (!invErr && invRows && invRows.length === 0) {
       const localInvoices = getLocal<Invoice[]>(STORAGE_KEYS.INVOICES, []);
-      for (const inv of localInvoices) {
-        await syncInvoiceToCloud(inv);
+      if (localInvoices.length > 0) {
+        await syncAllInvoicesToCloud(localInvoices);
       }
     }
 
@@ -294,8 +317,8 @@ export async function pullAllFromCloud(): Promise<void> {
       window.dispatchEvent(new Event('batches_updated'));
     } else if (!batchErr && batchRows && batchRows.length === 0) {
       const localBatches = getLocal<BatchCostRecord[]>(STORAGE_KEYS.BATCHES, []);
-      for (const b of localBatches) {
-        await syncBatchToCloud(b);
+      if (localBatches.length > 0) {
+        await syncAllBatchesToCloud(localBatches);
       }
     }
   } catch (err) {
@@ -336,35 +359,35 @@ function setupRealtimeSubscription(): void {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'nham_stores' },
         () => {
-          pullAllFromCloud();
+          debouncedPullAll(600);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'nham_products' },
         () => {
-          pullAllFromCloud();
+          debouncedPullAll(600);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'nham_packaging' },
         () => {
-          pullAllFromCloud();
+          debouncedPullAll(600);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'nham_invoices' },
         () => {
-          pullAllFromCloud();
+          debouncedPullAll(600);
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'nham_batches' },
         () => {
-          pullAllFromCloud();
+          debouncedPullAll(600);
         }
       )
       .subscribe((status) => {
@@ -566,5 +589,134 @@ export async function deleteBatchFromCloud(id: string): Promise<void> {
     await supabase.from('nham_batches').delete().eq('id', id);
   } catch (err) {
     console.warn('Delete batch error:', err);
+  }
+}
+
+// ==========================================
+// BULK BATCHED UPSERT HELPERS
+// (Replaces row-by-row loops with single queries)
+// ==========================================
+
+export async function syncAllStoresToCloud(stores: Store[]): Promise<void> {
+  if (!isSupabaseConfigured || stores.length === 0) return;
+  try {
+    const payload = stores.map((store) => ({
+      id: store.id,
+      code: store.code,
+      customer_name: store.customerName,
+      ship_to: store.shipTo,
+      address: store.address,
+      phone: store.phone,
+      terms_days: store.termsDays || store.creditTermsDays || 15,
+      is_active: store.isActive !== false,
+      data: store,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('nham_stores').upsert(payload, { onConflict: 'code' });
+  } catch (err) {
+    console.warn('Bulk sync stores error:', err);
+  }
+}
+
+export async function syncAllProductsToCloud(products: Product[]): Promise<void> {
+  if (!isSupabaseConfigured || products.length === 0) return;
+  try {
+    const payload = products.map((product) => ({
+      id: product.id,
+      barcode: product.barcode,
+      name: product.name,
+      khmer_name: product.khmerName || '',
+      name_en: product.nameEn || product.name,
+      name_kh: product.nameKh || product.khmerName || '',
+      wholesale_price: product.wholesalePriceUSD ?? product.wholesalePrice ?? 0,
+      uom: product.uom || 'Pcs',
+      bom: product.bom || [],
+      data: product,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('nham_products').upsert(payload, { onConflict: 'barcode' });
+  } catch (err) {
+    console.warn('Bulk sync products error:', err);
+  }
+}
+
+export async function syncAllPackagingToCloud(items: PackagingItem[]): Promise<void> {
+  if (!isSupabaseConfigured || items.length === 0) return;
+  try {
+    const payload = items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      khmer_name: item.khmerName || '',
+      category: typeof item.category === 'string' ? item.category : (item.category as any)?.id || 'box',
+      unit_cost_khr: item.unitCostKHR ?? item.costPerUnitKHR ?? 0,
+      on_hand: item.currentStock ?? item.onHand ?? 0,
+      low_stock_threshold: item.lowStockThreshold ?? 25,
+      barcode_ref: item.barcodeRef || null,
+      data: item,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('nham_packaging').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('Bulk sync packaging error:', err);
+  }
+}
+
+export async function syncAllCategoriesToCloud(cats: PackagingCategoryRecord[]): Promise<void> {
+  if (!isSupabaseConfigured || cats.length === 0) return;
+  try {
+    const payload = cats.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      is_protected: cat.isProtected === true,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('nham_categories').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('Bulk sync categories error:', err);
+  }
+}
+
+export async function syncAllInvoicesToCloud(invoices: Invoice[]): Promise<void> {
+  if (!isSupabaseConfigured || invoices.length === 0) return;
+  try {
+    const payload = invoices.map((inv) => ({
+      id: inv.id,
+      invoice_number: inv.invoiceNumber,
+      invoice_date: inv.invoiceDate,
+      due_date: inv.dueDate,
+      store_code: inv.storeCode,
+      total_quantity: inv.totalQuantity,
+      total_amount_usd: inv.totalAmountUSD,
+      total_amount_khr: inv.totalAmountKHR,
+      status: inv.status || 'pending',
+      items: inv.items || [],
+      data: inv,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('nham_invoices').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('Bulk sync invoices error:', err);
+  }
+}
+
+export async function syncAllBatchesToCloud(batches: BatchCostRecord[]): Promise<void> {
+  if (!isSupabaseConfigured || batches.length === 0) return;
+  try {
+    const payload = batches.map((batch) => ({
+      id: batch.id,
+      batch_number: batch.batchNumber,
+      date: batch.date,
+      market_spend_khr: batch.marketSpendKHR,
+      fuel_expense_khr: batch.fuelExpenseKHR,
+      total_boxes_yielded: batch.totalBoxesYielded,
+      landed_unit_cost_khr: batch.landedUnitCostKHR,
+      landed_unit_cost_usd: batch.landedUnitCostUSD,
+      delivery_revenue_usd: batch.deliveryRevenueUSD || 0,
+      data: batch,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('nham_batches').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('Bulk sync batches error:', err);
   }
 }
