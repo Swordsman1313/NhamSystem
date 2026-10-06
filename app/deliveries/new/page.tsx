@@ -46,6 +46,8 @@ import {
 import CommercialInvoice from '@/components/documents/CommercialInvoice';
 import DeliveryNote from '@/components/documents/DeliveryNote';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import ImportPOModal from '@/components/ImportPOModal';
+import { ParsedPOResult } from '@/lib/poParser';
 import { triggerCleanPrint } from '@/lib/print';
 
 function StoreSelect({
@@ -199,6 +201,44 @@ export default function NewDeliveryPage() {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do'>('edit');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Import PO Modal State
+  const [importPOModalOpen, setImportPOModalOpen] = useState(false);
+
+  const handleApplyPO = (result: ParsedPOResult) => {
+    // 1. Auto-select Store Destination
+    setSelectedStoreCode(result.matchedStoreCode);
+    const matchedStore = stores.find((s) => s.code === result.matchedStoreCode);
+    const terms = matchedStore?.termsDays || matchedStore?.creditTermsDays || 15;
+    setCreditTermsDays(terms);
+
+    // 2. Set Invoice Date to order date or current date
+    const targetDate = result.orderDate || getTodayDateString();
+    setInvoiceDate(targetDate);
+    setDueDate(calculateDueDate(targetDate, terms));
+    setInvoiceNumber(generateNextInvoiceNumber(targetDate));
+
+    // 3. Auto-fill the quantity fields for all matched SKUs, default unmatched to 0
+    setLineItems((prev) =>
+      prev.map((item) => {
+        const matchedParsed = result.items.find((pi) => pi.barcode === item.barcode);
+        return {
+          ...item,
+          quantity: matchedParsed ? matchedParsed.quantity : 0,
+        };
+      })
+    );
+
+    // 4. Ensure no PO field is written or displayed
+
+    // 5. Trigger toast notification
+    const count = result.items.length;
+    const amountStr = formatUSD(result.totalAmountUSD);
+    setToastMessage(`Successfully loaded ${count} items from Store PO (${amountStr})`);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4500);
+  };
 
   const handleQuickCreateStore = (e: React.FormEvent) => {
     e.preventDefault();
@@ -435,6 +475,16 @@ export default function NewDeliveryPage() {
 
         {/* View Switcher Tabs & Print Actions */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setImportPOModalOpen(true)}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3.5 py-2 rounded-xl text-sm border border-slate-200 flex items-center gap-2 cursor-pointer transition shadow-2xs"
+            title="Import ON Mart PO PDF or paste PO text"
+          >
+            <span className="text-base leading-none">📄</span>
+            <span>Import Store PO</span>
+          </button>
+
           <div className="bg-slate-200/80 p-1 rounded-xl flex items-center space-x-1">
             <button
               onClick={() => setActiveTab('edit')}
@@ -525,7 +575,9 @@ export default function NewDeliveryPage() {
             </div>
             <div>
               <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                Ledger Updated &amp; Stock-Out
+                {toastMessage.startsWith('Successfully loaded')
+                  ? 'Store PO Imported'
+                  : 'Ledger Updated & Stock-Out'}
               </div>
               <div className="text-sm font-semibold">{toastMessage}</div>
             </div>
@@ -1346,6 +1398,16 @@ export default function NewDeliveryPage() {
           commitSaveInvoice();
         }}
         onCancel={() => setStockWarningModal({ isOpen: false, warnings: [] })}
+      />
+
+      {/* Import Store PO Modal */}
+      <ImportPOModal
+        isOpen={importPOModalOpen}
+        onClose={() => setImportPOModalOpen(false)}
+        products={products}
+        stores={stores}
+        currentDate={invoiceDate}
+        onApply={handleApplyPO}
       />
     </div>
   );
