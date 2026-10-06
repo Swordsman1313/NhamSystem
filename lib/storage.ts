@@ -247,7 +247,8 @@ export function getPackagingItems(): PackagingItem[] {
       category: item.category || 'other',
       unitCostKHR: unitCost,
       costPerUnitKHR: unitCost,
-      onHand: Number(item.onHand ?? 0),
+      onHand: Number(item.currentStock ?? item.onHand ?? 0),
+      currentStock: Number(item.currentStock ?? item.onHand ?? 0),
       lowStockThreshold: Number(item.lowStockThreshold ?? 25),
       barcodeRef: item.barcodeRef,
     };
@@ -257,11 +258,13 @@ export function getPackagingItems(): PackagingItem[] {
 export function savePackagingItems(items: PackagingItem[]): void {
   const normalized = items.map((item) => {
     const unitCost = Number(item.unitCostKHR ?? item.costPerUnitKHR ?? 0);
+    const stock = Number(item.currentStock ?? item.onHand ?? 0);
     return {
       ...item,
       unitCostKHR: unitCost,
       costPerUnitKHR: unitCost,
-      onHand: Number(item.onHand ?? 0),
+      onHand: stock,
+      currentStock: stock,
       lowStockThreshold: Number(item.lowStockThreshold ?? 25),
     };
   });

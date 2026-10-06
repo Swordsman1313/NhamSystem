@@ -117,6 +117,7 @@ body {
   }
 
   .printable-document {
+    display: block !important;
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;

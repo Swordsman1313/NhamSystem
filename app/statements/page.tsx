@@ -27,6 +27,75 @@ import { Store, Invoice, AppSettings } from '@/lib/types';
 import SummaryStatement from '@/components/documents/SummaryStatement';
 import { triggerCleanPrint } from '@/lib/print';
 
+// Normalizes various date representations ('06-Oct-2026', '2026-10-06', '06/10/2026', etc.) to 'YYYY-MM'
+function extractYearMonth(dateStr?: string): string {
+  if (!dateStr) return '';
+  const clean = dateStr.trim();
+  // 1. Matches YYYY-MM-DD or YYYY-MM
+  if (/^\d{4}-\d{2}/.test(clean)) {
+    return clean.slice(0, 7);
+  }
+  // 2. Matches DD-MMM-YYYY or DD/MMM/YYYY (e.g. 06-Oct-2026, 6-Oct-2026, 06-OCT-2026)
+  const monthMap: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  };
+  const parts = clean.split(/[-/\s]+/);
+  if (parts.length >= 3) {
+    const m1 = parts[1].toLowerCase().slice(0, 3);
+    if (monthMap[m1]) {
+      const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      return `${year}-${monthMap[m1]}`;
+    }
+    const m0 = parts[0].toLowerCase().slice(0, 3);
+    if (monthMap[m0]) {
+      const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      return `${year}-${monthMap[m0]}`;
+    }
+    // If DD-MM-YYYY or DD/MM/YYYY
+    if (/^\d{1,2}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1]) && /^\d{4}$/.test(parts[2])) {
+      const month = parts[1].padStart(2, '0');
+      return `${parts[2]}-${month}`;
+    }
+  }
+  // 3. Fallback Native Date parser
+  const parsed = new Date(clean);
+  if (!isNaN(parsed.getTime())) {
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}`;
+  }
+  return '';
+}
+
+// Normalizes store codes (e.g. 'OU3', 'ON-OU3', 'ON_OU3' -> 'OU3')
+function normalizeStoreKey(code?: string): string {
+  if (!code) return '';
+  return code
+    .trim()
+    .toUpperCase()
+    .replace(/^ON[-_\s]?/, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function isStoreMatch(invStoreCode?: string, selectedCode?: string, storeObj?: Store): boolean {
+  if (!invStoreCode) return false;
+  const invTrim = invStoreCode.trim().toUpperCase();
+  const selTrim = (selectedCode || '').trim().toUpperCase();
+  if (invTrim === selTrim) return true;
+
+  const normInv = normalizeStoreKey(invStoreCode);
+  const normSel = normalizeStoreKey(selectedCode);
+  if (normInv && normSel && normInv === normSel) return true;
+
+  if (storeObj) {
+    if (storeObj.code && normalizeStoreKey(storeObj.code) === normInv) return true;
+    if (storeObj.id && normalizeStoreKey(storeObj.id) === normInv) return true;
+    if (storeObj.shipTo && normalizeStoreKey(storeObj.shipTo).includes(normInv)) return true;
+  }
+  return false;
+}
+
 export default function StatementsPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -35,19 +104,26 @@ export default function StatementsPage() {
   // Filter States
   const [selectedStoreCode, setSelectedStoreCode] = useState<string>('ON-TK592');
   const [selectedMonth, setSelectedMonth] = useState<string>('2026-10'); // YYYY-MM
-  const [activeView, setActiveView] = useState<'statement' | 'table'>('statement');
 
   useEffect(() => {
-    setStores(getStores());
+    const loadedStores = getStores();
+    setStores(loadedStores);
     setInvoices(getInvoices());
     setSettings(getSettings());
+    if (loadedStores.length > 0 && !loadedStores.some((s) => s.code === 'ON-TK592')) {
+      setSelectedStoreCode(loadedStores[0].code);
+    }
   }, []);
 
   // Selected Store Object
   const currentStore =
-    stores.find((s) => s.code === selectedStoreCode) ||
+    stores.find(
+      (s) =>
+        s.code === selectedStoreCode ||
+        normalizeStoreKey(s.code) === normalizeStoreKey(selectedStoreCode)
+    ) ||
     stores[0] || {
-      code: 'ON-TK592',
+      code: selectedStoreCode || 'ON-TK592',
       customerName: 'Angkor Prototype LTD.',
       shipTo: 'ON Mart St.592 TK',
       address: '#ដីឡូត៍លេខ១ ផ្លូវ ៥៩២ កែងបណ្តោយ ៦ សង្កាត់បឹងកក់ទី២ ខណ្ឌទួលគោក ភ្នំពេញ',
@@ -55,10 +131,11 @@ export default function StatementsPage() {
       creditTermsDays: 15,
     };
 
-  // Filter invoices for store and month
+  // Filter invoices for store and month with resilient normalization
   const matchingInvoices = invoices.filter((inv) => {
-    const matchStore = inv.storeCode === selectedStoreCode;
-    const matchMonth = !selectedMonth || inv.invoiceDate.startsWith(selectedMonth);
+    const matchStore = isStoreMatch(inv.storeCode, selectedStoreCode, currentStore);
+    const invoiceYM = extractYearMonth(inv.invoiceDate || inv.createdAt || '');
+    const matchMonth = !selectedMonth || invoiceYM === selectedMonth;
     return matchStore && matchMonth;
   });
 
@@ -103,7 +180,7 @@ export default function StatementsPage() {
 
         <button
           onClick={handlePrint}
-          className="inline-flex items-center space-x-2 bg-slate-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm self-start sm:self-auto"
+          className="inline-flex items-center space-x-2 bg-slate-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm self-start sm:self-auto cursor-pointer"
         >
           <Printer className="w-4 h-4" />
           <span>Print Summary Statement (A4)</span>
@@ -153,7 +230,7 @@ export default function StatementsPage() {
           </div>
           <div className="pl-4 border-l border-slate-200">
             <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Qty</span>
-            <span className="font-bold text-slate-900">{totalBoxes} boxes</span>
+            <span className="font-bold text-slate-900">{totalBoxes.toLocaleString()} boxes</span>
           </div>
           <div className="pl-4 border-l border-slate-200">
             <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Bill</span>
@@ -162,8 +239,120 @@ export default function StatementsPage() {
         </div>
       </div>
 
-      {/* Main Single-Page A4 Statement Document */}
-      <div className="printable-document">
+      {/* Mobile Concise Statement Summary Card (< sm) */}
+      <div className="block sm:hidden no-print space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-4">
+          {/* Store & Period Header */}
+          <div className="border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between">
+              <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold font-mono">
+                {currentStore.code}
+              </span>
+              <span className="text-xs font-bold text-slate-500 font-mono">
+                {periodLabel}
+              </span>
+            </div>
+            <h2 className="text-base font-bold text-slate-900 mt-1.5 leading-tight">
+              {currentStore.shipTo || currentStore.customerName}
+            </h2>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {currentStore.customerName}
+            </p>
+          </div>
+
+          {/* Quick Metrics Grid */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Orders</span>
+              <span className="text-base font-black text-slate-800">{matchingInvoices.length} invoices</span>
+            </div>
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Boxes</span>
+              <span className="text-base font-black text-slate-800">{totalBoxes.toLocaleString()} boxes</span>
+            </div>
+            <div className="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 col-span-2">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-emerald-700 block">Total Bill (USD)</span>
+                  <span className="text-xl font-black text-emerald-900 font-mono">{formatUSD(totalUSD)}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 block">In Khmer Riel</span>
+                  <span className="text-xs font-bold text-slate-700 font-mono">
+                    {formatKHR(totalUSD * (settings.exchangeRate || 4050))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Settled vs Pending breakdown */}
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+            <div className="flex items-center space-x-1.5 text-emerald-700">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Settled: <strong className="font-mono">{formatUSD(settledUSD)}</strong></span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-amber-700">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span>Pending: <strong className="font-mono">{formatUSD(pendingUSD)}</strong></span>
+            </div>
+          </div>
+
+          {/* Primary Action Button */}
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="w-full py-3 bg-slate-900 hover:bg-black text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition active:scale-98 text-xs cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print / Export A4 Statement</span>
+          </button>
+        </div>
+
+        {/* Concise Invoices Mini-List */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Included Invoices ({matchingInvoices.length})
+            </h3>
+            <span className="text-[11px] text-slate-400 font-medium">Sorted by date</span>
+          </div>
+
+          {matchingInvoices.length === 0 ? (
+            <div className="text-center py-6 text-slate-400 text-xs">
+              No matching deliveries found for {currentStore.code} in {periodLabel}.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {matchingInvoices.map((inv) => (
+                <div key={inv.id} className="py-2.5 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="font-bold text-slate-800 font-mono">{inv.invoiceNumber}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {formatDateDisplay(inv.invoiceDate)} • {inv.totalQuantity} boxes
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold font-mono text-slate-900">{formatUSD(inv.totalAmountUSD)}</div>
+                    <span
+                      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                        inv.status !== 'pending'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {inv.status !== 'pending' ? 'Settled' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Single-Page A4 Statement Document (hidden on mobile screen to prevent oversized QR overflow; visible on sm+ screens and in print) */}
+      <div className="printable-document hidden sm:block print:block">
         <SummaryStatement
           store={currentStore}
           invoices={matchingInvoices}

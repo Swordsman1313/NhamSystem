@@ -22,6 +22,7 @@ export interface PackagingItem {
   unitCostKHR: number;
   costPerUnitKHR?: number; // alias for InventoryItem compatibility
   onHand: number;
+  currentStock?: number; // alias for onHand
   lowStockThreshold?: number;
   barcodeRef?: string;
 }
@@ -156,6 +157,7 @@ export interface InventoryItem {
   khmerName?: string;
   category: PackagingCategory | string;
   onHand: number;
+  currentStock?: number; // alias for onHand
   costPerUnitKHR: number;
   unitCostKHR?: number; // alias for PackagingItem compatibility
   lowStockThreshold: number;

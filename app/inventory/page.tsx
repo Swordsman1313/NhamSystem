@@ -431,32 +431,67 @@ export default function InventoryDashboardPage() {
     loadData();
   };
 
-  // Synchronize Warehouse KPI Cards with exact category filtering
-  const boxItems = items.filter((i) => i.category === 'box');
-  const totalBoxes = boxItems.reduce((sum, i) => sum + Number(i.onHand || 0), 0);
-  const smallBoxes = boxItems.find((i) => i.id === 'box-small-std')?.onHand || 0;
-  const bigBoxes = boxItems.find((i) => i.id === 'box-big-300g')?.onHand || 0;
+  // Dynamic material helpers supporting both currentStock and onHand aliases, and flexible category shapes
+  const getItemStock = (item: any): number => {
+    const val = item?.currentStock ?? item?.onHand ?? 0;
+    return Number(val) || 0;
+  };
 
-  const stickerItems = items.filter((i) => i.category === 'sticker');
-  const totalStickers = stickerItems.reduce((acc, i) => acc + Number(i.onHand || 0), 0);
-  const lowStockStickers = stickerItems.filter((i) => Number(i.onHand || 0) < (i.lowStockThreshold || 25));
+  const getItemCategory = (item: any): string => {
+    if (!item) return '';
+    if (typeof item.category === 'string') return item.category.toLowerCase().trim();
+    if (item.category && typeof item.category === 'object') {
+      return ((item.category as any).id || (item.category as any).name || '').toLowerCase().trim();
+    }
+    return '';
+  };
 
-  const skewerItems = items.filter((i) => i.category === 'skewer');
-  const totalSkewers = skewerItems.reduce((acc, i) => acc + Number(i.onHand || 0), 0);
-  const skewerItem = items.find(
-    (m) =>
-      (typeof m.category === 'string' ? m.category : (m.category as any)?.id || '').toLowerCase().includes('skewer') ||
-      m.id?.toLowerCase().includes('skewer')
-  );
-  const skewerCost = skewerItem?.unitCostKHR ?? skewerItem?.costPerUnitKHR ?? 0;
+  const getItemCostKHR = (item: any): number => {
+    return Number(item?.unitCostKHR ?? item?.costPerUnitKHR ?? 0) || 0;
+  };
 
-  // Total Packaging Capital ($) = sum(item.onHand * (item.unitCostKHR / 4050))
+  // 1. Total Boxes: sum currentStock for categories 'container' or 'box' (broken down into Small and Big)
+  const boxItems = items.filter((i) => {
+    const cat = getItemCategory(i);
+    return cat === 'box' || cat === 'container';
+  });
+  const totalBoxes = boxItems.reduce((sum, i) => sum + getItemStock(i), 0);
+
+  const isBigBox = (i: any): boolean => {
+    const id = (i.id || '').toLowerCase();
+    const name = (i.name || '').toLowerCase();
+    return id.includes('big') || name.includes('big') || name.includes('300g') || name.includes('300 g') || name.includes('large');
+  };
+  const bigBoxes = boxItems.filter(isBigBox).reduce((sum, i) => sum + getItemStock(i), 0);
+  const smallBoxes = boxItems.filter((i) => !isBigBox(i)).reduce((sum, i) => sum + getItemStock(i), 0);
+
+  // 2. Total Stickers: sum currentStock for category 'sticker'
+  const stickerItems = items.filter((i) => getItemCategory(i) === 'sticker');
+  const totalStickers = stickerItems.reduce((acc, i) => acc + getItemStock(i), 0);
+  const lowStockStickers = stickerItems.filter((i) => getItemStock(i) < (Number(i.lowStockThreshold) || 25));
+  const stickerUnitCost = stickerItems.length > 0 ? getItemCostKHR(stickerItems[0]) : 110;
+
+  // 3. Total Skewers: sum currentStock for category 'skewer'
+  const skewerItems = items.filter((i) => getItemCategory(i) === 'skewer');
+  const totalSkewers = skewerItems.reduce((acc, i) => acc + getItemStock(i), 0);
+  const skewerItem =
+    skewerItems[0] ||
+    items.find(
+      (m) =>
+        getItemCategory(m).includes('skewer') ||
+        (m.id || '').toLowerCase().includes('skewer') ||
+        (m.name || '').toLowerCase().includes('skewer')
+    );
+  const skewerCost = skewerItem ? getItemCostKHR(skewerItem) : 30;
+
+  // 4. Packaging Capital: calculate sum(item.currentStock * (item.unitCostKHR / exchangeRate)) and display in USD + KHR
+  const rate = exchangeRate || 4050;
   const totalValuationUSD = items.reduce((sum, item) => {
-    const unitCost = Number(item.unitCostKHR ?? item.costPerUnitKHR ?? 0);
-    const onHand = Number(item.onHand || 0);
-    return sum + onHand * (unitCost / (exchangeRate || 4050));
+    const unitCost = getItemCostKHR(item);
+    const stock = getItemStock(item);
+    return sum + stock * (unitCost / rate);
   }, 0);
-  const totalValuationKHR = Math.round(totalValuationUSD * (exchangeRate || 4050));
+  const totalValuationKHR = Math.round(totalValuationUSD * rate);
 
   // Filtered Items
   const filteredItems = items.filter((item) => {
@@ -467,9 +502,9 @@ export default function InventoryDashboardPage() {
 
     let matchCategory = true;
     if (categoryFilter === 'low_stock') {
-      matchCategory = item.onHand <= item.lowStockThreshold;
+      matchCategory = getItemStock(item) <= (Number(item.lowStockThreshold) || 25);
     } else if (categoryFilter !== 'all') {
-      matchCategory = item.category === categoryFilter;
+      matchCategory = getItemCategory(item) === categoryFilter.toLowerCase();
     }
 
     return matchSearch && matchCategory;
@@ -601,7 +636,9 @@ export default function InventoryDashboardPage() {
                   Healthy
                 </span>
               )}
-              <span className="text-[10px] sm:text-[11px] text-slate-400">110៛/pc</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-semibold">
+                {stickerUnitCost.toLocaleString()} ៛/pc
+              </span>
             </div>
           </div>
         </div>
@@ -625,7 +662,7 @@ export default function InventoryDashboardPage() {
               <span className="text-slate-600">
                 1:1 box
               </span>
-              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-semibold">{skewerCost} ៛/pc</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-semibold">{skewerCost.toLocaleString()} ៛/pc</span>
             </div>
           </div>
         </div>
