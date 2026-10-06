@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFParse } from 'pdf-parse';
+import { extractText } from 'unpdf';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +12,11 @@ export async function POST(req: NextRequest) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
+    const uint8 = new Uint8Array(arrayBuffer);
+    const { text } = await extractText(uint8);
+    const fullText = Array.isArray(text) ? text.join('\n') : (text || '');
 
-    return NextResponse.json({ text: result.text || '' });
+    return NextResponse.json({ text: fullText });
   } catch (err: any) {
     console.error('Error parsing PO PDF:', err);
     return NextResponse.json(
