@@ -104,19 +104,16 @@ export default function SummaryStatement({
             <th className="border border-black py-1.5 px-2 text-center font-bold w-12">
               No
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-40">
+            <th className="border border-black py-1.5 px-3 text-center font-bold w-44">
               Invoice No / លេខវិក្កយបត្រ
             </th>
             <th className="border border-black py-1.5 px-3 text-center font-bold">
               Date / កាលបរិច្ឆេទ
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-24">
+            <th className="border border-black py-1.5 px-3 text-center font-bold w-28">
               QTY / ចំនួន
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-28">
-              Unit Price
-            </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-32">
+            <th className="border border-black py-1.5 px-3 text-center font-bold w-36">
               Total Amount
             </th>
           </tr>
@@ -124,7 +121,7 @@ export default function SummaryStatement({
         <tbody>
           {invoices.length === 0 ? (
             <tr>
-              <td colSpan={6} className="border border-black py-6 text-center italic text-slate-500">
+              <td colSpan={5} className="border border-black py-6 text-center italic text-slate-500">
                 No deliveries recorded for this billing cycle.
               </td>
             </tr>
@@ -143,10 +140,7 @@ export default function SummaryStatement({
                 <td className="border border-black py-1.5 px-3 text-center font-medium">
                   {inv.totalQuantity}
                 </td>
-                <td className="border border-black py-1.5 px-2.5 text-center text-slate-500">
-                  -
-                </td>
-                <td className="border border-black py-1.5 px-2.5">
+                <td className="border border-black py-1.5 px-3">
                   <div className="flex justify-between w-full font-medium">
                     <span>$</span>
                     <span className="font-mono">{inv.totalAmountUSD.toFixed(2)}</span>
@@ -162,15 +156,12 @@ export default function SummaryStatement({
               colSpan={3}
               className="border border-black py-2 px-3 text-center font-khmer font-bold"
             >
-              សរុបរួម / Total Amount (USD)
+              សរុប / Total Amount (USD)
             </td>
             <td className="border border-black py-2 px-3 text-center font-bold text-xs">
               {totalQty}
             </td>
-            <td className="border border-black py-2 px-2.5 text-center text-slate-500">
-              -
-            </td>
-            <td className="border border-black py-2 px-2.5">
+            <td className="border border-black py-2 px-3">
               <div className="flex justify-between w-full font-mono font-bold text-xs">
                 <span>$</span>
                 <span>{totalUSD.toFixed(2)}</span>

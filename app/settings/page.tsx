@@ -111,8 +111,14 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     try {
       setIsSaving(true);
-      saveSettings(settings);
-      await syncSettingsToCloud(settings);
+      const current = getSettings();
+      const updated: AppSettings = {
+        ...current,
+        exchangeRate: settings.exchangeRate || 4000,
+      };
+      saveSettings(updated);
+      await syncSettingsToCloud(updated);
+      setSettingsState(updated);
       setSaveToast(true);
       setTimeout(() => setSaveToast(false), 2500);
     } catch (err) {
@@ -296,9 +302,6 @@ export default function SettingsPage() {
               Configuration
             </span>
           </div>
-          <p className="text-xs text-slate-700 font-khmer mt-0.5">
-            កំណត់អត្រាប្តូរប្រាក់ ថ្លៃដើមសម្ភារៈវេចខ្ចប់ (BOM) គណនីធនាគារ ABA និងទិន្នន័យសាខា
-          </p>
         </div>
 
         <div className="flex items-center space-x-2 self-start sm:self-auto">
@@ -344,12 +347,12 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Section 1: Financial & BOM Defaults */}
+        {/* Section 1: Financial Defaults */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
               <Coins className="w-4 h-4 text-amber-500" />
-              <span>Financial &amp; BOM Defaults</span>
+              <span>Financial Defaults</span>
             </h2>
 
             <div className="space-y-3">
@@ -365,7 +368,7 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setSettingsState({
                         ...settings,
-                        exchangeRate: parseInt(e.target.value, 10) || 4050,
+                        exchangeRate: parseInt(e.target.value, 10) || 4000,
                       })
                     }
                     className="w-full text-sm font-mono font-bold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
@@ -374,63 +377,6 @@ export default function SettingsPage() {
                     KHR / $
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Default standard in Cambodia: 4,050 KHR
-                </span>
-              </div>
-
-              {/* Tub + Sticker Cost */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Default Tub + UV Sticker Overhead (KHR / box)
-                </label>
-                <input
-                  type="number"
-                  value={settings.defaultTubStickerKHR}
-                  onChange={(e) =>
-                    setSettingsState({
-                      ...settings,
-                      defaultTubStickerKHR: parseInt(e.target.value, 10) || 500,
-                    })
-                  }
-                  className="w-full text-sm font-mono font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                />
-              </div>
-
-              {/* Cold Wash Dip */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Default Cold Wash Dip Solution (KHR / box)
-                </label>
-                <input
-                  type="number"
-                  value={settings.defaultColdWashKHR}
-                  onChange={(e) =>
-                    setSettingsState({
-                      ...settings,
-                      defaultColdWashKHR: parseInt(e.target.value, 10) || 10,
-                    })
-                  }
-                  className="w-full text-sm font-mono font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                />
-              </div>
-
-              {/* Route Fuel Expense */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Default Route Fuel Expense (KHR / batch run)
-                </label>
-                <input
-                  type="number"
-                  value={settings.defaultFuelKHR}
-                  onChange={(e) =>
-                    setSettingsState({
-                      ...settings,
-                      defaultFuelKHR: parseInt(e.target.value, 10) || 8000,
-                    })
-                  }
-                  className="w-full text-sm font-mono font-semibold bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                />
               </div>
             </div>
           </div>
