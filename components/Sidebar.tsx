@@ -131,8 +131,8 @@ export default function Sidebar() {
             </Link>
 
             {/* Ops Live Status Pill */}
-            <div className="px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="whitespace-nowrap px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5 flex-shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>Ops Live</span>
             </div>
           </div>
@@ -170,10 +170,10 @@ export default function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-3 text-sm transition ${
+                    className={`mx-3 px-3.5 py-2.5 rounded-xl flex items-center gap-3 text-sm font-medium transition ${
                       active
-                        ? 'bg-emerald-50 text-emerald-800 font-semibold border-l-4 border-emerald-600 rounded-r-xl rounded-l-none pl-3 pr-4 py-2.5 mr-3'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-4 py-2.5 mx-3 rounded-xl'
+                        ? 'bg-emerald-50 text-emerald-800 font-semibold border-l-4 border-emerald-600 rounded-l-none'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
                     <Icon
