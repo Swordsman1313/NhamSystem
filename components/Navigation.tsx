@@ -15,9 +15,6 @@ import {
   Coins,
   Package,
   Boxes,
-  ChevronRight,
-  ShieldCheck,
-  Cloud,
 } from 'lucide-react';
 import { getSettings } from '@/lib/storage';
 import { initCloudSync } from '@/lib/cloudSync';
@@ -61,92 +58,37 @@ export default function Navigation() {
 
   interface NavItem {
     name: string;
-    khmer: string;
-    subtitle?: string;
     href: string;
-    icon: any;
-    highlight?: boolean;
-    badge?: string;
+    icon: React.ComponentType<{ className?: string }>;
   }
 
   interface NavSection {
-    title: string;
-    khmerTitle: string;
+    category: string;
     items: NavItem[];
   }
 
   const navSections: NavSection[] = [
     {
-      title: 'Sales & Invoicing',
-      khmerTitle: 'ការលក់ & វិក្កយបត្រ',
+      category: 'OPERATIONS',
       items: [
-        {
-          name: 'Overview',
-          khmer: 'ទិដ្ឋភាពទូទៅ',
-          href: '/',
-          icon: LayoutDashboard,
-        },
-        {
-          name: 'New Invoice / DO',
-          khmer: 'បង្កើតវិក្កយបត្រថ្មី',
-          href: '/deliveries/new',
-          icon: PlusCircle,
-          highlight: true,
-        },
-        {
-          name: 'Deliveries & AR',
-          khmer: 'បញ្ជីដឹកជញ្ជូន & បំណុល',
-          href: '/deliveries',
-          icon: Truck,
-        },
-        {
-          name: 'Statements',
-          khmer: 'របាយការណ៍បូកសរុប',
-          href: '/statements',
-          icon: FileSpreadsheet,
-        },
+        { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+        { name: 'New Invoice', href: '/deliveries/new', icon: PlusCircle },
+        { name: 'Deliveries & AR', href: '/deliveries', icon: Truck },
+        { name: 'Statements', href: '/statements', icon: FileSpreadsheet },
       ],
     },
     {
-      title: 'Production & Inventory (Linked)',
-      khmerTitle: 'ផលិតកម្ម & ស្តុកសម្ភារៈ',
+      category: 'PRODUCTION & STOCK',
       items: [
-        {
-          name: 'Products & BOM',
-          khmer: 'ទំនិញ & រូបមន្ត BOM',
-          subtitle: 'Fruit recipes & packaging links',
-          href: '/products',
-          icon: Boxes,
-          badge: 'Recipe',
-        },
-        {
-          name: 'Packaging Warehouse',
-          khmer: 'ស្តុកសម្ភារៈ & ថ្លៃដើម',
-          subtitle: 'Stock levels & material costs',
-          href: '/inventory',
-          icon: Package,
-          badge: 'Stock',
-        },
-        {
-          name: 'Batch Yield Costing',
-          khmer: 'គណនាថ្លៃដើម BOM',
-          subtitle: 'Daily yield & packaging BOM',
-          href: '/costing',
-          icon: Calculator,
-          badge: 'Costing',
-        },
+        { name: 'Warehouse', href: '/inventory', icon: Package },
+        { name: 'Products & BOM', href: '/products', icon: Boxes },
+        { name: 'Batch Costing', href: '/costing', icon: Calculator },
       ],
     },
     {
-      title: 'System',
-      khmerTitle: 'ប្រព័ន្ធ',
+      category: 'SYSTEM',
       items: [
-        {
-          name: 'Settings',
-          khmer: 'ការកំណត់',
-          href: '/settings',
-          icon: SettingsIcon,
-        },
+        { name: 'Settings', href: '/settings', icon: SettingsIcon },
       ],
     },
   ];
@@ -166,24 +108,16 @@ export default function Navigation() {
   };
 
   const getPageTitle = () => {
-    if (pathname === '/') return 'Overview';
-    if (pathname.startsWith('/deliveries/new')) return 'New Invoice / DO';
+    if (pathname === '/') return 'Dashboard';
+    if (pathname.startsWith('/deliveries/new')) return 'New Invoice';
     if (pathname.startsWith('/deliveries')) return 'Deliveries & AR';
     if (pathname.startsWith('/statements')) return 'Statements';
     if (pathname.startsWith('/products')) return 'Products & BOM';
     if (pathname.startsWith('/inventory')) return 'Warehouse';
     if (pathname.startsWith('/costing')) return 'Batch Costing';
     if (pathname.startsWith('/settings')) return 'Settings';
-    return 'Nham Nham Ops';
+    return 'Dashboard';
   };
-
-  const mobileTabs = [
-    { name: 'Overview', href: '/', icon: LayoutDashboard },
-    { name: 'New DO', href: '/deliveries/new', icon: PlusCircle, isAction: true },
-    { name: 'Warehouse', href: '/inventory', icon: Package },
-    { name: 'Costing', href: '/costing', icon: Calculator },
-    { name: 'Settings', href: '/settings', icon: SettingsIcon },
-  ];
 
   return (
     <>
@@ -225,7 +159,7 @@ export default function Navigation() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer transition"
             aria-label="Toggle navigation drawer"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -234,79 +168,46 @@ export default function Navigation() {
       </div>
 
       {/* ======================================================== */}
-      {/* 3. FIXED MOBILE BOTTOM TAB BAR (< md)                    */}
-      {/* ======================================================== */}
-      <nav className="no-print fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 flex justify-around py-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:hidden shadow-lg">
-        {mobileTabs.map((tab) => {
-          const active = isActive(tab.href);
-          const Icon = tab.icon;
-
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`flex-1 min-w-[44px] min-h-[44px] py-1 flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 touch-manipulation ${
-                active
-                  ? 'text-emerald-700 font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <div
-                className={`p-1 rounded-xl transition ${
-                  tab.isAction
-                    ? active
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-emerald-100 text-emerald-800'
-                    : active
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : ''
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] tracking-tight truncate leading-none">
-                {tab.name}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* ======================================================== */}
       {/* 3. MOBILE SLIDE-OVER DRAWER (< md)                       */}
       {/* ======================================================== */}
       {mobileMenuOpen && (
-        <div className="no-print md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
+        <div className="no-print md:hidden fixed inset-0 z-50 flex justify-start">
+          {/* Backdrop with Smooth Fade Animation */}
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Drawer Container */}
-          <div className="relative w-72 max-w-full bg-white flex flex-col justify-between z-10 shadow-2xl p-5 overflow-y-auto">
+          {/* Drawer Container with Smooth Slide-in-from-left Animation */}
+          <div className="relative w-72 max-w-[85vw] bg-white flex flex-col justify-between z-10 shadow-2xl p-4 overflow-y-auto animate-in slide-in-from-left fade-in duration-250 ease-out">
             {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-10 h-10 p-0.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2.5 group"
+              >
+                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/70 p-1 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform duration-200 shrink-0">
                   <img
                     src="/logo.png"
-                    alt="Nham Nham"
+                    alt="Nham Nham Logo"
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div>
-                  <span className="font-extrabold text-slate-900 text-base block">
-                    Nham Nham Ops
+                <div className="flex flex-col min-w-0">
+                  <span className="text-slate-900 font-bold text-sm tracking-tight truncate leading-tight">
+                    Nham Nham OPS
                   </span>
-                  <span className="text-[10px] text-slate-500 font-khmer">
-                    ប្រព័ន្ធគ្រប់គ្រងផ្លែឈើស្រស់
+                  <span className="text-[10px] text-slate-400 font-medium truncate leading-tight">
+                    Fresh Fruit System
                   </span>
                 </div>
-              </div>
+              </Link>
               <button
+                type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -315,9 +216,9 @@ export default function Navigation() {
             {/* Drawer Navigation List */}
             <div className="flex-1 py-3 space-y-4 overflow-y-auto">
               {navSections.map((section) => (
-                <div key={section.title} className="space-y-1">
-                  <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    {section.title}
+                <div key={section.category} className="space-y-0.5">
+                  <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    {section.category}
                   </div>
                   {section.items.map((item) => {
                     const active = isActive(item.href);
@@ -328,23 +229,18 @@ export default function Navigation() {
                         key={item.href}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                        className={`flex items-center gap-3 text-sm font-medium transition ${
                           active
-                            ? 'bg-emerald-600 text-white font-bold'
-                            : 'text-slate-700 hover:bg-slate-100'
+                            ? 'bg-emerald-50 text-emerald-800 font-semibold border-l-4 border-emerald-600 pl-3 pr-4 py-2.5 rounded-r-xl rounded-l-none'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-4 py-2.5 rounded-xl'
                         }`}
                       >
-                        <div className="flex items-center space-x-3">
-                          <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-500'}`} />
-                          <span>{item.name}</span>
-                        </div>
-                        <span
-                          className={`text-[10px] font-khmer ${
-                            active ? 'text-emerald-100' : 'text-slate-500'
+                        <Icon
+                          className={`w-4 h-4 shrink-0 transition-colors ${
+                            active ? 'text-emerald-700' : 'text-slate-400'
                           }`}
-                        >
-                          {item.khmer}
-                        </span>
+                        />
+                        <span className="truncate leading-none">{item.name}</span>
                       </Link>
                     );
                   })}
@@ -357,27 +253,30 @@ export default function Navigation() {
               <Link
                 href="/settings"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs text-slate-600 hover:bg-slate-100 transition"
               >
-                <div className="flex items-center space-x-2">
-                  <Coins className="w-4 h-4 text-amber-500" />
-                  <span>Exchange Rate:</span>
+                <div className="flex items-center space-x-1.5 text-slate-500">
+                  <Coins className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Rate:</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900">
                   1$ = {exchangeRate.toLocaleString()} ៛
                 </span>
               </Link>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
-                <span className="flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="font-semibold text-slate-700 flex items-center gap-1">
-                    <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                    Cloud Sync
-                  </span>
-                </span>
-                <span className="font-mono text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
-                  Live
-                </span>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/60 border border-slate-100">
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                    N
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate leading-tight">
+                      Nham Nham Admin
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate leading-tight">
+                      admin@nhamnham.biz
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
