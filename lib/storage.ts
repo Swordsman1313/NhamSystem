@@ -401,7 +401,7 @@ export function deleteProduct(idOrBarcode: string): void {
 export const INITIAL_PACKAGING_CATEGORIES: PackagingCategoryRecord[] = [
   { id: 'box', name: 'Box', isProtected: true },
   { id: 'sticker', name: 'UV Sticker', isProtected: true },
-  { id: 'skewer', name: 'Skewer', isProtected: true },
+  { id: 'skewer', name: 'Skewer', isProtected: false },
   { id: 'other', name: 'Other', isProtected: false },
 ];
 
@@ -414,7 +414,7 @@ export function getPackagingCategories(): PackagingCategoryRecord[] {
       map.set(c.id, {
         id: c.id,
         name: c.name || c.id,
-        isProtected: c.isProtected ?? (c.id === 'box' || c.id === 'sticker' || c.id === 'skewer'),
+        isProtected: c.id === 'skewer' ? false : (c.isProtected ?? (c.id === 'box' || c.id === 'sticker')),
       });
     }
   });
@@ -504,7 +504,7 @@ export function renamePackagingCategory(categoryId: string, newName: string): { 
 }
 
 export function deletePackagingCategory(id: string): boolean {
-  if (id === 'box' || id === 'sticker' || id === 'skewer') {
+  if (id === 'box' || id === 'sticker') {
     return false;
   }
   const current = getPackagingCategories();

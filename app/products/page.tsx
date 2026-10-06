@@ -196,13 +196,6 @@ export default function ProductBOMBuilderPage() {
         bomChanged = true;
       }
 
-      // 4. Ensure skewer exists
-      const hasSkewer = bom.some((b) => b.packagingItemId === 'skewer-wood' || b.packagingItemId.startsWith('skewer'));
-      if (!hasSkewer) {
-        bom.push({ packagingItemId: 'skewer-wood', quantity: 1 });
-        bomChanged = true;
-      }
-
       if (bomChanged) {
         productsUpdated = true;
         return { ...p, bom };

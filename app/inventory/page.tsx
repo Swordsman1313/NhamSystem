@@ -44,6 +44,7 @@ import {
   addPackagingCategory,
   updatePackagingCategory,
   deletePackagingCategory,
+  deletePackagingItem,
 } from '@/lib/storage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -181,6 +182,7 @@ export default function InventoryDashboardPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedEditItem, setSelectedEditItem] = useState<InventoryItem | null>(null);
   const [editFormName, setEditFormName] = useState<string>('');
+  const [editFormKhmerName, setEditFormKhmerName] = useState<string>('');
   const [editFormCategory, setEditFormCategory] = useState<string>('box');
   const [editFormCostKHR, setEditFormCostKHR] = useState<number>(0);
   const [editFormOnHand, setEditFormOnHand] = useState<number>(0);
@@ -189,15 +191,20 @@ export default function InventoryDashboardPage() {
   // New Packaging Material Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createName, setCreateName] = useState<string>('');
+  const [createKhmerName, setCreateKhmerName] = useState<string>('');
   const [createCategory, setCreateCategory] = useState<string>('box');
   const [createCostKHR, setCreateCostKHR] = useState<number>(380);
   const [createOnHand, setCreateOnHand] = useState<number>(100);
+
+  // Delete Material State
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
 
   // Success Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const openCreateMaterialModal = () => {
     setCreateName('');
+    setCreateKhmerName('');
     setCreateCategory(categories.length > 0 ? categories[0].id : 'box');
     setCreateCostKHR(380);
     setCreateOnHand(100);
@@ -215,6 +222,7 @@ export default function InventoryDashboardPage() {
     addPackagingItem({
       id: newId,
       name: createName.trim(),
+      khmerName: createKhmerName.trim(),
       category: createCategory,
       unitCostKHR: Math.max(0, createCostKHR),
       costPerUnitKHR: Math.max(0, createCostKHR),
@@ -383,6 +391,7 @@ export default function InventoryDashboardPage() {
   const openEditItem = (item: InventoryItem) => {
     setSelectedEditItem(item);
     setEditFormName(item.name);
+    setEditFormKhmerName(item.khmerName || '');
     setEditFormCategory((typeof item.category === 'string' ? item.category : (item.category as any)?.id) || 'box');
     setEditFormCostKHR(item.costPerUnitKHR ?? item.unitCostKHR ?? 0);
     setEditFormOnHand(item.onHand);
@@ -397,6 +406,7 @@ export default function InventoryDashboardPage() {
     updatePackagingItem({
       id: selectedEditItem.id,
       name: editFormName.trim() || selectedEditItem.name,
+      khmerName: editFormKhmerName.trim(),
       category: editFormCategory,
       unitCostKHR: Math.max(0, editFormCostKHR),
       costPerUnitKHR: Math.max(0, editFormCostKHR),
@@ -406,6 +416,19 @@ export default function InventoryDashboardPage() {
     setEditModalOpen(false);
     loadData();
     triggerToast(`Updated "${selectedEditItem.name}" — Unit cost: ${formatKHR(editFormCostKHR)} (synced to BOM recipes & Costing)`);
+  };
+
+  const handleDeleteItem = (item: InventoryItem) => {
+    setItemToDelete(item);
+  };
+
+  const confirmDeleteItem = () => {
+    if (!itemToDelete) return;
+    deletePackagingItem(itemToDelete.id);
+    triggerToast(`Deleted "${itemToDelete.name}" from packaging warehouse.`);
+    setItemToDelete(null);
+    setEditModalOpen(false);
+    loadData();
   };
 
   // Synchronize Warehouse KPI Cards with exact category filtering
@@ -797,11 +820,19 @@ export default function InventoryDashboardPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(item)}
+                        className="min-h-[36px] min-w-[36px] p-2 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-bold transition flex items-center justify-center shadow-2xs active:scale-95 cursor-pointer"
+                        title={`Delete "${item.name}"`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => openEditItem(item)}
-                        className="min-h-[36px] px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95"
+                        className="min-h-[36px] px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer"
                         title="Edit unit cost & stock settings"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-slate-500" />
@@ -810,7 +841,7 @@ export default function InventoryDashboardPage() {
                       <button
                         type="button"
                         onClick={() => openRestock(item)}
-                        className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95"
+                        className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Restock</span>
@@ -961,15 +992,23 @@ export default function InventoryDashboardPage() {
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end space-x-1.5">
                           <button
+                            type="button"
+                            onClick={() => handleDeleteItem(item)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                            title={`Delete "${item.name}"`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => openEditItem(item)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition cursor-pointer"
                             title="Edit unit cost & stock settings"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openRestock(item)}
-                            className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 font-bold border border-emerald-200 transition text-xs shadow-2xs"
+                            className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 font-bold border border-emerald-200 transition text-xs shadow-2xs cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Restock</span>
@@ -1143,7 +1182,7 @@ export default function InventoryDashboardPage() {
             <form onSubmit={handleSaveItemEdit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Material Name *
+                  Material Name (English) *
                 </label>
                 <input
                   type="text"
@@ -1151,6 +1190,19 @@ export default function InventoryDashboardPage() {
                   value={editFormName}
                   onChange={(e) => setEditFormName(e.target.value)}
                   className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Khmer Name (ឈ្មោះជាភាសាខ្មែរ)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. ឈើចាក់ផ្លែឈើឫស្សី..."
+                  value={editFormKhmerName}
+                  onChange={(e) => setEditFormKhmerName(e.target.value)}
+                  className="w-full text-xs font-khmer font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
                 />
               </div>
 
@@ -1218,20 +1270,35 @@ export default function InventoryDashboardPage() {
                 ⚡ <strong>Instant Sync:</strong> Changing material cost here immediately recalculates BOM recipe costs in Product Studio and batch profit margins in Batch Costing.
               </div>
 
-              <div className="pt-2 flex items-center justify-end space-x-2.5">
+              <div className="pt-2 flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setEditModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  onClick={() => {
+                    if (selectedEditItem) {
+                      handleDeleteItem(selectedEditItem);
+                    }
+                  }}
+                  className="px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
                 >
-                  Cancel
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition active:scale-95"
-                >
-                  Save &amp; Sync
-                </button>
+
+                <div className="flex items-center space-x-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                  >
+                    Save &amp; Sync
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1267,7 +1334,7 @@ export default function InventoryDashboardPage() {
             <form onSubmit={handleCreateMaterial} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Material Name *
+                  Material Name (English) *
                 </label>
                 <input
                   type="text"
@@ -1276,6 +1343,19 @@ export default function InventoryDashboardPage() {
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
                   className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Khmer Name (ឈ្មោះជាភាសាខ្មែរ)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. ប្រអប់ថ្លា ៥០០មីលីលីត្រ..."
+                  value={createKhmerName}
+                  onChange={(e) => setCreateKhmerName(e.target.value)}
+                  className="w-full text-xs font-khmer font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
                 />
               </div>
 
@@ -1416,7 +1496,7 @@ export default function InventoryDashboardPage() {
                     itemCat?.toLowerCase() === cat.name?.toLowerCase()
                   );
                 }).length;
-                const isCore = cat.isProtected || cat.id === 'box' || cat.id === 'sticker' || cat.id === 'skewer';
+                const isCore = cat.id === 'skewer' ? false : (cat.isProtected || cat.id === 'box' || cat.id === 'sticker');
                 const isEditing = editingCategoryId === cat.id;
 
                 return (
@@ -1530,7 +1610,7 @@ export default function InventoryDashboardPage() {
 
             {/* Helper Info */}
             <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-[11px] text-indigo-900">
-              💡 <strong>System Note:</strong> Core categories (Box, UV Sticker, Skewer) are required for standard Fruit BOM cost calculations and cannot be deleted. Custom categories can be added and assigned to any packaging material.
+              💡 <strong>System Note:</strong> Core categories (Box, UV Sticker) are required for standard Fruit BOM cost calculations and cannot be deleted. Custom categories (including Skewer) can be added, customized, and assigned to any packaging material.
             </div>
 
             {/* Modal Footer */}
@@ -1558,6 +1638,19 @@ export default function InventoryDashboardPage() {
         variant="danger"
         onConfirm={handleConfirmDeleteCategory}
         onCancel={() => setCategoryToDelete(null)}
+      />
+
+      {/* Delete Packaging Material Confirm Modal */}
+      <ConfirmModal
+        isOpen={!!itemToDelete}
+        title={`Delete "${itemToDelete?.name}"?`}
+        khmerTitle="លុបសម្ភារៈវេចខ្ចប់ចេញពីស្តុក"
+        message={`Are you sure you want to delete the packaging material "${itemToDelete?.name}" ${itemToDelete?.khmerName ? `(${itemToDelete.khmerName})` : ''}? This will permanently remove the material from your warehouse inventory.`}
+        confirmText="Delete Material"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmDeleteItem}
+        onCancel={() => setItemToDelete(null)}
       />
     </div>
   );
