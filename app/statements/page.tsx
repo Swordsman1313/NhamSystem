@@ -68,6 +68,53 @@ function extractYearMonth(dateStr?: string): string {
   return '';
 }
 
+// Extracts both yearMonth ('YYYY-MM') and day (1-31)
+function parseInvoiceDayAndMonth(dateStr?: string): { yearMonth: string; day: number } | null {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+
+  // 1. Matches YYYY-MM-DD
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return {
+      yearMonth: `${isoMatch[1]}-${isoMatch[2]}`,
+      day: parseInt(isoMatch[3], 10),
+    };
+  }
+
+  // 2. Matches DD-MMM-YYYY or DD/MMM/YYYY
+  const monthMap: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  };
+  const parts = clean.split(/[-/\s]+/);
+  if (parts.length >= 3) {
+    const m1 = parts[1].toLowerCase().slice(0, 3);
+    if (monthMap[m1]) {
+      const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      const month = monthMap[m1];
+      const day = parseInt(parts[0], 10);
+      return { yearMonth: `${year}-${month}`, day };
+    }
+    const m0 = parts[0].toLowerCase().slice(0, 3);
+    if (monthMap[m0]) {
+      const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      const month = monthMap[m0];
+      const day = parseInt(parts[1], 10);
+      return { yearMonth: `${year}-${month}`, day };
+    }
+    // DD-MM-YYYY or DD/MM/YYYY
+    if (/^\d{1,2}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1]) && /^\d{4}$/.test(parts[2])) {
+      const year = parts[2];
+      const month = parts[1].padStart(2, '0');
+      const day = parseInt(parts[0], 10);
+      return { yearMonth: `${year}-${month}`, day };
+    }
+  }
+
+  return null;
+}
+
 // Normalizes store codes (e.g. 'OU3', 'ON-OU3', 'ON_OU3' -> 'OU3')
 function normalizeStoreKey(code?: string): string {
   if (!code) return '';
@@ -96,6 +143,8 @@ function isStoreMatch(invStoreCode?: string, selectedCode?: string, storeObj?: S
   return false;
 }
 
+export type BillingCycle = '1-15' | '16-end' | 'full';
+
 export default function StatementsPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -104,6 +153,7 @@ export default function StatementsPage() {
   // Filter States
   const [selectedStoreCode, setSelectedStoreCode] = useState<string>('ON-TK592');
   const [selectedMonth, setSelectedMonth] = useState<string>('2026-10'); // YYYY-MM
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('1-15'); // '1-15', '16-end', or 'full'
 
   useEffect(() => {
     const loadedStores = getStores();
@@ -131,20 +181,49 @@ export default function StatementsPage() {
       creditTermsDays: 15,
     };
 
-  // Filter invoices for store and month with resilient normalization
-  const matchingInvoices = invoices.filter((inv) => {
-    const matchStore = isStoreMatch(inv.storeCode, selectedStoreCode, currentStore);
-    const invoiceYM = extractYearMonth(inv.invoiceDate || inv.createdAt || '');
-    const matchMonth = !selectedMonth || invoiceYM === selectedMonth;
-    return matchStore && matchMonth;
+  // Calculate days in the selected month (e.g. 31, 30, 28/29)
+  const [yearStr, monthStr] = (selectedMonth || '2026-10').split('-');
+  const yearNum = parseInt(yearStr, 10) || new Date().getFullYear();
+  const monthNum = parseInt(monthStr, 10) || (new Date().getMonth() + 1);
+  const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+
+  const monthDate = new Date(yearNum, monthNum - 1, 1);
+  const monthName = monthDate.toLocaleDateString('en-US', {
+    month: 'long',
   });
 
-  // Period Label
-  const periodDate = selectedMonth ? new Date(`${selectedMonth}-01`) : new Date();
-  const periodLabel = periodDate.toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
+  // Filter invoices for store, month, and bi-monthly billing cycle (1-15, 16-30/31, or full month)
+  const matchingInvoices = invoices.filter((inv) => {
+    const matchStore = isStoreMatch(inv.storeCode, selectedStoreCode, currentStore);
+    if (!matchStore) return false;
+
+    const parsed = parseInvoiceDayAndMonth(inv.invoiceDate || inv.createdAt || '');
+    if (!parsed) {
+      const invoiceYM = extractYearMonth(inv.invoiceDate || inv.createdAt || '');
+      return !selectedMonth || invoiceYM === selectedMonth;
+    }
+
+    const matchMonth = !selectedMonth || parsed.yearMonth === selectedMonth;
+    if (!matchMonth) return false;
+
+    if (billingCycle === '1-15') {
+      return !isNaN(parsed.day) ? parsed.day >= 1 && parsed.day <= 15 : true;
+    }
+    if (billingCycle === '16-end') {
+      return !isNaN(parsed.day) ? parsed.day >= 16 && parsed.day <= daysInMonth : true;
+    }
+    return true; // 'full'
   });
+
+  // Period Label formatted cleanly for both screen display and A4 Statement print
+  let periodLabel = `${monthName} ${yearNum}`;
+  if (billingCycle === '1-15') {
+    periodLabel = `01–15 ${monthName} ${yearNum}`;
+  } else if (billingCycle === '16-end') {
+    periodLabel = `16–${daysInMonth} ${monthName} ${yearNum}`;
+  } else {
+    periodLabel = `01–${daysInMonth} ${monthName} ${yearNum}`;
+  }
 
   // Metrics
   const totalUSD = matchingInvoices.reduce((sum, inv) => sum + (inv.totalAmountUSD || 0), 0);
@@ -188,17 +267,17 @@ export default function StatementsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="no-print bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto min-w-0 max-w-full">
+      <div className="no-print bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full xl:w-auto min-w-0 max-w-full">
           {/* Store Selector */}
-          <div className="w-full sm:w-80 min-w-0 max-w-full">
+          <div className="w-full sm:w-72 min-w-0 max-w-full">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Select Client Store / សាខា
             </label>
             <select
               value={selectedStoreCode}
               onChange={(e) => setSelectedStoreCode(e.target.value)}
-              className="w-full max-w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden truncate"
+              className="w-full max-w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden truncate cursor-pointer"
             >
               {stores.map((s) => (
                 <option key={s.code} value={s.code}>
@@ -217,13 +296,67 @@ export default function StatementsPage() {
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full sm:w-auto bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              className="w-full sm:w-auto bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden cursor-pointer"
             />
+          </div>
+
+          {/* Bi-Monthly Cycle Selector (1-15th, 16-30/31st, Full Month) */}
+          <div className="w-full sm:w-auto min-w-0">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Billing Cycle / វដ្តទូទាត់</span>
+              <span className="text-[10px] text-emerald-700 font-semibold lowercase">
+                {billingCycle === '1-15'
+                  ? 'days 1–15'
+                  : billingCycle === '16-end'
+                  ? `days 16–${daysInMonth}`
+                  : 'entire month'}
+              </span>
+            </label>
+            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setBillingCycle('1-15')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center cursor-pointer ${
+                  billingCycle === '1-15'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-slate-200/80 font-black'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <span>1 – 15th</span>
+                <span className="text-[9px] font-khmer opacity-75 hidden sm:inline">ថ្ងៃទី ១–១៥</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBillingCycle('16-end')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center cursor-pointer ${
+                  billingCycle === '16-end'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-slate-200/80 font-black'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <span>16 – {daysInMonth}th</span>
+                <span className="text-[9px] font-khmer opacity-75 hidden sm:inline">ថ្ងៃទី ១៦–{daysInMonth}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBillingCycle('full')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center cursor-pointer ${
+                  billingCycle === 'full'
+                    ? 'bg-white text-emerald-800 shadow-xs border border-slate-200/80 font-black'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <span>Full Month</span>
+                <span className="text-[9px] font-khmer opacity-75 hidden sm:inline">ពេញមួយខែ</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Quick Month Metrics Pill (Desktop only - mobile uses dedicated Statement Card below) */}
-        <div className="hidden sm:flex items-center space-x-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+        <div className="hidden xl:flex items-center space-x-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs shrink-0">
           <div>
             <span className="text-[10px] text-slate-500 block uppercase font-bold">Total Orders</span>
             <span className="font-bold text-slate-900">
