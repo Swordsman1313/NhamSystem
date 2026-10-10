@@ -245,6 +245,7 @@ export function getPackagingItems(): PackagingItem[] {
     const name = item.id === 'sticker-papaya' && (item.name === 'UV Sticker - Papaya' || !item.name)
       ? 'UV Sticker - Papaya Cubes'
       : item.name;
+    const stock = Number(item.onHand ?? item.currentStock ?? 0);
     return {
       ...item,
       id: item.id,
@@ -253,8 +254,8 @@ export function getPackagingItems(): PackagingItem[] {
       category: item.category || 'other',
       unitCostKHR: unitCost,
       costPerUnitKHR: unitCost,
-      onHand: Number(item.currentStock ?? item.onHand ?? 0),
-      currentStock: Number(item.currentStock ?? item.onHand ?? 0),
+      onHand: stock,
+      currentStock: stock,
       lowStockThreshold: Number(item.lowStockThreshold ?? 25),
       barcodeRef: item.barcodeRef,
     };
@@ -264,7 +265,7 @@ export function getPackagingItems(): PackagingItem[] {
 export function savePackagingItems(items: PackagingItem[]): void {
   const normalized = items.map((item) => {
     const unitCost = Number(item.unitCostKHR ?? item.costPerUnitKHR ?? 0);
-    const stock = Number(item.currentStock ?? item.onHand ?? 0);
+    const stock = Number(item.onHand ?? item.currentStock ?? 0);
     return {
       ...item,
       unitCostKHR: unitCost,
@@ -286,12 +287,14 @@ export function addPackagingItem(item: PackagingItem): PackagingItem {
   const current = getPackagingItems();
   const exists = current.some((i) => i.id === item.id);
   const unitCost = Number(item.unitCostKHR ?? item.costPerUnitKHR ?? 0);
+  const stock = Number(item.onHand ?? item.currentStock ?? 0);
   const newItem: PackagingItem = {
     ...item,
     id: exists ? `${item.id}-${Date.now()}` : item.id,
     unitCostKHR: unitCost,
     costPerUnitKHR: unitCost,
-    onHand: Number(item.onHand ?? 0),
+    onHand: stock,
+    currentStock: stock,
     lowStockThreshold: Number(item.lowStockThreshold ?? 25),
   };
   const updated = [...current, newItem];
@@ -304,12 +307,14 @@ export function updatePackagingItem(item: PackagingItem): void {
   const idx = current.findIndex((i) => i.id === item.id);
   if (idx !== -1) {
     const unitCost = Number(item.unitCostKHR ?? item.costPerUnitKHR ?? 0);
+    const stock = Number(item.onHand ?? item.currentStock ?? current[idx].onHand ?? 0);
     current[idx] = {
       ...current[idx],
       ...item,
       unitCostKHR: unitCost,
       costPerUnitKHR: unitCost,
-      onHand: Number(item.onHand ?? 0),
+      onHand: stock,
+      currentStock: stock,
     };
     savePackagingItems([...current]);
   }

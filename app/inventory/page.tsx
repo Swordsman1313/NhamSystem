@@ -25,11 +25,14 @@ import {
   Pencil,
   Check,
   ChevronDown,
+  SlidersHorizontal,
+  Minus,
 } from 'lucide-react';
 import { InventoryItem, InventoryCategory, PackagingCategory, PackagingCategoryRecord } from '@/lib/types';
 import {
   getInventory,
   restockItem,
+  adjustItemStock,
 } from '@/lib/inventoryStore';
 import {
   getSettings,
@@ -173,10 +176,14 @@ export default function InventoryDashboardPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState<string>('');
 
-  // Restock Modal State
-  const [restockModalOpen, setRestockModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [addedQty, setAddedQty] = useState<number>(100);
+  // Stock Adjustment & Restock Modal State
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [adjustMode, setAdjustMode] = useState<'audit' | 'add' | 'deduct'>('audit');
+  const [selectedAdjustItem, setSelectedAdjustItem] = useState<InventoryItem | null>(null);
+  const [exactOnHandInput, setExactOnHandInput] = useState<number>(0);
+  const [qtyToAdd, setQtyToAdd] = useState<number>(100);
+  const [qtyToDeduct, setQtyToDeduct] = useState<number>(10);
+  const [adjustReason, setAdjustReason] = useState<string>('Physical count audit');
 
   // Edit Material & Unit Cost Modal State
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -369,23 +376,62 @@ export default function InventoryDashboardPage() {
     }, 4500);
   };
 
-  // Open restock modal for a specific item
-  const openRestock = (item: InventoryItem) => {
-    setSelectedItem(item);
-    setAddedQty(item.category === 'skewer' ? 500 : item.category === 'box' ? 100 : 50);
-    setRestockModalOpen(true);
+  // Open adjust stock modal for a specific item
+  const openAdjustStock = (item: InventoryItem, initialMode: 'audit' | 'add' | 'deduct' = 'audit') => {
+    setSelectedAdjustItem(item);
+    setAdjustMode(initialMode);
+    setExactOnHandInput(item.onHand);
+    setQtyToAdd(item.category === 'skewer' ? 500 : item.category === 'box' ? 100 : 50);
+    setQtyToDeduct(10);
+    setAdjustReason(
+      initialMode === 'audit'
+        ? 'Physical count audit'
+        : initialMode === 'deduct'
+        ? 'Damaged / Spoilage'
+        : 'Supplier restock'
+    );
+    setAdjustModalOpen(true);
   };
 
-  // Confirm restock submission
-  const handleConfirmRestock = () => {
-    if (!selectedItem || addedQty <= 0) return;
-    const res = restockItem(selectedItem.id, addedQty);
-    if (res.success) {
-      loadData();
-      setRestockModalOpen(false);
-      triggerToast(`Restocked ${addedQty.toLocaleString()} pcs of ${selectedItem.name}. New on-hand: ${res.newOnHand.toLocaleString()} pcs.`);
+  const openRestock = (item: InventoryItem) => {
+    openAdjustStock(item, 'add');
+  };
+
+  // Confirm stock adjustment or restock submission
+  const handleConfirmAdjust = () => {
+    if (!selectedAdjustItem) return;
+
+    if (adjustMode === 'audit') {
+      const newOnHand = Math.max(0, isNaN(exactOnHandInput) ? 0 : Number(exactOnHandInput));
+      const res = adjustItemStock(selectedAdjustItem.id, newOnHand, adjustReason);
+      if (res.success) {
+        loadData();
+        setAdjustModalOpen(false);
+        const diffStr = res.diff > 0 ? `+${res.diff}` : `${res.diff}`;
+        triggerToast(`Adjusted on-hand for "${selectedAdjustItem.name}" to ${res.newOnHand.toLocaleString()} pcs (${diffStr} pcs).`);
+      }
+    } else if (adjustMode === 'add') {
+      if (qtyToAdd <= 0) return;
+      const res = restockItem(selectedAdjustItem.id, qtyToAdd);
+      if (res.success) {
+        loadData();
+        setAdjustModalOpen(false);
+        triggerToast(`Restocked +${qtyToAdd.toLocaleString()} pcs of "${selectedAdjustItem.name}". New on-hand: ${res.newOnHand.toLocaleString()} pcs.`);
+      }
+    } else if (adjustMode === 'deduct') {
+      if (qtyToDeduct <= 0) return;
+      const currentStock = Number(selectedAdjustItem.onHand ?? 0);
+      const newOnHand = Math.max(0, currentStock - qtyToDeduct);
+      const res = adjustItemStock(selectedAdjustItem.id, newOnHand, adjustReason || 'Damaged / Spoilage');
+      if (res.success) {
+        loadData();
+        setAdjustModalOpen(false);
+        triggerToast(`Deducted -${Math.min(currentStock, qtyToDeduct).toLocaleString()} pcs of "${selectedAdjustItem.name}". New on-hand: ${res.newOnHand.toLocaleString()} pcs.`);
+      }
     }
   };
+
+  const handleConfirmRestock = handleConfirmAdjust;
 
   // Open edit material modal
   const openEditItem = (item: InventoryItem) => {
@@ -818,17 +864,25 @@ export default function InventoryDashboardPage() {
 
                   {/* Card Body: Grid with On-Hand Quantity, Unit Cost, and Total Value */}
                   <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-500 font-medium block">On-Hand</span>
+                    <button
+                      type="button"
+                      onClick={() => openAdjustStock(item, 'audit')}
+                      className="text-left group cursor-pointer"
+                      title="Tap to adjust on-hand count"
+                    >
+                      <span className="text-[10px] text-slate-500 font-medium flex items-center space-x-1 group-hover:text-emerald-700">
+                        <span>On-Hand</span>
+                        <SlidersHorizontal className="w-2.5 h-2.5 text-slate-400 group-hover:text-emerald-600" />
+                      </span>
                       <span
-                        className={`font-mono font-black text-sm block ${
+                        className={`font-mono font-black text-sm block group-hover:underline ${
                           isZero ? 'text-red-600' : isLow ? 'text-amber-700' : 'text-slate-900'
                         }`}
                       >
                         {item.onHand.toLocaleString()} <span className="text-[10px] font-normal text-slate-500">pcs</span>
                       </span>
                       <span className="text-[9px] text-slate-400 block">Min: {item.lowStockThreshold}</span>
-                    </div>
+                    </button>
 
                     <div>
                       <span className="text-[10px] text-slate-500 font-medium block">Unit Cost</span>
@@ -867,16 +921,26 @@ export default function InventoryDashboardPage() {
                       <button
                         type="button"
                         onClick={() => openEditItem(item)}
-                        className="min-h-[36px] px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer"
-                        title="Edit unit cost & stock settings"
+                        className="min-h-[34px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
+                        title="Edit unit cost & item specs"
                       >
                         <Edit3 className="w-3.5 h-3.5 text-slate-500" />
                         <span>Edit</span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => openRestock(item)}
-                        className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer"
+                        onClick={() => openAdjustStock(item, 'audit')}
+                        className="min-h-[34px] px-2.5 py-1 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
+                        title="Direct on-hand stock count adjustment"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Adjust</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openAdjustStock(item, 'add')}
+                        className="min-h-[34px] px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
+                        title="Restock material"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Restock</span>
@@ -972,20 +1036,28 @@ export default function InventoryDashboardPage() {
 
                       {/* On-Hand Quantity */}
                       <td className="py-3 px-4 text-center">
-                        <span
-                          className={`font-mono font-black text-base ${
-                            isZero
-                              ? 'text-red-600'
-                              : isLow
-                              ? 'text-amber-700'
-                              : 'text-slate-900'
-                          }`}
+                        <button
+                          type="button"
+                          onClick={() => openAdjustStock(item, 'audit')}
+                          className="group inline-flex flex-col items-center cursor-pointer p-1 rounded-lg hover:bg-slate-100 transition"
+                          title="Click to adjust on-hand count"
                         >
-                          {item.onHand.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-slate-500 block">
-                          pcs (Min: {item.lowStockThreshold})
-                        </span>
+                          <span
+                            className={`font-mono font-black text-base group-hover:underline flex items-center space-x-1 ${
+                              isZero
+                                ? 'text-red-600'
+                                : isLow
+                                ? 'text-amber-700'
+                                : 'text-slate-900'
+                            }`}
+                          >
+                            <span>{item.onHand.toLocaleString()}</span>
+                            <SlidersHorizontal className="w-3 h-3 text-slate-400 group-hover:text-emerald-600 transition-opacity" />
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            pcs (Min: {item.lowStockThreshold})
+                          </span>
+                        </button>
                       </td>
 
                       {/* Unit Cost KHR */}
@@ -1028,14 +1100,23 @@ export default function InventoryDashboardPage() {
                         <div className="flex items-center justify-end space-x-1.5">
                           <button
                             onClick={() => openEditItem(item)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition cursor-pointer"
-                            title="Edit unit cost & stock settings"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                            title="Edit unit cost & item specs"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => openRestock(item)}
-                            className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-900 font-bold border border-emerald-200 transition text-xs shadow-2xs cursor-pointer"
+                            onClick={() => openAdjustStock(item, 'audit')}
+                            className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 transition text-xs shadow-2xs cursor-pointer"
+                            title="Adjust exact physical on-hand stock"
+                          >
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600" />
+                            <span>Adjust</span>
+                          </button>
+                          <button
+                            onClick={() => openAdjustStock(item, 'add')}
+                            className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition text-xs shadow-2xs cursor-pointer"
+                            title="Restock material"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Restock</span>
@@ -1051,134 +1132,379 @@ export default function InventoryDashboardPage() {
         </div>
       </div>
 
-      {/* Restock Modal */}
-      {restockModalOpen && selectedItem && (
+      {/* Stock Adjustment & Restock Modal */}
+      {adjustModalOpen && selectedAdjustItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <Package className="w-5 h-5" />
+                <div
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
+                    adjustMode === 'audit'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : adjustMode === 'add'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-rose-100 text-rose-700'
+                  }`}
+                >
+                  {adjustMode === 'audit' ? (
+                    <SlidersHorizontal className="w-5 h-5" />
+                  ) : adjustMode === 'add' ? (
+                    <Plus className="w-5 h-5" />
+                  ) : (
+                    <Minus className="w-5 h-5" />
+                  )}
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900">
-                    Restock Packaging
+                    Adjust Warehouse Stock
                   </h3>
                   <p className="text-xs text-slate-500 font-khmer">
-                    បន្ថែមចំនួនស្តុកសម្ភារៈវេចខ្ចប់ថ្មី
+                    កែសម្រួល ឬ បន្ថែមចំនួនស្តុកសម្ភារៈវេចខ្ចប់
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setRestockModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                type="button"
+                onClick={() => setAdjustModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Item Details Summary */}
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Target Item:
+            {/* Target Item Summary */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-900 text-sm truncate mr-2">
+                  {selectedAdjustItem.name}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600 shrink-0">
+                  {typeof selectedAdjustItem.category === 'string'
+                    ? selectedAdjustItem.category
+                    : (selectedAdjustItem.category as any)?.id || 'box'}
+                </span>
               </div>
-              <div className="font-bold text-slate-900 text-sm">
-                {selectedItem.name}
-              </div>
-              {selectedItem.khmerName && (
-                <div className="text-xs text-slate-600 font-khmer">
-                  {selectedItem.khmerName}
+              {selectedAdjustItem.khmerName && (
+                <div className="text-xs text-slate-500 font-khmer truncate">
+                  {selectedAdjustItem.khmerName}
                 </div>
               )}
-              <div className="pt-2 mt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Current On-Hand:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {selectedItem.onHand.toLocaleString()} pcs
+              <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
+                <span className="text-slate-500">Current System On-Hand:</span>
+                <span className="font-mono font-black text-slate-900 text-sm">
+                  {selectedAdjustItem.onHand.toLocaleString()} pcs
                 </span>
               </div>
             </div>
 
-            {/* Quick Preset Buttons */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Quick Add Presets:
-              </label>
-              <div className="grid grid-cols-5 gap-2">
-                {[50, 100, 200, 500, 1000].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setAddedQty(preset)}
-                    className={`py-1.5 rounded-lg text-xs font-bold border transition ${
-                      addedQty === preset
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    +{preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Quantity Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Quantity to Add (Pcs):
-              </label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={addedQty || ''}
-                  onChange={(e) => setAddedQty(Math.max(1, parseInt(e.target.value, 10) || 0))}
-                  className="flex-1 px-4 py-2 border border-slate-300 rounded-xl text-lg font-mono font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
-                <span className="text-xs font-bold text-slate-500 uppercase">
-                  Pcs
-                </span>
-              </div>
-            </div>
-
-            {/* Calculation Preview */}
-            <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">New On-Hand Total:</span>
-                <span className="font-mono font-black text-emerald-900 text-sm">
-                  {(selectedItem.onHand + addedQty).toLocaleString()} pcs
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Estimated Batch Cost:</span>
-                <span className="font-mono font-bold text-slate-800">
-                  {(() => {
-                    const unitCost = Number(selectedItem.unitCostKHR ?? selectedItem.costPerUnitKHR ?? 0);
-                    const batchCostKHR = (Number(addedQty) || 0) * unitCost;
-                    const batchCostUSD = batchCostKHR / (exchangeRate || 4000);
-                    return `${batchCostKHR.toLocaleString()} ៛ (≈ $${batchCostUSD.toFixed(2)})`;
-                  })()}
-                </span>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="pt-2 flex items-center justify-end space-x-3">
+            {/* Segmented Mode Selector */}
+            <div className="grid grid-cols-3 p-1 bg-slate-100 rounded-2xl gap-1">
               <button
                 type="button"
-                onClick={() => setRestockModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition"
+                onClick={() => setAdjustMode('audit')}
+                className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
+                  adjustMode === 'audit'
+                    ? 'bg-white text-indigo-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Audit Count</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdjustMode('add')}
+                className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
+                  adjustMode === 'add'
+                    ? 'bg-white text-emerald-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Restock</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdjustMode('deduct')}
+                className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
+                  adjustMode === 'deduct'
+                    ? 'bg-white text-rose-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Minus className="w-3.5 h-3.5 text-rose-600" />
+                <span>Deduct</span>
+              </button>
+            </div>
+
+            {/* Mode 1: Exact Physical Count (Audit / Stock Take) */}
+            {adjustMode === 'audit' && (
+              <div className="space-y-3.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Physical Count on Shelf (Pcs):
+                    </label>
+                    <span className="text-[10px] text-slate-500">
+                      Enter actual counted amount
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={exactOnHandInput === 0 && isNaN(exactOnHandInput) ? '' : exactOnHandInput}
+                      onChange={(e) => setExactOnHandInput(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="flex-1 px-4 py-2 border border-indigo-300 rounded-xl text-lg font-mono font-black text-indigo-950 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-indigo-50/20"
+                    />
+                    <span className="text-xs font-bold text-slate-500 uppercase">
+                      Pcs
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quick Presets for Audit */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Quick Set Presets:
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[0, 50, 100, 200, 500].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setExactOnHandInput(preset)}
+                        className={`py-1 rounded-lg text-xs font-mono font-bold border transition cursor-pointer ${
+                          exactOnHandInput === preset
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Audit Diff Preview */}
+                {(() => {
+                  const diff = (Number(exactOnHandInput) || 0) - selectedAdjustItem.onHand;
+                  return (
+                    <div
+                      className={`p-3 rounded-xl border text-xs space-y-1 ${
+                        diff === 0
+                          ? 'bg-slate-50 border-slate-200 text-slate-700'
+                          : diff > 0
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                          : 'bg-amber-50 border-amber-200 text-amber-950'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span>Discrepancy / Adjustment:</span>
+                        <span className="font-mono text-sm">
+                          {diff === 0 ? '0 pcs (Exact Match)' : diff > 0 ? `+${diff.toLocaleString()} pcs` : `${diff.toLocaleString()} pcs`}
+                        </span>
+                      </div>
+                      <div className="text-[11px] opacity-80">
+                        {diff === 0
+                          ? 'No count discrepancy between shelf and system.'
+                          : diff > 0
+                          ? 'Stock surplus detected. System on-hand will increase.'
+                          : 'Stock shortage detected. System on-hand will decrease.'}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Audit Note / Reason:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Weekly physical stock count, Recalibration..."
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                    className="w-full text-xs font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Mode 2: Add / Restock */}
+            {adjustMode === 'add' && (
+              <div className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Quick Restock Presets:
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[50, 100, 200, 500, 1000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setQtyToAdd(preset)}
+                        className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                          qtyToAdd === preset
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        +{preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Quantity to Add (Pcs):
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={qtyToAdd || ''}
+                      onChange={(e) => setQtyToAdd(Math.max(1, parseInt(e.target.value, 10) || 0))}
+                      className="flex-1 px-4 py-2 border border-slate-300 rounded-xl text-lg font-mono font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-bold text-slate-500 uppercase">
+                      Pcs
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">New On-Hand Total:</span>
+                    <span className="font-mono font-black text-emerald-900 text-sm">
+                      {(selectedAdjustItem.onHand + qtyToAdd).toLocaleString()} pcs
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-600">
+                    <span>Estimated Batch Cost:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {(() => {
+                        const unitCost = Number(selectedAdjustItem.unitCostKHR ?? selectedAdjustItem.costPerUnitKHR ?? 0);
+                        const batchCostKHR = (Number(qtyToAdd) || 0) * unitCost;
+                        const batchCostUSD = batchCostKHR / (exchangeRate || 4000);
+                        return `${batchCostKHR.toLocaleString()} ៛ (≈ $${batchCostUSD.toFixed(2)})`;
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mode 3: Deduct / Waste */}
+            {adjustMode === 'deduct' && (
+              <div className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Quick Deduct Presets:
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[5, 10, 25, 50, 100].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setQtyToDeduct(preset)}
+                        className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                          qtyToDeduct === preset
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        -{preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Quantity to Deduct (Pcs):
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max={selectedAdjustItem.onHand}
+                      step="1"
+                      value={qtyToDeduct || ''}
+                      onChange={(e) => setQtyToDeduct(Math.max(1, parseInt(e.target.value, 10) || 0))}
+                      className="flex-1 px-4 py-2 border border-rose-300 rounded-xl text-lg font-mono font-bold text-rose-950 focus:outline-hidden focus:ring-2 focus:ring-rose-500 bg-rose-50/20"
+                    />
+                    <span className="text-xs font-bold text-slate-500 uppercase">
+                      Pcs
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-rose-50/60 border border-rose-200 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600">Remaining On-Hand:</span>
+                    <span className="font-mono font-black text-rose-900 text-sm">
+                      {Math.max(0, selectedAdjustItem.onHand - qtyToDeduct).toLocaleString()} pcs
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Deduction Reason:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Broken in transit, Water damage, Expired..."
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                    className="w-full text-xs font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-rose-500 bg-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="pt-2 flex items-center justify-end space-x-2.5">
+              <button
+                type="button"
+                onClick={() => setAdjustModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleConfirmRestock}
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition active:scale-95 flex items-center space-x-1.5"
+                onClick={handleConfirmAdjust}
+                className={`px-5 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition active:scale-95 flex items-center space-x-1.5 cursor-pointer ${
+                  adjustMode === 'audit'
+                    ? 'bg-indigo-600 hover:bg-indigo-700'
+                    : adjustMode === 'add'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>Confirm Restock</span>
+                {adjustMode === 'audit' ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Confirm Stock Count</span>
+                  </>
+                ) : adjustMode === 'add' ? (
+                  <>
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Confirm Restock (+{qtyToAdd})</span>
+                  </>
+                ) : (
+                  <>
+                    <Minus className="w-4 h-4" />
+                    <span>Confirm Deduct (-{qtyToDeduct})</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

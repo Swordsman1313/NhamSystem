@@ -247,3 +247,36 @@ export function restockItem(
     item,
   };
 }
+
+/**
+ * 4. adjustItemStock:
+ * Sets exact onHand (for physical stock take / audit count) or adjusts up/down.
+ */
+export function adjustItemStock(
+  itemId: string,
+  newOnHand: number,
+  reason?: string
+): { success: boolean; oldOnHand: number; newOnHand: number; diff: number; item?: InventoryItem } {
+  const currentInventory = getInventory();
+  const item = currentInventory.find((i) => i.id === itemId);
+
+  if (!item) {
+    return { success: false, oldOnHand: 0, newOnHand: 0, diff: 0 };
+  }
+
+  const oldOnHand = Number(item.onHand ?? item.currentStock ?? 0);
+  const cleanOnHand = Math.max(0, isNaN(newOnHand) ? 0 : Math.round(newOnHand));
+  const diff = cleanOnHand - oldOnHand;
+
+  item.onHand = cleanOnHand;
+  item.currentStock = cleanOnHand;
+
+  saveInventory(currentInventory);
+  return {
+    success: true,
+    oldOnHand,
+    newOnHand: cleanOnHand,
+    diff,
+    item,
+  };
+}

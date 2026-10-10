@@ -649,7 +649,7 @@ export async function syncAllPackagingToCloud(items: PackagingItem[]): Promise<v
       khmer_name: item.khmerName || '',
       category: typeof item.category === 'string' ? item.category : (item.category as any)?.id || 'box',
       unit_cost_khr: item.unitCostKHR ?? item.costPerUnitKHR ?? 0,
-      on_hand: item.currentStock ?? item.onHand ?? 0,
+      on_hand: Number(item.onHand ?? item.currentStock ?? 0),
       low_stock_threshold: item.lowStockThreshold ?? 25,
       barcode_ref: item.barcodeRef || null,
       data: item,
