@@ -456,7 +456,7 @@ export default function InventoryDashboardPage() {
       category: editFormCategory,
       unitCostKHR: Math.max(0, editFormCostKHR),
       costPerUnitKHR: Math.max(0, editFormCostKHR),
-      onHand: Math.max(0, editFormOnHand),
+      onHand: selectedEditItem.onHand,
       lowStockThreshold: Math.max(0, editFormThreshold),
     });
     setEditModalOpen(false);
@@ -1596,32 +1596,42 @@ export default function InventoryDashboardPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Current Stock (Pcs) *
+                    Min Stock Alert (Pcs)
                   </label>
                   <input
                     type="number"
                     min="0"
                     step="1"
-                    required
-                    value={editFormOnHand}
-                    onChange={(e) => setEditFormOnHand(parseInt(e.target.value, 10) || 0)}
+                    value={editFormThreshold}
+                    onChange={(e) => setEditFormThreshold(parseInt(e.target.value, 10) || 0)}
                     className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
                   />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    Triggers low stock badge
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Low Stock Alert Threshold (Pcs)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={editFormThreshold}
-                  onChange={(e) => setEditFormThreshold(parseInt(e.target.value, 10) || 0)}
-                  className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
-                />
+              {/* Informational On-Hand Display with Direct Adjust Action */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[11px] text-slate-500 font-medium block">Current On-Hand Stock</span>
+                  <span className="font-mono font-black text-slate-900 text-sm">
+                    {selectedEditItem.onHand.toLocaleString()} pcs
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = selectedEditItem;
+                    setEditModalOpen(false);
+                    openAdjustStock(item, 'audit');
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 font-bold transition flex items-center space-x-1.5 shadow-2xs text-xs cursor-pointer active:scale-95"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Adjust Stock &rarr;</span>
+                </button>
               </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900">
