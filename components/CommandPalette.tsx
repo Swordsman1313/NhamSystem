@@ -238,12 +238,12 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[70vh] sm:max-h-[600px] animate-in zoom-in-95 duration-150"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden flex flex-col max-h-[70vh] sm:max-h-[600px] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search Header Input */}
-        <div className="relative flex items-center px-4 py-3.5 border-b border-slate-100 bg-white">
+        <div className="relative flex items-center px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
           <Search className="w-4 h-4 text-slate-400 shrink-0 mr-3" />
           <input
             ref={inputRef}
@@ -251,28 +251,28 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search pages, invoices, fruit SKUs..."
-            className="w-full text-sm bg-transparent outline-none placeholder:text-slate-400 text-slate-900 font-medium"
+            className="w-full text-sm bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 font-medium"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-slate-400 hover:text-slate-600 p-1"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-100 rounded border border-slate-200">
+            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
               ESC
             </kbd>
           )}
         </div>
 
         {/* Results List */}
-        <div ref={listRef} className="flex-1 overflow-y-auto p-2 divide-y divide-slate-50">
+        <div ref={listRef} className="flex-1 overflow-y-auto p-2 divide-y divide-slate-50 dark:divide-slate-800/40">
           {filteredItems.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">
-              <Sparkles className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+            <div className="py-12 text-center text-xs text-slate-400 dark:text-slate-500">
+              <Sparkles className="w-6 h-6 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
               <span>No results found for &ldquo;{query}&rdquo;</span>
             </div>
           ) : (
@@ -287,8 +287,8 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer text-xs transition-colors duration-100 ${
                     isSelected
-                      ? 'bg-emerald-50 text-emerald-900'
-                      : 'text-slate-700 hover:bg-slate-50'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   <div className="flex items-center space-x-3 min-w-0">
@@ -296,17 +296,17 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
                       className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                         isSelected
                           ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-100 text-slate-500'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-slate-900 truncate">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {item.title}
                       </span>
                       {item.subtitle && (
-                        <span className="text-[10px] text-slate-500 truncate mt-0.5">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                           {item.subtitle}
                         </span>
                       )}
@@ -318,15 +318,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
                       <span
                         className={`text-[9px] font-mono px-1.5 py-0.5 rounded-md font-semibold ${
                           isSelected
-                            ? 'bg-emerald-200/70 text-emerald-900'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            ? 'bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-900 dark:text-emerald-200'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                         }`}
                       >
                         {item.badge}
                       </span>
                     )}
                     {isSelected && (
-                      <CornerDownLeft className="w-3.5 h-3.5 text-emerald-600 hidden sm:block" />
+                      <CornerDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 hidden sm:block" />
                     )}
                   </div>
                 </div>
@@ -336,26 +336,26 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         </div>
 
         {/* Footer Keyboard Hints */}
-        <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between text-[10px] text-slate-400">
+        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/90 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
           <div className="flex items-center space-x-3">
             <span>
-              <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
+              <kbd className="font-mono bg-white dark:bg-slate-800 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 shadow-2xs">
                 ↑
               </kbd>{' '}
-              <kbd className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
+              <kbd className="font-mono bg-white dark:bg-slate-800 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 shadow-2xs">
                 ↓
               </kbd>{' '}
               navigate
             </span>
             <span>
-              <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
+              <kbd className="font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 shadow-2xs">
                 ↵
               </kbd>{' '}
               select
             </span>
           </div>
           <span>
-            <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-500 shadow-2xs">
+            <kbd className="font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 shadow-2xs">
               esc
             </kbd>{' '}
             close

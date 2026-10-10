@@ -34,7 +34,7 @@ export default function DeliveryNote({
   const totalQty = activeItems.reduce((acc, it) => acc + Number(it.quantity), 0);
 
   return (
-    <div className="a4-preview-sheet text-black bg-white font-sans text-[11px] leading-tight select-text print:p-0 print:border-none">
+    <div className="a4-preview-sheet bg-white text-slate-900 dark:bg-white dark:text-slate-900 print:bg-white print:text-black font-sans text-[11px] leading-tight select-text print:p-0 print:border-none">
       {/* 1. Centered Header Banner */}
       <div className="w-full bg-[#e9f2eb] py-2 mb-4 text-center rounded-xs border border-[#d8e6db] print:border-none">
         <h1 className="text-base font-bold text-black font-khmer tracking-wide">

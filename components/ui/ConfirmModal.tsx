@@ -87,7 +87,7 @@ export default function ConfirmModal({
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200 overflow-hidden transform transition-all animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-150 max-h-[90dvh] overflow-y-auto pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-0"
+        className="w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 overflow-hidden transform transition-all animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-150 max-h-[90dvh] overflow-y-auto pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar with subtle icon */}
@@ -100,12 +100,12 @@ export default function ConfirmModal({
 
           <div className="flex-1 min-w-0 pt-0.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 {title}
               </h3>
               <button
                 onClick={onCancel}
-                className="text-slate-400 hover:text-slate-600 p-1 -mr-2 rounded-lg hover:bg-slate-100 transition"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 -mr-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 aria-label="Close dialog"
               >
                 <X className="w-4 h-4" />
@@ -113,7 +113,7 @@ export default function ConfirmModal({
             </div>
 
             {khmerTitle && (
-              <p className="text-xs font-semibold text-slate-500 font-khmer mt-0.5">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-khmer mt-0.5">
                 {khmerTitle}
               </p>
             )}
@@ -128,19 +128,19 @@ export default function ConfirmModal({
               </div>
             )}
 
-            <p className="text-xs text-slate-600 leading-relaxed mt-2.5">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mt-2.5">
               {message}
             </p>
           </div>
         </div>
 
         {/* Action Buttons Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-3">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end space-x-3">
           {!isAlertOnly && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition active:scale-95 shadow-2xs"
+              className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl transition active:scale-95 shadow-2xs"
             >
               {cancelText}
             </button>

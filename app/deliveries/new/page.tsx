@@ -83,32 +83,32 @@ function StoreSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-white border border-slate-300 hover:border-emerald-500 rounded-xl transition shadow-2xs text-left focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer group"
+        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-xl transition shadow-2xs text-left focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer group"
       >
         <div className="flex items-center space-x-2.5 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
             <StoreIcon className="w-4 h-4" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
-              <span className="font-mono font-bold text-xs text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded">
+              <span className="font-mono font-bold text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
                 {currentStore?.code}
               </span>
-              <span className="font-bold text-xs text-slate-900 truncate">
+              <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
                 {currentStore?.shipTo}
               </span>
             </div>
           </div>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0 ${
+          className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-200 shrink-0 ${
             isOpen ? 'rotate-180 text-emerald-600' : ''
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
           {stores
             .filter((s) => s.isActive !== false || s.code === value)
             .map((s) => {
@@ -123,23 +123,23 @@ function StoreSelect({
                   }}
                   className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs transition cursor-pointer text-left ${
                     isSelected
-                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-950 font-bold shadow-2xs'
-                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center space-x-1.5">
-                      <span className="font-mono font-bold text-[10px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                      <span className="font-mono font-bold text-[10px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                         {s.code}
                       </span>
-                      <span className="font-bold text-xs truncate">{s.shipTo}</span>
+                      <span className="font-bold text-xs truncate text-slate-900 dark:text-slate-100">{s.shipTo}</span>
                       {s.isActive === false && (
                         <span className="text-[9px] text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
                           Archived
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center justify-between">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center justify-between">
                       <span>{s.customerName}</span>
                       <span className="font-mono text-[10px] text-slate-400">Net {s.termsDays || s.creditTermsDays || 15}d</span>
                     </div>
@@ -458,16 +458,16 @@ export default function NewDeliveryPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
       {/* Top Header & Breadcrumb */}
-      <div className="no-print flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="no-print flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center space-x-3">
           <Link
             href="/deliveries"
-            className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"
+            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Create Invoice &amp; Delivery Note
             </h1>
           </div>
@@ -478,20 +478,20 @@ export default function NewDeliveryPage() {
           <button
             type="button"
             onClick={() => setImportPOModalOpen(true)}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3.5 py-2 rounded-xl text-sm border border-slate-200 flex items-center gap-2 cursor-pointer transition shadow-2xs"
+            className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium px-3.5 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer transition shadow-2xs"
             title="Import ON Mart PO PDF or paste PO text"
           >
             <span className="text-base leading-none">📄</span>
             <span>Import Store PO</span>
           </button>
 
-          <div className="bg-slate-200/80 p-1 rounded-xl flex items-center space-x-1">
+          <div className="bg-slate-200/80 dark:bg-slate-800 p-1 rounded-xl flex items-center space-x-1">
             <button
               onClick={() => setActiveTab('edit')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 activeTab === 'edit'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               Order Form
@@ -505,8 +505,8 @@ export default function NewDeliveryPage() {
                 activeTab === 'preview_invoice'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : totalQuantity > 0
-                  ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/60 cursor-pointer'
-                  : 'text-slate-400 cursor-not-allowed opacity-60'
+                  ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
+                  : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
               }`}
               title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Commercial Invoice'}
             >
@@ -522,8 +522,8 @@ export default function NewDeliveryPage() {
                 activeTab === 'preview_do'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : totalQuantity > 0
-                  ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-300/60 cursor-pointer'
-                  : 'text-slate-400 cursor-not-allowed opacity-60'
+                  ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
+                  : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
               }`}
               title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Delivery Note'}
             >
@@ -595,20 +595,20 @@ export default function NewDeliveryPage() {
       {activeTab === 'edit' ? (
         <div className="space-y-6">
           {/* Top Form Controls: Store, Date, Auto-Numbering, Terms */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Store Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Destination Store / សាខាទទួល
                   </label>
                   <button
                     type="button"
                     onClick={() => setNewStoreModalOpen(true)}
-                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center space-x-1 cursor-pointer"
+                    className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:underline flex items-center space-x-1 cursor-pointer"
                   >
-                    <Plus className="w-3 h-3 text-emerald-600" />
+                    <Plus className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     <span>New Store</span>
                   </button>
                 </div>
@@ -625,41 +625,41 @@ export default function NewDeliveryPage() {
                   }}
                   stores={stores}
                 />
-                <div className="mt-1.5 text-[11px] text-slate-600 flex items-center justify-between">
+                <div className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
                   <span className="font-semibold truncate max-w-[180px]">{currentStore.customerName}</span>
-                  <span className="font-mono text-slate-500">Terms: Net {currentStore.termsDays || currentStore.creditTermsDays || 15}d</span>
+                  <span className="font-mono text-slate-500 dark:text-slate-400">Terms: Net {currentStore.termsDays || currentStore.creditTermsDays || 15}d</span>
                 </div>
               </div>
 
               {/* Invoice Number */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Invoice Number / លេខវិក្កយបត្រ
                 </label>
                 <input
                   type="text"
                   value={invoiceNumber}
                   onChange={(e) => setInvoiceNumber(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
               </div>
 
               {/* Invoice Date */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Delivery Date / កាលបរិច្ឆេទ
                 </label>
                 <input
                   type="date"
                   value={invoiceDate}
                   onChange={(e) => handleDateChange(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                 />
               </div>
 
               {/* Payment Terms & Due Date */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Terms / ថ្ងៃផុតកំណត់ (Net {creditTermsDays})
                 </label>
                 <div className="flex items-center space-x-2">
@@ -667,30 +667,30 @@ export default function NewDeliveryPage() {
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                   />
                 </div>
               </div>
             </div>
 
             {/* Readonly Destination Summary Strip */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-400 gap-2">
               <div className="flex items-center space-x-2">
-                <StoreIcon className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="font-semibold text-slate-800">{currentStore.shipTo}:</span>
-                <span className="font-khmer text-slate-700">{currentStore.address}</span>
+                <StoreIcon className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{currentStore.shipTo}:</span>
+                <span className="font-khmer text-slate-700 dark:text-slate-300">{currentStore.address}</span>
               </div>
               <div>
-                Tel: <strong className="text-slate-800">{currentStore.phone}</strong>
+                Tel: <strong className="text-slate-800 dark:text-slate-200">{currentStore.phone}</strong>
               </div>
             </div>
           </div>
 
           {/* Line Items Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/40">
               <div>
-                <h2 className="text-base font-bold text-slate-900">
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                   Master Fruit Catalog (10 SKUs) &amp; Custom Add-ons
                 </h2>
               </div>
@@ -700,17 +700,17 @@ export default function NewDeliveryPage() {
                 <button
                   type="button"
                   onClick={handleQuickFillMOQ}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-bold text-xs border border-emerald-300 transition"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 font-bold text-xs border border-emerald-300 dark:border-emerald-800 transition"
                   title="Fills 3 boxes for each standard fruit SKU"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                   <span>Quick-Fill MOQ (3 per SKU)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleClearQuantities}
-                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold text-xs transition"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold text-xs transition"
                 >
                   <RotateCcw className="w-3 h-3" />
                   <span>Clear (0)</span>
@@ -719,9 +719,9 @@ export default function NewDeliveryPage() {
                 <button
                   type="button"
                   onClick={handleAddCustomItem}
-                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs border border-amber-300 transition shadow-2xs"
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 font-bold text-xs border border-amber-300 dark:border-amber-800 transition shadow-2xs"
                 >
-                  <Plus className="w-4 h-4 mr-1 text-amber-700" />
+                  <Plus className="w-4 h-4 mr-1 text-amber-700 dark:text-amber-400" />
                   <span>Add Custom Item</span>
                 </button>
               </div>
@@ -730,7 +730,7 @@ export default function NewDeliveryPage() {
             {/* Desktop Items Table (md: and above) */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                <thead className="bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-2.5 px-3 text-center w-10">#</th>
                     <th className="py-2.5 px-3 w-32">Barcode</th>
@@ -742,7 +742,7 @@ export default function NewDeliveryPage() {
                     <th className="py-2.5 px-2 text-center w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {lineItems.map((item, index) => {
                     const lineTotal = Number(item.quantity) * Number(item.unitPrice);
                     const isNonZero = Number(item.quantity) > 0;
@@ -751,13 +751,13 @@ export default function NewDeliveryPage() {
                       <tr
                         key={item.id}
                         className={`transition-colors ${
-                          isNonZero ? 'bg-emerald-50/40' : 'hover:bg-slate-50'
+                          isNonZero ? 'bg-emerald-50/40 dark:bg-emerald-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                         }`}
                       >
-                        <td className="py-2 px-3 text-center text-slate-400 font-medium">
+                        <td className="py-2 px-3 text-center text-slate-400 dark:text-slate-500 font-medium">
                           {index + 1}
                         </td>
-                        <td className="py-2 px-3 font-mono font-medium text-[11px] text-slate-600">
+                        <td className="py-2 px-3 font-mono font-medium text-[11px] text-slate-600 dark:text-slate-400">
                           {item.barcode}
                         </td>
                         <td className="py-2 px-4">
@@ -774,7 +774,7 @@ export default function NewDeliveryPage() {
                                   )
                                 }
                                 placeholder="Custom item name"
-                                className="w-full text-xs font-bold border border-slate-300 rounded px-2 py-1 text-slate-900"
+                                className="w-full text-xs font-bold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded px-2 py-1 text-slate-900 dark:text-slate-100"
                               />
                               <input
                                 type="text"
@@ -787,21 +787,21 @@ export default function NewDeliveryPage() {
                                   )
                                 }
                                 placeholder="ឈ្មោះជាភាសាខ្មែរ"
-                                className="w-full text-xs font-khmer border border-slate-300 rounded px-2 py-1 text-slate-700"
+                                className="w-full text-xs font-khmer border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded px-2 py-1 text-slate-700 dark:text-slate-300"
                               />
                             </div>
                           ) : (
                             <div>
-                              <div className="font-bold text-slate-900 text-sm">
+                              <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                                 {item.name}
                               </div>
-                              <div className="text-[11px] text-emerald-800 font-khmer">
+                              <div className="text-[11px] text-emerald-800 dark:text-emerald-400 font-khmer">
                                 {item.khmerName}
                               </div>
                             </div>
                           )}
                         </td>
-                        <td className="py-2 px-3 text-center text-slate-600 font-medium">
+                        <td className="py-2 px-3 text-center text-slate-600 dark:text-slate-400 font-medium">
                           {item.uom}
                         </td>
 
@@ -811,7 +811,7 @@ export default function NewDeliveryPage() {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, Number(item.quantity) - 1)}
-                              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center transition active:scale-95"
+                              className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center transition active:scale-95"
                             >
                               -
                             </button>
@@ -825,14 +825,14 @@ export default function NewDeliveryPage() {
                               }
                               className={`w-16 text-center font-bold text-sm py-1 rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:outline-hidden ${
                                 isNonZero
-                                  ? 'border-emerald-500 bg-white text-slate-900 font-black shadow-xs'
-                                  : 'border-slate-200 bg-slate-50 text-slate-400'
+                                  ? 'border-emerald-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-black shadow-xs'
+                                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                               }`}
                             />
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, Number(item.quantity) + 1)}
-                              className="w-7 h-7 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold flex items-center justify-center transition active:scale-95"
+                              className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 font-bold flex items-center justify-center transition active:scale-95"
                             >
                               +
                             </button>
@@ -852,18 +852,18 @@ export default function NewDeliveryPage() {
                                 onChange={(e) =>
                                   updatePrice(item.id, parseFloat(e.target.value) || 0)
                                 }
-                                className="w-16 text-right font-mono font-medium text-xs border border-slate-200 rounded px-1.5 py-1 focus:bg-white focus:ring-1 focus:ring-emerald-500 text-slate-800"
+                                className="w-16 text-right font-mono font-medium text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded px-1.5 py-1 focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-200"
                               />
                             </div>
                           ) : (
-                            <div className="font-mono font-bold text-slate-800 text-xs pr-1">
+                            <div className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs pr-1">
                               ${Number(item.unitPrice).toFixed(2)}
                             </div>
                           )}
                         </td>
 
                         {/* Calculated Subtotal */}
-                        <td className="py-2 px-4 text-right font-mono font-bold text-slate-900 text-sm">
+                        <td className="py-2 px-4 text-right font-mono font-bold text-slate-900 dark:text-slate-100 text-sm">
                           ${lineTotal.toFixed(2)}
                         </td>
 
@@ -873,7 +873,7 @@ export default function NewDeliveryPage() {
                             <button
                               type="button"
                               onClick={() => handleRemoveCustomItem(item.id)}
-                              className="text-red-500 hover:text-red-700 p-1"
+                              className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1"
                               title="Delete custom line item"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -888,7 +888,7 @@ export default function NewDeliveryPage() {
             </div>
 
             {/* Mobile Touch-Friendly Card List (< md) */}
-            <div className="block md:hidden divide-y divide-slate-100">
+            <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
               {lineItems.map((item, index) => {
                 const lineTotal = Number(item.quantity) * Number(item.unitPrice);
                 const isNonZero = Number(item.quantity) > 0;
@@ -897,7 +897,7 @@ export default function NewDeliveryPage() {
                   <div
                     key={item.id}
                     className={`p-3.5 flex items-center justify-between gap-3 transition-colors ${
-                      isNonZero ? 'bg-emerald-50/50' : 'bg-white'
+                      isNonZero ? 'bg-emerald-50/50 dark:bg-emerald-950/30' : 'bg-white dark:bg-slate-900'
                     }`}
                   >
                     {/* Left: Fruit name, Khmer subtitle, and unit price */}
@@ -915,7 +915,7 @@ export default function NewDeliveryPage() {
                               )
                             }
                             placeholder="Custom item name"
-                            className="w-full text-xs font-bold border border-slate-300 rounded px-2 py-1 text-slate-900 bg-white"
+                            className="w-full text-xs font-bold border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800"
                           />
                           <input
                             type="text"
@@ -928,29 +928,29 @@ export default function NewDeliveryPage() {
                               )
                             }
                             placeholder="ឈ្មោះជាភាសាខ្មែរ"
-                            className="w-full text-xs font-khmer border border-slate-300 rounded px-2 py-1 text-slate-700 bg-white"
+                            className="w-full text-xs font-khmer border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
                           />
                         </div>
                       ) : (
                         <div>
-                          <div className="font-bold text-slate-900 text-sm leading-snug">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">
                             {item.name}
                           </div>
-                          <div className="text-[11px] text-emerald-800 font-khmer">
+                          <div className="text-[11px] text-emerald-800 dark:text-emerald-400 font-khmer">
                             {item.khmerName}
                           </div>
                         </div>
                       )}
                       <div className="mt-1 flex items-center space-x-2 text-xs">
-                        <span className="font-mono font-bold text-slate-800">
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                           ${Number(item.unitPrice).toFixed(2)}
                         </span>
-                        <span className="text-slate-400">•</span>
-                        <span className="text-slate-500 font-medium">{item.uom}</span>
+                        <span className="text-slate-400 dark:text-slate-500">•</span>
+                        <span className="text-slate-500 dark:text-slate-400 font-medium">{item.uom}</span>
                         {isNonZero && (
                           <>
-                            <span className="text-slate-400">•</span>
-                            <span className="font-mono font-bold text-emerald-800">
+                            <span className="text-slate-400 dark:text-slate-500">•</span>
+                            <span className="font-mono font-bold text-emerald-800 dark:text-emerald-400">
                               Subtotal: ${lineTotal.toFixed(2)}
                             </span>
                           </>
@@ -959,7 +959,7 @@ export default function NewDeliveryPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveCustomItem(item.id)}
-                            className="text-red-500 hover:text-red-700 text-[11px] font-bold underline ml-1"
+                            className="text-red-500 hover:text-red-700 dark:hover:text-red-400 text-[11px] font-bold underline ml-1"
                           >
                             Delete
                           </button>
@@ -972,7 +972,7 @@ export default function NewDeliveryPage() {
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, Number(item.quantity) - 1)}
-                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold text-xl flex items-center justify-center transition active:scale-95 touch-manipulation"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:bg-slate-300 dark:active:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold text-xl flex items-center justify-center transition active:scale-95 touch-manipulation"
                         aria-label={`Decrease ${item.name}`}
                       >
                         -
@@ -987,14 +987,14 @@ export default function NewDeliveryPage() {
                         }
                         className={`w-12 h-11 text-center font-bold text-base rounded-xl border focus:ring-2 focus:ring-emerald-500 focus:outline-hidden touch-manipulation ${
                           isNonZero
-                            ? 'border-emerald-500 bg-white text-slate-900 font-black shadow-xs'
-                            : 'border-slate-200 bg-slate-50 text-slate-400'
+                            ? 'border-emerald-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-black shadow-xs'
+                            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                         }`}
                       />
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, Number(item.quantity) + 1)}
-                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-emerald-900 font-bold text-xl flex items-center justify-center transition active:scale-95 touch-manipulation"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 active:bg-emerald-300 dark:active:bg-emerald-800 text-emerald-900 dark:text-emerald-200 font-bold text-xl flex items-center justify-center transition active:scale-95 touch-manipulation"
                         aria-label={`Increase ${item.name}`}
                       >
                         +
@@ -1006,11 +1006,11 @@ export default function NewDeliveryPage() {
             </div>
 
             {/* Totals Summary Footer (Desktop only: hidden md:flex to avoid double stacking on mobile) */}
-            <div className="hidden md:flex p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="hidden md:flex p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center space-x-3 text-sm">
-                  <span className="text-slate-600 font-medium">Included SKUs:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">Included SKUs:</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">
                     {activeItems.length} items with non-zero qty
                   </span>
                 </div>
@@ -1018,22 +1018,22 @@ export default function NewDeliveryPage() {
 
               <div className="flex items-center space-x-6 text-right">
                 <div>
-                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
                     Total Quantity
                   </span>
-                  <span className="text-xl font-black text-slate-900">
-                    {totalQuantity} <span className="text-xs font-normal text-slate-500">boxes</span>
+                  <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                    {totalQuantity} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">boxes</span>
                   </span>
                 </div>
 
-                <div className="pl-6 border-l border-slate-200">
-                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
+                <div className="pl-6 border-l border-slate-200 dark:border-slate-700">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
                     Total Amount
                   </span>
-                  <div className="text-2xl font-black text-emerald-800 font-mono">
+                  <div className="text-2xl font-black text-emerald-800 dark:text-emerald-400 font-mono">
                     {formatUSD(totalAmountUSD)}
                   </div>
-                  <div className="text-xs font-semibold text-emerald-700">
+                  <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                     ≈ {formatKHR(totalAmountKHR)}
                   </div>
                 </div>
@@ -1043,30 +1043,30 @@ export default function NewDeliveryPage() {
 
           {/* Packaging BOM Requirements & Real-Time Stock Status */}
           {activeItems.filter((i) => !i.isCustom).length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
                     <Package className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       Packaging BOM Deduction &amp; Stock Availability
                     </h3>
-                    <p className="text-[11px] text-slate-500 font-khmer">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-khmer">
                       សម្ភារៈវេចខ្ចប់ដែលត្រូវកាត់ចេញពីស្តុកដោយស្វ័យប្រវត្តិនឹងពិនិត្យស្តុកជាក់ស្តែង
                     </p>
                   </div>
                 </div>
 
                 {stockCheck.available ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600 dark:text-emerald-400" />
                     All Packaging In Stock
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                    <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                    <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600 dark:text-amber-400" />
                     Insufficient Packaging Stock ({stockCheck.warnings.length})
                   </span>
                 )}
@@ -1074,17 +1074,17 @@ export default function NewDeliveryPage() {
 
               {/* Warning Notice if short */}
               {!stockCheck.available && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-1">
-                  <div className="font-bold text-amber-900 flex items-center space-x-1.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs space-y-1">
+                  <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center space-x-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <span>Warning: Fruit quantity entered exceeds available packaging on-hand:</span>
                   </div>
-                  <ul className="list-disc list-inside space-y-0.5 text-amber-800 font-medium pl-1">
+                  <ul className="list-disc list-inside space-y-0.5 text-amber-800 dark:text-amber-300 font-medium pl-1">
                     {stockCheck.warnings.map((w, idx) => (
                       <li key={idx}>{w}</li>
                     ))}
                   </ul>
-                  <div className="text-[11px] text-amber-700 pt-1">
+                  <div className="text-[11px] text-amber-700 dark:text-amber-400 pt-1">
                     If you proceed to save, packaging items will be deducted down to 0 on-hand.
                   </div>
                 </div>
@@ -1099,27 +1099,27 @@ export default function NewDeliveryPage() {
                       key={req.itemId}
                       className={`p-3 rounded-xl border text-xs transition-colors ${
                         isShort
-                          ? 'bg-amber-50/60 border-amber-300 text-amber-950'
-                          : 'bg-slate-50 border-slate-200 text-slate-800'
+                          ? 'bg-amber-50/60 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200'
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
                       }`}
                     >
                       <div className="flex items-center justify-between font-medium">
-                        <span className="truncate max-w-[170px] font-semibold text-slate-900" title={req.name}>
+                        <span className="truncate max-w-[170px] font-semibold text-slate-900 dark:text-slate-100" title={req.name}>
                           {req.name}
                         </span>
                         {isShort ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
                             Short {req.needed - req.onHand}
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                             OK
                           </span>
                         )}
                       </div>
                       <div className="mt-2 flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500">Needs: <strong className="text-slate-900">{req.needed} pcs</strong></span>
-                        <span className="text-slate-500">On-Hand: <strong className={isShort ? 'text-amber-800' : 'text-slate-700'}>{req.onHand} pcs</strong></span>
+                        <span className="text-slate-500 dark:text-slate-400">Needs: <strong className="text-slate-900 dark:text-slate-100">{req.needed} pcs</strong></span>
+                        <span className="text-slate-500 dark:text-slate-400">On-Hand: <strong className={isShort ? 'text-amber-800 dark:text-amber-300' : 'text-slate-700 dark:text-slate-300'}>{req.onHand} pcs</strong></span>
                       </div>
                     </div>
                   );
@@ -1129,8 +1129,8 @@ export default function NewDeliveryPage() {
           )}
 
           {/* Quick Notes */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
               Delivery Instructions / Notes (Optional)
             </label>
             <input
@@ -1138,20 +1138,20 @@ export default function NewDeliveryPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Morning 8:00 AM delivery to front chiller; received by Linda"
-              className="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              className="w-full text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {/* Mobile Sticky Summary Footer (above mobile navigation bar) */}
-          <div className="md:hidden sticky bottom-[60px] md:bottom-0 bg-white/95 backdrop-blur-md border border-slate-200 p-3.5 rounded-2xl shadow-xl z-30 flex items-center justify-between gap-3">
+          <div className="md:hidden sticky bottom-[60px] md:bottom-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-xl z-30 flex items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-tight">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block leading-tight">
                 Total: {totalQuantity} boxes
               </span>
-              <div className="font-mono font-black text-slate-900 text-lg leading-tight">
+              <div className="font-mono font-black text-slate-900 dark:text-slate-50 text-lg leading-tight">
                 {formatUSD(totalAmountUSD)}
               </div>
-              <div className="text-[10px] text-emerald-700 font-semibold leading-tight">
+              <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold leading-tight">
                 ≈ {formatKHR(totalAmountKHR)}
               </div>
             </div>

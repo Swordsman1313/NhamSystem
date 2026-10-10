@@ -103,13 +103,13 @@ function CategorySelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 hover:bg-white border border-slate-300 hover:border-emerald-500 rounded-xl transition shadow-2xs text-left focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer group"
+        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700/80 border border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-xl transition shadow-2xs text-left focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer group"
       >
         <div className="flex items-center space-x-2.5 min-w-0">
-          <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0 shadow-2xs">
             {getCategoryIcon(selectedCat?.id || value)}
           </div>
-          <span className="font-bold text-xs text-slate-900 truncate">
+          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
             {label}
           </span>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${getCategoryBadgeClass(selectedCat?.id || value)}`}>
@@ -117,14 +117,14 @@ function CategorySelect({
           </span>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0 ${
-            isOpen ? 'rotate-180 text-emerald-600' : ''
+          className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-200 shrink-0 ${
+            isOpen ? 'rotate-180 text-emerald-600 dark:text-emerald-400' : ''
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
           {categories.map((cat) => {
             const isSelected = (selectedCat?.id || value) === cat.id;
             return (
@@ -137,12 +137,12 @@ function CategorySelect({
                 }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
                   isSelected
-                    ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-200 shadow-2xs'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-950 dark:text-emerald-200 font-bold border border-emerald-200 dark:border-emerald-800 shadow-2xs'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
                 <div className="flex items-center space-x-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                  <div className="w-6 h-6 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0">
                     {getCategoryIcon(cat.id)}
                   </div>
                   <span className="truncate">{cat.name}</span>
@@ -151,7 +151,7 @@ function CategorySelect({
                   </span>
                 </div>
                 {isSelected && (
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-2" />
                 )}
               </button>
             );
@@ -580,15 +580,15 @@ export default function InventoryDashboardPage() {
       )}
 
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[10px] font-bold uppercase tracking-wider">
               Warehouse &amp; BOM Logistics
             </span>
-            <span className="text-xs text-slate-500">Auto-Deducted per Delivery</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">Auto-Deducted per Delivery</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1">
             Packaging Inventory &amp; Stock-Out
           </h1>
         </div>
@@ -596,19 +596,19 @@ export default function InventoryDashboardPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setCategoryModalOpen(true)}
-            className="inline-flex items-center space-x-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold px-3 py-2 rounded-xl shadow-2xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
+            className="inline-flex items-center space-x-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold px-3 py-2 rounded-xl shadow-2xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
             title="Manage packaging material categories"
           >
-            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Categories</span>
           </button>
 
           <button
             onClick={openCreateMaterialModal}
-            className="inline-flex items-center space-x-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold px-3.5 py-2 rounded-xl shadow-2xs transition transform active:scale-95 text-xs sm:text-sm"
+            className="inline-flex items-center space-x-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold px-3.5 py-2 rounded-xl shadow-2xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
             title="Create new raw packaging material (Box, Sticker, Skewer, Other)"
           >
-            <Plus className="w-4 h-4 text-emerald-600" />
+            <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>New Material</span>
           </button>
 
@@ -616,7 +616,7 @@ export default function InventoryDashboardPage() {
             onClick={() => {
               if (items.length > 0) openRestock(items[0]);
             }}
-            className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm"
+            className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl shadow-xs transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Restock Packaging</span>
@@ -627,62 +627,62 @@ export default function InventoryDashboardPage() {
       {/* 3 Core Summary Cards (User Requested) + Asset Valuation Tile */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Summary Card 1: Total Boxes On-Hand */}
-        <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-emerald-200 shadow-xs flex flex-col justify-between hover:border-emerald-300 transition-colors">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border border-emerald-200 dark:border-emerald-800/60 shadow-xs flex flex-col justify-between hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               1. Total Boxes
             </span>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Boxes className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-2 sm:mt-3">
-            <div className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               {totalBoxes.toLocaleString()}{' '}
-              <span className="text-xs sm:text-sm font-semibold text-slate-500">boxes</span>
+              <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">boxes</span>
             </div>
-            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs flex-wrap gap-1">
-              <span className="text-slate-600">
-                Sm: <strong className="text-emerald-800">{smallBoxes.toLocaleString()}</strong>
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] sm:text-xs flex-wrap gap-1">
+              <span className="text-slate-600 dark:text-slate-400">
+                Sm: <strong className="text-emerald-800 dark:text-emerald-400">{smallBoxes.toLocaleString()}</strong>
               </span>
-              <span className="text-slate-300 hidden sm:inline">•</span>
-              <span className="text-slate-600">
-                Big: <strong className="text-emerald-800">{bigBoxes.toLocaleString()}</strong>
+              <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">•</span>
+              <span className="text-slate-600 dark:text-slate-400">
+                Big: <strong className="text-emerald-800 dark:text-emerald-400">{bigBoxes.toLocaleString()}</strong>
               </span>
             </div>
           </div>
         </div>
 
         {/* Summary Card 2: Total Stickers On-Hand */}
-        <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-indigo-200 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-colors">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border border-indigo-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-indigo-300 dark:hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               2. Total Stickers
             </span>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-2 sm:mt-3">
             <div className="flex items-baseline space-x-1 sm:space-x-2">
-              <span className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              <span className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                 {totalStickers.toLocaleString()}
               </span>
-              <span className="text-[11px] sm:text-sm font-semibold text-slate-500">pcs</span>
+              <span className="text-[11px] sm:text-sm font-semibold text-slate-500 dark:text-slate-400">pcs</span>
             </div>
-            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs">
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] sm:text-xs">
               {lowStockStickers.length > 0 ? (
-                <span className="inline-flex items-center text-amber-700 font-bold">
-                  <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-amber-500" />
+                <span className="inline-flex items-center text-amber-700 dark:text-amber-400 font-bold">
+                  <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-amber-500 dark:text-amber-400" />
                   {lowStockStickers.length} low
                 </span>
               ) : (
-                <span className="inline-flex items-center text-emerald-700 font-semibold truncate">
-                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-emerald-600 shrink-0" />
+                <span className="inline-flex items-center text-emerald-700 dark:text-emerald-400 font-semibold truncate">
+                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   Healthy
                 </span>
               )}
-              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-semibold">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 font-mono font-semibold">
                 {stickerUnitCost.toLocaleString()} ៛/pc
               </span>
             </div>
@@ -690,31 +690,31 @@ export default function InventoryDashboardPage() {
         </div>
 
         {/* Summary Card 3: Total Skewers On-Hand */}
-        <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-amber-200 shadow-xs flex flex-col justify-between hover:border-amber-300 transition-colors">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3.5 sm:p-5 border border-amber-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-amber-300 dark:hover:border-slate-700 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               3. Total Skewers
             </span>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
               <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
           <div className="mt-2 sm:mt-3">
-            <div className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               {totalSkewers.toLocaleString()}{' '}
-              <span className="text-[11px] sm:text-sm font-semibold text-slate-500">pcs</span>
+              <span className="text-[11px] sm:text-sm font-semibold text-slate-500 dark:text-slate-400">pcs</span>
             </div>
-            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs">
-              <span className="text-slate-600">
+            <div className="mt-2 pt-2 sm:mt-2.5 sm:pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] sm:text-xs">
+              <span className="text-slate-600 dark:text-slate-400">
                 1:1 box
               </span>
-              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-semibold">{skewerCost.toLocaleString()} ៛/pc</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 font-mono font-semibold">{skewerCost.toLocaleString()} ៛/pc</span>
             </div>
           </div>
         </div>
 
         {/* Card 4: Packaging Asset Valuation */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-900 dark:to-slate-950 text-white rounded-2xl p-3.5 sm:p-5 shadow-xs border border-transparent dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
               Packaging Capital
@@ -737,7 +737,7 @@ export default function InventoryDashboardPage() {
       </div>
 
       {/* Search & Category Filter Navigation */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search */}
         <div className="relative w-full sm:flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -746,18 +746,18 @@ export default function InventoryDashboardPage() {
             placeholder="Search packaging item, Khmer name, or barcode..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
           />
         </div>
 
         {/* Filter Badges */}
-        <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0 sm:px-1 max-w-full">
+        <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0 sm:px-1 max-w-full">
           <button
             onClick={() => setCategoryFilter('all')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
               categoryFilter === 'all'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             All ({items.length})
@@ -770,8 +770,8 @@ export default function InventoryDashboardPage() {
                 onClick={() => setCategoryFilter(cat.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
                   categoryFilter === cat.id
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 {cat.name} ({count})
@@ -782,8 +782,8 @@ export default function InventoryDashboardPage() {
             onClick={() => setCategoryFilter('low_stock')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
               categoryFilter === 'low_stock'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
             Low Stock ({items.filter((i) => i.onHand <= i.lowStockThreshold).length})
@@ -792,11 +792,11 @@ export default function InventoryDashboardPage() {
       </div>
 
       {/* Packaging Inventory List: Desktop Table (hidden on mobile) + Mobile Stacked Cards */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         {/* Mobile View: Clean Stacked Cards (< md) */}
-        <div className="block md:hidden divide-y divide-slate-100">
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {filteredItems.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 italic text-xs">
+            <div className="py-12 text-center text-slate-400 dark:text-slate-500 italic text-xs">
               No packaging items match your current filter.
             </div>
           ) : (
@@ -813,28 +813,28 @@ export default function InventoryDashboardPage() {
               const isSkewer = categoryStr === 'skewer';
 
               const colorClass = isBox
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                 : isSticker
-                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
                 : isSkewer
-                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                : 'bg-purple-50 text-purple-800 border-purple-200';
+                ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                : 'bg-purple-50 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800';
 
               return (
                 <div
                   key={item.id}
                   className={`p-4 space-y-3 transition-colors ${
-                    isZero ? 'bg-red-50/20' : isLow ? 'bg-amber-50/20' : 'bg-white'
+                    isZero ? 'bg-red-50/20 dark:bg-red-950/20' : isLow ? 'bg-amber-50/20 dark:bg-amber-950/20' : 'bg-white dark:bg-slate-900'
                   }`}
                 >
                   {/* Card Header: Item Name (Khmer + English) + Category Badge + Stock Status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-900 text-sm leading-snug">
+                      <div className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">
                         {item.name}
                       </div>
                       {item.khmerName && (
-                        <div className="text-[11px] text-slate-600 font-khmer mt-0.5">
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 font-khmer mt-0.5">
                           {item.khmerName}
                         </div>
                       )}
@@ -844,18 +844,18 @@ export default function InventoryDashboardPage() {
                         {categoryLabel}
                       </span>
                       {isZero ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800">
                           <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
                           Out
                         </span>
                       ) : isLow ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                           <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
                           Low
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5 text-emerald-600" />
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5 text-emerald-600 dark:text-emerald-400" />
                           In Stock
                         </span>
                       )}
@@ -863,43 +863,43 @@ export default function InventoryDashboardPage() {
                   </div>
 
                   {/* Card Body: Grid with On-Hand Quantity, Unit Cost, and Total Value */}
-                  <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-xs">
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50/80 dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80 text-xs">
                     <button
                       type="button"
                       onClick={() => openAdjustStock(item, 'audit')}
                       className="text-left group cursor-pointer"
                       title="Tap to adjust on-hand count"
                     >
-                      <span className="text-[10px] text-slate-500 font-medium flex items-center space-x-1 group-hover:text-emerald-700">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">
                         <span>On-Hand</span>
-                        <SlidersHorizontal className="w-2.5 h-2.5 text-slate-400 group-hover:text-emerald-600" />
+                        <SlidersHorizontal className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
                       </span>
                       <span
                         className={`font-mono font-black text-sm block group-hover:underline ${
-                          isZero ? 'text-red-600' : isLow ? 'text-amber-700' : 'text-slate-900'
+                          isZero ? 'text-red-600 dark:text-red-400' : isLow ? 'text-amber-700 dark:text-amber-400' : 'text-slate-900 dark:text-slate-100'
                         }`}
                       >
-                        {item.onHand.toLocaleString()} <span className="text-[10px] font-normal text-slate-500">pcs</span>
+                        {item.onHand.toLocaleString()} <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">pcs</span>
                       </span>
-                      <span className="text-[9px] text-slate-400 block">Min: {item.lowStockThreshold}</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block">Min: {item.lowStockThreshold}</span>
                     </button>
 
                     <div>
-                      <span className="text-[10px] text-slate-500 font-medium block">Unit Cost</span>
-                      <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block">Unit Cost</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs mt-0.5 block">
                         {formatKHR(item.costPerUnitKHR)}
                       </span>
-                      <span className="text-[9px] text-slate-400 block font-mono">
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block font-mono">
                         ≈ {formatUSD(item.costPerUnitKHR / exchangeRate)}
                       </span>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-500 font-medium block">Total Value</span>
-                      <span className="font-mono font-black text-slate-900 text-xs mt-0.5 block">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block">Total Value</span>
+                      <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-xs mt-0.5 block">
                         {formatKHR(totalValue)}
                       </span>
-                      <span className="text-[9px] text-slate-400 block font-mono">
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block font-mono">
                         ≈ {formatUSD(totalValue / exchangeRate)}
                       </span>
                     </div>
@@ -909,11 +909,11 @@ export default function InventoryDashboardPage() {
                   <div className="flex items-center justify-between pt-1 text-xs">
                     <div>
                       {item.barcodeRef ? (
-                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 inline-block border border-slate-200">
+                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 inline-block border border-slate-200 dark:border-slate-700">
                           Barcode: {item.barcodeRef}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">No barcode</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">No barcode</span>
                       )}
                     </div>
 
@@ -921,19 +921,19 @@ export default function InventoryDashboardPage() {
                       <button
                         type="button"
                         onClick={() => openEditItem(item)}
-                        className="min-h-[34px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
+                        className="min-h-[34px] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
                         title="Edit unit cost & item specs"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                        <Edit3 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                         <span>Edit</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => openAdjustStock(item, 'audit')}
-                        className="min-h-[34px] px-2.5 py-1 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
+                        className="min-h-[34px] px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold transition flex items-center space-x-1 shadow-2xs active:scale-95 cursor-pointer text-xs"
                         title="Direct on-hand stock count adjustment"
                       >
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                         <span>Adjust</span>
                       </button>
                       <button
@@ -956,7 +956,7 @@ export default function InventoryDashboardPage() {
         {/* Desktop View: Standard Table (hidden md:block) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3 px-4">Item Name / Khmer Description</th>
                 <th className="py-3 px-3 text-center">Category</th>
@@ -967,10 +967,10 @@ export default function InventoryDashboardPage() {
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 italic">
+                  <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500 italic">
                     No packaging items match your current filter.
                   </td>
                 </tr>
@@ -983,26 +983,26 @@ export default function InventoryDashboardPage() {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
+                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors ${
                         isZero
-                          ? 'bg-red-50/30'
+                          ? 'bg-red-50/30 dark:bg-red-950/20'
                           : isLow
-                          ? 'bg-amber-50/30'
+                          ? 'bg-amber-50/30 dark:bg-amber-950/20'
                           : ''
                       }`}
                     >
                       {/* Name & Khmer */}
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900 text-sm">
+                        <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                           {item.name}
                         </div>
                         {item.khmerName && (
-                          <div className="text-[11px] text-slate-600 font-khmer mt-0.5">
+                          <div className="text-[11px] text-slate-600 dark:text-slate-400 font-khmer mt-0.5">
                             {item.khmerName}
                           </div>
                         )}
                         {item.barcodeRef && (
-                          <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 inline-block mt-1">
+                          <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-block mt-1">
                             Barcode: {item.barcodeRef}
                           </span>
                         )}
@@ -1019,12 +1019,12 @@ export default function InventoryDashboardPage() {
                           const isSkewer = categoryStr === 'skewer';
 
                           const colorClass = isBox
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                             : isSticker
-                            ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
                             : isSkewer
-                            ? 'bg-amber-50 text-amber-800 border-amber-200'
-                            : 'bg-purple-50 text-purple-800 border-purple-200';
+                            ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                            : 'bg-purple-50 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800';
 
                           return (
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${colorClass}`}>
@@ -1039,38 +1039,38 @@ export default function InventoryDashboardPage() {
                         <button
                           type="button"
                           onClick={() => openAdjustStock(item, 'audit')}
-                          className="group inline-flex flex-col items-center cursor-pointer p-1 rounded-lg hover:bg-slate-100 transition"
+                          className="group inline-flex flex-col items-center cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                           title="Click to adjust on-hand count"
                         >
                           <span
                             className={`font-mono font-black text-base group-hover:underline flex items-center space-x-1 ${
                               isZero
-                                ? 'text-red-600'
+                                ? 'text-red-600 dark:text-red-400'
                                 : isLow
-                                ? 'text-amber-700'
-                                : 'text-slate-900'
+                                ? 'text-amber-700 dark:text-amber-400'
+                                : 'text-slate-900 dark:text-slate-100'
                             }`}
                           >
                             <span>{item.onHand.toLocaleString()}</span>
-                            <SlidersHorizontal className="w-3 h-3 text-slate-400 group-hover:text-emerald-600 transition-opacity" />
+                            <SlidersHorizontal className="w-3 h-3 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-opacity" />
                           </span>
-                          <span className="text-[10px] text-slate-500 block">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
                             pcs (Min: {item.lowStockThreshold})
                           </span>
                         </button>
                       </td>
 
                       {/* Unit Cost KHR */}
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-700">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
                         {formatKHR(item.costPerUnitKHR)}
                       </td>
 
                       {/* Total Value KHR */}
                       <td className="py-3 px-4 text-right">
-                        <div className="font-mono font-black text-slate-900 text-xs">
+                        <div className="font-mono font-black text-slate-900 dark:text-slate-100 text-xs">
                           {formatKHR(totalValue)}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                           ≈ {formatUSD(totalValue / exchangeRate)}
                         </div>
                       </td>
@@ -1078,18 +1078,18 @@ export default function InventoryDashboardPage() {
                       {/* Status */}
                       <td className="py-3 px-4 text-center">
                         {isZero ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800">
                             <AlertTriangle className="w-3 h-3 mr-1" />
                             Out of Stock
                           </span>
                         ) : isLow ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                             <AlertTriangle className="w-3 h-3 mr-1" />
                             Low Stock (&lt;{item.lowStockThreshold})
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600 dark:text-emerald-400" />
                             In Stock
                           </span>
                         )}
@@ -1100,17 +1100,17 @@ export default function InventoryDashboardPage() {
                         <div className="flex items-center justify-end space-x-1.5">
                           <button
                             onClick={() => openEditItem(item)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                             title="Edit unit cost & item specs"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openAdjustStock(item, 'audit')}
-                            className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 transition text-xs shadow-2xs cursor-pointer"
+                            className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-slate-700 transition text-xs shadow-2xs cursor-pointer"
                             title="Adjust exact physical on-hand stock"
                           >
-                            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600" />
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                             <span>Adjust</span>
                           </button>
                           <button
@@ -1135,17 +1135,17 @@ export default function InventoryDashboardPage() {
       {/* Stock Adjustment & Restock Modal */}
       {adjustModalOpen && selectedAdjustItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center space-x-3">
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
                     adjustMode === 'audit'
-                      ? 'bg-indigo-100 text-indigo-700'
+                      ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400'
                       : adjustMode === 'add'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-rose-100 text-rose-700'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
                   }`}
                 >
                   {adjustMode === 'audit' ? (
@@ -1157,10 +1157,10 @@ export default function InventoryDashboardPage() {
                   )}
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
                     Adjust Warehouse Stock
                   </h3>
-                  <p className="text-xs text-slate-500 font-khmer">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-khmer">
                     កែសម្រួល ឬ បន្ថែមចំនួនស្តុកសម្ភារៈវេចខ្ចប់
                   </p>
                 </div>
@@ -1168,49 +1168,49 @@ export default function InventoryDashboardPage() {
               <button
                 type="button"
                 onClick={() => setAdjustModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Target Item Summary */}
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900 text-sm truncate mr-2">
+                <span className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate mr-2">
                   {selectedAdjustItem.name}
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600 shrink-0">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 shrink-0">
                   {typeof selectedAdjustItem.category === 'string'
                     ? selectedAdjustItem.category
                     : (selectedAdjustItem.category as any)?.id || 'box'}
                 </span>
               </div>
               {selectedAdjustItem.khmerName && (
-                <div className="text-xs text-slate-500 font-khmer truncate">
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-khmer truncate">
                   {selectedAdjustItem.khmerName}
                 </div>
               )}
-              <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
-                <span className="text-slate-500">Current System On-Hand:</span>
-                <span className="font-mono font-black text-slate-900 text-sm">
+              <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Current System On-Hand:</span>
+                <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-sm">
                   {selectedAdjustItem.onHand.toLocaleString()} pcs
                 </span>
               </div>
             </div>
 
             {/* Segmented Mode Selector */}
-            <div className="grid grid-cols-3 p-1 bg-slate-100 rounded-2xl gap-1">
+            <div className="grid grid-cols-3 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl gap-1">
               <button
                 type="button"
                 onClick={() => setAdjustMode('audit')}
                 className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
                   adjustMode === 'audit'
-                    ? 'bg-white text-indigo-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-950 dark:text-indigo-200 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span>Audit Count</span>
               </button>
               <button
@@ -1218,11 +1218,11 @@ export default function InventoryDashboardPage() {
                 onClick={() => setAdjustMode('add')}
                 className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
                   adjustMode === 'add'
-                    ? 'bg-white text-emerald-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-200 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Restock</span>
               </button>
               <button
@@ -1230,11 +1230,11 @@ export default function InventoryDashboardPage() {
                 onClick={() => setAdjustMode('deduct')}
                 className={`py-2 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
                   adjustMode === 'deduct'
-                    ? 'bg-white text-rose-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-700 text-rose-950 dark:text-rose-200 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <Minus className="w-3.5 h-3.5 text-rose-600" />
+                <Minus className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                 <span>Deduct</span>
               </button>
             </div>
@@ -1244,10 +1244,10 @@ export default function InventoryDashboardPage() {
               <div className="space-y-3.5">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Physical Count on Shelf (Pcs):
                     </label>
-                    <span className="text-[10px] text-slate-500">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                       Enter actual counted amount
                     </span>
                   </div>
@@ -1258,9 +1258,9 @@ export default function InventoryDashboardPage() {
                       step="1"
                       value={exactOnHandInput === 0 && isNaN(exactOnHandInput) ? '' : exactOnHandInput}
                       onChange={(e) => setExactOnHandInput(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                      className="flex-1 px-4 py-2 border border-indigo-300 rounded-xl text-lg font-mono font-black text-indigo-950 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-indigo-50/20"
+                      className="flex-1 px-4 py-2 border border-indigo-300 dark:border-indigo-700 rounded-xl text-lg font-mono font-black text-indigo-950 dark:text-indigo-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-indigo-50/20 dark:bg-slate-800"
                     />
-                    <span className="text-xs font-bold text-slate-500 uppercase">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                       Pcs
                     </span>
                   </div>
@@ -1268,7 +1268,7 @@ export default function InventoryDashboardPage() {
 
                 {/* Quick Presets for Audit */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                     Quick Set Presets:
                   </label>
                   <div className="grid grid-cols-5 gap-1.5">
@@ -1280,7 +1280,7 @@ export default function InventoryDashboardPage() {
                         className={`py-1 rounded-lg text-xs font-mono font-bold border transition cursor-pointer ${
                           exactOnHandInput === preset
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         {preset}
@@ -1296,10 +1296,10 @@ export default function InventoryDashboardPage() {
                     <div
                       className={`p-3 rounded-xl border text-xs space-y-1 ${
                         diff === 0
-                          ? 'bg-slate-50 border-slate-200 text-slate-700'
+                          ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                           : diff > 0
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
-                          : 'bg-amber-50 border-amber-200 text-amber-950'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-300'
+                          : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-300'
                       }`}
                     >
                       <div className="flex items-center justify-between font-bold">
@@ -1320,7 +1320,7 @@ export default function InventoryDashboardPage() {
                 })()}
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Audit Note / Reason:
                   </label>
                   <input
@@ -1328,7 +1328,7 @@ export default function InventoryDashboardPage() {
                     placeholder="e.g. Weekly physical stock count, Recalibration..."
                     value={adjustReason}
                     onChange={(e) => setAdjustReason(e.target.value)}
-                    className="w-full text-xs font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white"
+                    className="w-full text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-800"
                   />
                 </div>
               </div>
@@ -1338,7 +1338,7 @@ export default function InventoryDashboardPage() {
             {adjustMode === 'add' && (
               <div className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                     Quick Restock Presets:
                   </label>
                   <div className="grid grid-cols-5 gap-1.5">
@@ -1350,7 +1350,7 @@ export default function InventoryDashboardPage() {
                         className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
                           qtyToAdd === preset
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         +{preset}
@@ -1360,7 +1360,7 @@ export default function InventoryDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Quantity to Add (Pcs):
                   </label>
                   <div className="flex items-center space-x-2">
@@ -1370,24 +1370,24 @@ export default function InventoryDashboardPage() {
                       step="1"
                       value={qtyToAdd || ''}
                       onChange={(e) => setQtyToAdd(Math.max(1, parseInt(e.target.value, 10) || 0))}
-                      className="flex-1 px-4 py-2 border border-slate-300 rounded-xl text-lg font-mono font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                      className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-lg font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                     />
-                    <span className="text-xs font-bold text-slate-500 uppercase">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                       Pcs
                     </span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1.5 text-xs">
+                <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">New On-Hand Total:</span>
-                    <span className="font-mono font-black text-emerald-900 text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">New On-Hand Total:</span>
+                    <span className="font-mono font-black text-emerald-900 dark:text-emerald-300 text-sm">
                       {(selectedAdjustItem.onHand + qtyToAdd).toLocaleString()} pcs
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-600">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
                     <span>Estimated Batch Cost:</span>
-                    <span className="font-mono font-bold text-slate-800">
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                       {(() => {
                         const unitCost = Number(selectedAdjustItem.unitCostKHR ?? selectedAdjustItem.costPerUnitKHR ?? 0);
                         const batchCostKHR = (Number(qtyToAdd) || 0) * unitCost;
@@ -1404,7 +1404,7 @@ export default function InventoryDashboardPage() {
             {adjustMode === 'deduct' && (
               <div className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                     Quick Deduct Presets:
                   </label>
                   <div className="grid grid-cols-5 gap-1.5">
@@ -1416,7 +1416,7 @@ export default function InventoryDashboardPage() {
                         className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
                           qtyToDeduct === preset
                             ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         -{preset}
@@ -1426,7 +1426,7 @@ export default function InventoryDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Quantity to Deduct (Pcs):
                   </label>
                   <div className="flex items-center space-x-2">
@@ -1437,25 +1437,25 @@ export default function InventoryDashboardPage() {
                       step="1"
                       value={qtyToDeduct || ''}
                       onChange={(e) => setQtyToDeduct(Math.max(1, parseInt(e.target.value, 10) || 0))}
-                      className="flex-1 px-4 py-2 border border-rose-300 rounded-xl text-lg font-mono font-bold text-rose-950 focus:outline-hidden focus:ring-2 focus:ring-rose-500 bg-rose-50/20"
+                      className="flex-1 px-4 py-2 border border-rose-300 dark:border-rose-700 rounded-xl text-lg font-mono font-bold text-rose-950 dark:text-rose-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 bg-rose-50/20 dark:bg-slate-800"
                     />
-                    <span className="text-xs font-bold text-slate-500 uppercase">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                       Pcs
                     </span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-rose-50/60 border border-rose-200 rounded-xl space-y-1.5 text-xs">
+                <div className="p-3 bg-rose-50/60 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Remaining On-Hand:</span>
-                    <span className="font-mono font-black text-rose-900 text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">Remaining On-Hand:</span>
+                    <span className="font-mono font-black text-rose-900 dark:text-rose-300 text-sm">
                       {Math.max(0, selectedAdjustItem.onHand - qtyToDeduct).toLocaleString()} pcs
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Deduction Reason:
                   </label>
                   <input
@@ -1463,7 +1463,7 @@ export default function InventoryDashboardPage() {
                     placeholder="e.g. Broken in transit, Water damage, Expired..."
                     value={adjustReason}
                     onChange={(e) => setAdjustReason(e.target.value)}
-                    className="w-full text-xs font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-rose-500 bg-white"
+                    className="w-full text-xs font-medium border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-rose-500 bg-white dark:bg-slate-800"
                   />
                 </div>
               </div>
@@ -1474,7 +1474,7 @@ export default function InventoryDashboardPage() {
               <button
                 type="button"
                 onClick={() => setAdjustModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -1514,24 +1514,24 @@ export default function InventoryDashboardPage() {
       {/* Edit Material & Unit Cost Modal */}
       {editModalOpen && selectedEditItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold">
                   <Edit3 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
                     Edit Packaging Material
                   </h3>
-                  <p className="text-xs text-slate-500 font-khmer">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-khmer">
                     កែប្រែតម្លៃដើម និងកម្រិតស្តុកអប្បបរមា
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1539,7 +1539,7 @@ export default function InventoryDashboardPage() {
 
             <form onSubmit={handleSaveItemEdit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Material Name (English) *
                 </label>
                 <input
@@ -1547,12 +1547,12 @@ export default function InventoryDashboardPage() {
                   required
                   value={editFormName}
                   onChange={(e) => setEditFormName(e.target.value)}
-                  className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Khmer Name (ឈ្មោះជាភាសាខ្មែរ)
                 </label>
                 <input
@@ -1560,12 +1560,12 @@ export default function InventoryDashboardPage() {
                   placeholder="e.g. ឈើចាក់ផ្លែឈើឫស្សី..."
                   value={editFormKhmerName}
                   onChange={(e) => setEditFormKhmerName(e.target.value)}
-                  className="w-full text-xs font-khmer font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full text-xs font-khmer font-medium border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Category *
                 </label>
                 <CategorySelect
@@ -1577,7 +1577,7 @@ export default function InventoryDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-1">
                     Unit Cost (៛ KHR) *
                   </label>
                   <input
@@ -1587,15 +1587,15 @@ export default function InventoryDashboardPage() {
                     required
                     value={editFormCostKHR}
                     onChange={(e) => setEditFormCostKHR(parseInt(e.target.value, 10) || 0)}
-                    className="w-full text-xs font-mono font-bold border border-emerald-300 rounded-xl px-3 py-2 text-emerald-950 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-emerald-50/40"
+                    className="w-full text-xs font-mono font-bold border border-emerald-300 dark:border-emerald-700 rounded-xl px-3 py-2 text-emerald-950 dark:text-emerald-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-emerald-50/40 dark:bg-slate-800"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
                     ≈ {formatUSD(editFormCostKHR / exchangeRate)}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Min Stock Alert (Pcs)
                   </label>
                   <input
@@ -1604,19 +1604,19 @@ export default function InventoryDashboardPage() {
                     step="1"
                     value={editFormThreshold}
                     onChange={(e) => setEditFormThreshold(parseInt(e.target.value, 10) || 0)}
-                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                    className="w-full text-xs font-mono font-bold border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
                     Triggers low stock badge
                   </span>
                 </div>
               </div>
 
               {/* Informational On-Hand Display with Direct Adjust Action */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-[11px] text-slate-500 font-medium block">Current On-Hand Stock</span>
-                  <span className="font-mono font-black text-slate-900 text-sm">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">Current On-Hand Stock</span>
+                  <span className="font-mono font-black text-slate-900 dark:text-slate-100 text-sm">
                     {selectedEditItem.onHand.toLocaleString()} pcs
                   </span>
                 </div>
@@ -1627,14 +1627,14 @@ export default function InventoryDashboardPage() {
                     setEditModalOpen(false);
                     openAdjustStock(item, 'audit');
                   }}
-                  className="px-3 py-1.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 font-bold transition flex items-center space-x-1.5 shadow-2xs text-xs cursor-pointer active:scale-95"
+                  className="px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold transition flex items-center space-x-1.5 shadow-2xs text-xs cursor-pointer active:scale-95"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Adjust Stock &rarr;</span>
                 </button>
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900">
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-[11px] text-amber-900 dark:text-amber-300">
                 ⚡ <strong>Instant Sync:</strong> Changing material cost here immediately recalculates BOM recipe costs in Product Studio and batch profit margins in Batch Costing.
               </div>
 
@@ -1654,7 +1654,7 @@ export default function InventoryDashboardPage() {
                       triggerToast(`Deleted "${selectedEditItem.name}" from inventory.`);
                     }
                   }}
-                  className="text-rose-600 hover:bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer flex items-center space-x-1.5"
+                  className="text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer flex items-center space-x-1.5"
                 >
                   <span>🗑️</span>
                   <span>Delete Material</span>
@@ -1664,7 +1664,7 @@ export default function InventoryDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setEditModalOpen(false)}
-                    className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                    className="px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1684,24 +1684,24 @@ export default function InventoryDashboardPage() {
       {/* Create New Raw Packaging Material Modal */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 space-y-4 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
                     Add New Packaging Material
                   </h3>
-                  <p className="text-xs text-slate-500 font-khmer">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-khmer">
                     បន្ថែមសម្ភារៈវេចខ្ចប់ថ្មី (ប្រអប់ ស្ទីគ័រ ឈើចាក់ ឬផ្សេងៗ)
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1709,7 +1709,7 @@ export default function InventoryDashboardPage() {
 
             <form onSubmit={handleCreateMaterial} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Material Name (English) *
                 </label>
                 <input
@@ -1718,12 +1718,12 @@ export default function InventoryDashboardPage() {
                   placeholder="e.g. 500ml Clear Fruit Tub, Logo Bag..."
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
-                  className="w-full text-xs font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Khmer Name (ឈ្មោះជាភាសាខ្មែរ)
                 </label>
                 <input
@@ -1731,12 +1731,12 @@ export default function InventoryDashboardPage() {
                   placeholder="e.g. ប្រអប់ថ្លា ៥០០មីលីលីត្រ..."
                   value={createKhmerName}
                   onChange={(e) => setCreateKhmerName(e.target.value)}
-                  className="w-full text-xs font-khmer font-medium border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full text-xs font-khmer font-medium border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                   Category *
                 </label>
                 <CategorySelect
@@ -1748,7 +1748,7 @@ export default function InventoryDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-1">
                     Unit Cost (៛ KHR) *
                   </label>
                   <input
@@ -1758,15 +1758,15 @@ export default function InventoryDashboardPage() {
                     required
                     value={createCostKHR}
                     onChange={(e) => setCreateCostKHR(parseInt(e.target.value, 10) || 0)}
-                    className="w-full text-xs font-mono font-bold border border-emerald-300 rounded-xl px-3 py-2 text-emerald-950 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-emerald-50/40"
+                    className="w-full text-xs font-mono font-bold border border-emerald-300 dark:border-emerald-700 rounded-xl px-3 py-2 text-emerald-950 dark:text-emerald-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-emerald-50/40 dark:bg-slate-800"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
                     ≈ {formatUSD(createCostKHR / exchangeRate)}
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Initial Stock (Pcs) *
                   </label>
                   <input
@@ -1776,13 +1776,13 @@ export default function InventoryDashboardPage() {
                     required
                     value={createOnHand}
                     onChange={(e) => setCreateOnHand(parseInt(e.target.value, 10) || 0)}
-                    className="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white"
+                    className="w-full text-xs font-mono font-bold border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-800"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 flex items-start space-x-2">
-                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-[11px] text-emerald-900 dark:text-emerald-300 flex items-start space-x-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <span>
                   <strong>Available in Recipe Studio:</strong> Once created, this packaging material is instantly available in the BOM Recipe Builder across all fruit products.
                 </span>
@@ -1792,7 +1792,7 @@ export default function InventoryDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
                 >
                   Cancel
                 </button>
@@ -1809,30 +1809,28 @@ export default function InventoryDashboardPage() {
         </div>
       )}
 
-
-
       {/* Packaging Categories Management Modal */}
       {categoryModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 max-h-[90dvh] overflow-y-auto shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 space-y-5 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
                     Packaging Categories
                   </h3>
-                  <p className="text-xs text-slate-500 font-khmer">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-khmer">
                     គ្រប់គ្រងប្រភេទសម្ភារៈវេចខ្ចប់ (Box, Sticker, Skewer, etc.)
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setCategoryModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1847,7 +1845,7 @@ export default function InventoryDashboardPage() {
                   placeholder="New category name (e.g. Shrink Wrap, Sauce Cup)..."
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-9 pr-3 py-2 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <button
@@ -1861,7 +1859,7 @@ export default function InventoryDashboardPage() {
 
             {/* Categories List */}
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1">
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
                 Active Categories ({categories.length})
               </div>
               {categories.map((cat) => {
@@ -1878,10 +1876,10 @@ export default function InventoryDashboardPage() {
                 return (
                   <div
                     key={cat.id}
-                    className="p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 flex items-center justify-between text-xs transition gap-2"
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 flex items-center justify-between text-xs transition gap-2"
                   >
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold shrink-0">
                         <Layers className="w-4 h-4" />
                       </div>
                       {isEditing ? (
@@ -1901,12 +1899,12 @@ export default function InventoryDashboardPage() {
                             }}
                             autoFocus
                             placeholder="Category name..."
-                            className="w-full px-2.5 py-1 text-xs font-bold border border-indigo-400 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white"
+                            className="w-full px-2.5 py-1 text-xs font-bold border border-indigo-400 dark:border-indigo-600 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                           />
                           <button
                             type="button"
                             onClick={() => handleSaveRename(cat)}
-                            className="p-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 transition shrink-0 cursor-pointer"
+                            className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 transition shrink-0 cursor-pointer"
                             title="Save name"
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -1914,7 +1912,7 @@ export default function InventoryDashboardPage() {
                           <button
                             type="button"
                             onClick={handleCancelRename}
-                            className="p-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-300 transition shrink-0 cursor-pointer"
+                            className="p-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 transition shrink-0 cursor-pointer"
                             title="Cancel"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -1922,13 +1920,13 @@ export default function InventoryDashboardPage() {
                         </div>
                       ) : (
                         <div className="min-w-0 flex-1">
-                          <div className="font-bold text-slate-900 flex items-center space-x-1.5">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center space-x-1.5">
                             <span className="truncate">{cat.name}</span>
-                            <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                            <span className="font-mono text-[10px] text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
                               {cat.id}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             {count} material items linked
                           </div>
                         </div>
@@ -1941,7 +1939,7 @@ export default function InventoryDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleStartRename(cat)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer"
                           title={`Rename "${cat.name}" category`}
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -1950,7 +1948,7 @@ export default function InventoryDashboardPage() {
 
                       {isCore ? (
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200"
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
                           title="Core system category required by Fruit Products BOM"
                         >
                           Core System
@@ -1965,8 +1963,8 @@ export default function InventoryDashboardPage() {
                             }}
                             className={`p-1.5 rounded-lg transition ${
                               count > 0
-                                ? 'text-slate-300 cursor-not-allowed opacity-40'
-                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer'
+                                ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-40'
+                                : 'text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 cursor-pointer'
                             }`}
                             title={
                               count > 0
@@ -1985,16 +1983,16 @@ export default function InventoryDashboardPage() {
             </div>
 
             {/* Helper Info */}
-            <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-[11px] text-indigo-900">
+            <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded-xl text-[11px] text-indigo-900 dark:text-indigo-300">
               💡 <strong>System Note:</strong> Core categories (Box, UV Sticker) are required for standard Fruit BOM cost calculations and cannot be deleted. Custom categories (including Skewer) can be added, customized, and assigned to any packaging material.
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end pt-2 border-t border-slate-100">
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setCategoryModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition cursor-pointer"
               >
                 Close
               </button>
