@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-kantumruy)", "Kantumruy Pro", "Noto Sans Khmer", "Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "Plus Jakarta Sans", "Inter", "var(--font-kantumruy)", "Kantumruy Pro", "Noto Sans Khmer", "system-ui", "-apple-system", "sans-serif"],
         khmer: ["var(--font-kantumruy)", "Kantumruy Pro", "Noto Sans Khmer", "sans-serif"],
       },
       colors: {
