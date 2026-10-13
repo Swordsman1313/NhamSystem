@@ -123,10 +123,10 @@ export default function Sidebar() {
                 />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-slate-900 dark:text-slate-100 font-bold text-sm tracking-tight truncate leading-tight">
+                <span className="text-slate-900 dark:text-slate-100 font-bold text-sm tracking-tight truncate leading-snug">
                   Nham Nham OPS
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate leading-tight">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate leading-snug">
                   Fresh Fruit System
                 </span>
               </div>
@@ -142,7 +142,7 @@ export default function Sidebar() {
           >
             <div className="flex items-center space-x-2 text-xs text-slate-400 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors truncate">
               <Search className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Quick search...</span>
+              <span className="truncate leading-normal">Quick search...</span>
             </div>
             <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded shadow-xs text-slate-500 dark:text-slate-300 shrink-0">
               ⌘K
@@ -154,7 +154,7 @@ export default function Sidebar() {
         <div className="flex-1 overflow-y-auto py-2 space-y-4 min-h-0">
           {navSections.map((section) => (
             <div key={section.category} className="space-y-0.5">
-              <div className="mt-5 mb-1.5 px-4 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+              <div className="mt-5 mb-1.5 px-4 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase leading-snug">
                 {section.category}
               </div>
 
@@ -177,7 +177,7 @@ export default function Sidebar() {
                         active ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                       }`}
                     />
-                    <span className="truncate leading-none">{item.name}</span>
+                    <span className="truncate leading-normal py-0.5">{item.name}</span>
                   </Link>
                 );
               })}
@@ -188,34 +188,34 @@ export default function Sidebar() {
         {/* Bottom Pinned Profile & Rate Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2 shrink-0">
           {/* Exchange Rate Pill */}
-          <div className="w-full py-1.5 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+          <div className="w-full py-2 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
             <div className="flex items-center space-x-1.5 text-slate-500 dark:text-slate-400">
-              <Coins className="w-3.5 h-3.5 text-amber-500" />
-              <span>Rate:</span>
+              <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="leading-normal">Rate:</span>
             </div>
-            <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+            <span className="font-mono font-bold text-slate-900 dark:text-slate-100 leading-normal">
               1$ = {exchangeRate.toLocaleString()} ៛
             </span>
           </div>
 
           {/* User Profile Card with Theme Toggle */}
           <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/70 transition group">
-            <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-1.5">
               <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
                 N
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug truncate" title="Nham Nham Admin">
                   Nham Nham Admin
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight truncate mt-0.5">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug truncate" title="Operations Manager">
                   Operations Manager
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-1">
-              <ThemeToggle />
+            <div className="flex items-center space-x-0.5 shrink-0">
+              <ThemeToggle className="!p-1.5" />
               <button
                 type="button"
                 onClick={() => {
@@ -223,7 +223,7 @@ export default function Sidebar() {
                   window.location.href = '/settings';
                 }}
                 title="Settings & Switch Account"
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 transition cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
