@@ -60,7 +60,7 @@ function DeliveriesLedgerContent() {
   // Modal Preview State
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [modalDocType, setModalDocType] = useState<'invoice' | 'do' | 'both' | 'invoice2x'>('invoice');
+  const [modalDocType, setModalDocType] = useState<'invoice' | 'do' | 'both' | 'single'>('invoice');
 
   // Delete Confirm Modal State
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -159,7 +159,7 @@ function DeliveriesLedgerContent() {
   const pendingCount = invoices.filter((inv) => inv.status === 'pending').length;
 
   // Open Document Modal
-  const openModal = (inv: Invoice, type: 'invoice' | 'do' | 'both' | 'invoice2x') => {
+  const openModal = (inv: Invoice, type: 'invoice' | 'do' | 'both' | 'single') => {
     setSelectedInvoice(inv);
     setModalDocType(type);
     setModalOpen(true);
@@ -547,8 +547,9 @@ function DeliveriesLedgerContent() {
                         ? 'bg-emerald-700 text-white shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
+                    title="Print 2 Copies of Commercial Invoice (2 Pages)"
                   >
-                    Invoice
+                    Invoice (2p)
                   </button>
                   <button
                     onClick={() => setModalDocType('do')}
@@ -557,8 +558,9 @@ function DeliveriesLedgerContent() {
                         ? 'bg-brand-600 text-white shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
+                    title="Print 2 Copies of Delivery Note (2 Pages)"
                   >
-                    DO Note
+                    DO Note (2p)
                   </button>
                   <button
                     onClick={() => setModalDocType('both')}
@@ -567,22 +569,21 @@ function DeliveriesLedgerContent() {
                         ? 'bg-indigo-700 text-white shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
-                    title="Print 1 Invoice + 1 Delivery Note (2 Pages in 1 File)"
+                    title="Print Both: 2x Invoice + 2x DO (4 Pages in 1 File)"
                   >
                     <Layers className="w-3 h-3" />
-                    <span>Invoice + DO</span>
+                    <span>Both (4p)</span>
                   </button>
                   <button
-                    onClick={() => setModalDocType('invoice2x')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-md transition flex items-center space-x-1 ${
-                      modalDocType === 'invoice2x'
-                        ? 'bg-purple-700 text-white shadow-xs'
+                    onClick={() => setModalDocType('single')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md transition ${
+                      modalDocType === 'single'
+                        ? 'bg-slate-700 text-white shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
-                    title="Print 2 Copies of Commercial Invoice (2 Pages in 1 File)"
+                    title="Print Single Copy (1 Page)"
                   >
-                    <Copy className="w-3 h-3" />
-                    <span>2x Invoice</span>
+                    Single (1p)
                   </button>
                 </div>
                 <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -598,10 +599,12 @@ function DeliveriesLedgerContent() {
                   <Printer className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">
                     {modalDocType === 'both'
-                      ? 'Print (Invoice + DO)'
-                      : modalDocType === 'invoice2x'
-                      ? 'Print (2x Invoice)'
-                      : 'Print Document'}
+                      ? 'Print Both (4 Pages)'
+                      : modalDocType === 'invoice'
+                      ? 'Print Invoice (2 Pages)'
+                      : modalDocType === 'do'
+                      ? 'Print DO Note (2 Pages)'
+                      : 'Print Single (1 Page)'}
                   </span>
                   <span className="sm:hidden">Print</span>
                 </button>
@@ -615,45 +618,9 @@ function DeliveriesLedgerContent() {
             </div>
 
             {/* Document Render Area */}
-            <div className={`p-4 sm:p-6 bg-slate-100 dark:bg-slate-950 flex-1 overflow-x-auto printable-document ${modalDocType === 'both' || modalDocType === 'invoice2x' ? 'print-multi-page space-y-6 print:space-y-0 print:p-0' : ''}`}>
+            <div className={`p-4 sm:p-6 bg-slate-100 dark:bg-slate-950 flex-1 overflow-x-auto printable-document ${modalDocType !== 'single' ? 'print-multi-page space-y-6 print:space-y-0 print:p-0' : ''}`}>
+              {/* Invoice (2 Pages) */}
               {modalDocType === 'invoice' && (
-                <CommercialInvoice
-                  invoice={selectedInvoice}
-                  supplier={settings.supplierProfile}
-                  exchangeRate={settings.exchangeRate}
-                />
-              )}
-              {modalDocType === 'do' && (
-                <DeliveryNote
-                  invoice={selectedInvoice}
-                  supplier={settings.supplierProfile}
-                />
-              )}
-              {modalDocType === 'both' && (
-                <div className="space-y-6 print:space-y-0">
-                  <div className="print-page print-page-break">
-                    <CommercialInvoice
-                      invoice={selectedInvoice}
-                      supplier={settings.supplierProfile}
-                      exchangeRate={settings.exchangeRate}
-                    />
-                  </div>
-                  <div className="no-print my-4 flex items-center justify-center">
-                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
-                    <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Page 2: Delivery Note (DO)
-                    </span>
-                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
-                  </div>
-                  <div className="print-page">
-                    <DeliveryNote
-                      invoice={selectedInvoice}
-                      supplier={settings.supplierProfile}
-                    />
-                  </div>
-                </div>
-              )}
-              {modalDocType === 'invoice2x' && (
                 <div className="space-y-6 print:space-y-0">
                   <div className="print-page print-page-break">
                     <CommercialInvoice
@@ -677,6 +644,100 @@ function DeliveriesLedgerContent() {
                     />
                   </div>
                 </div>
+              )}
+
+              {/* DO Note (2 Pages) */}
+              {modalDocType === 'do' && (
+                <div className="space-y-6 print:space-y-0">
+                  <div className="print-page print-page-break">
+                    <DeliveryNote
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                    />
+                  </div>
+                  <div className="no-print my-4 flex items-center justify-center">
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                    <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Page 2: Delivery Note (Copy 2)
+                    </span>
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                  </div>
+                  <div className="print-page">
+                    <DeliveryNote
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Both (4 Pages: 2x Invoice + 2x DO) */}
+              {modalDocType === 'both' && (
+                <div className="space-y-6 print:space-y-0">
+                  {/* Page 1: Invoice Copy 1 */}
+                  <div className="print-page print-page-break">
+                    <CommercialInvoice
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                      exchangeRate={settings.exchangeRate}
+                    />
+                  </div>
+                  <div className="no-print my-4 flex items-center justify-center">
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                    <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Page 2: Commercial Invoice (Copy 2)
+                    </span>
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                  </div>
+
+                  {/* Page 2: Invoice Copy 2 */}
+                  <div className="print-page print-page-break">
+                    <CommercialInvoice
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                      exchangeRate={settings.exchangeRate}
+                    />
+                  </div>
+                  <div className="no-print my-4 flex items-center justify-center">
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                    <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Page 3: Delivery Note (DO - Copy 1)
+                    </span>
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                  </div>
+
+                  {/* Page 3: DO Copy 1 */}
+                  <div className="print-page print-page-break">
+                    <DeliveryNote
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                    />
+                  </div>
+                  <div className="no-print my-4 flex items-center justify-center">
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                    <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Page 4: Delivery Note (DO - Copy 2)
+                    </span>
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                  </div>
+
+                  {/* Page 4: DO Copy 2 */}
+                  <div className="print-page">
+                    <DeliveryNote
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Single (1 Page) */}
+              {modalDocType === 'single' && (
+                <CommercialInvoice
+                  invoice={selectedInvoice}
+                  supplier={settings.supplierProfile}
+                  exchangeRate={settings.exchangeRate}
+                />
               )}
             </div>
           </div>

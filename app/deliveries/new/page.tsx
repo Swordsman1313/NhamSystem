@@ -198,8 +198,8 @@ export default function NewDeliveryPage() {
   // Items State (Pre-populated with 10 fruit SKUs + custom items)
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([]);
 
-  // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_invoice2x'
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_invoice2x'>('edit');
+  // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_single'
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_single'>('edit');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -509,10 +509,10 @@ export default function NewDeliveryPage() {
                   ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
                   : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
               }`}
-              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Commercial Invoice'}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Commercial Invoice (2 Copies)'}
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>Commercial Invoice</span>
+              <span>Invoice (2p)</span>
             </button>
             <button
               onClick={() => {
@@ -526,10 +526,10 @@ export default function NewDeliveryPage() {
                   ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
                   : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
               }`}
-              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Delivery Note'}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Delivery Note (2 Copies)'}
             >
               <Truck className="w-3.5 h-3.5" />
-              <span>Delivery Note (DO)</span>
+              <span>DO Note (2p)</span>
             </button>
             <button
               onClick={() => {
@@ -543,27 +543,27 @@ export default function NewDeliveryPage() {
                   ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
                   : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
               }`}
-              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Both Invoice + DO (1 File)'}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Both: 2x Invoice + 2x DO (4 Pages in 1 File)'}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Invoice + DO</span>
+              <span>Both (4p)</span>
             </button>
             <button
               onClick={() => {
-                if (totalQuantity > 0) setActiveTab('preview_invoice2x');
+                if (totalQuantity > 0) setActiveTab('preview_single');
               }}
               disabled={totalQuantity === 0}
               className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeTab === 'preview_invoice2x'
-                  ? 'bg-purple-700 text-white shadow-xs'
+                activeTab === 'preview_single'
+                  ? 'bg-slate-700 text-white shadow-xs'
                   : totalQuantity > 0
                   ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
                   : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
               }`}
-              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View 2 Copies of Commercial Invoice (1 File)'}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Single Commercial Invoice (1 Page)'}
             >
               <Copy className="w-3.5 h-3.5" />
-              <span>2x Invoice</span>
+              <span>Single (1p)</span>
             </button>
           </div>
 
@@ -575,10 +575,12 @@ export default function NewDeliveryPage() {
               <Printer className="w-3.5 h-3.5" />
               <span>
                 {activeTab === 'preview_both'
-                  ? 'Print Both (Invoice + DO)'
-                  : activeTab === 'preview_invoice2x'
-                  ? 'Print (2x Invoice)'
-                  : 'Print A4 Document'}
+                  ? 'Print Both (4 Pages)'
+                  : activeTab === 'preview_invoice'
+                  ? 'Print Invoice (2 Pages)'
+                  : activeTab === 'preview_do'
+                  ? 'Print DO Note (2 Pages)'
+                  : 'Print Single (1 Page)'}
               </span>
             </button>
           )}
@@ -1222,14 +1224,14 @@ export default function NewDeliveryPage() {
           </div>
         </div>
       ) : activeTab === 'preview_invoice' ? (
-        /* Single-Page A4 Commercial Invoice Preview */
+        /* 2-Page A4 Commercial Invoice Preview (2 Copies) */
         <div className="space-y-4">
           <div className="no-print p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Eye className="w-4 h-4 text-emerald-700" />
               <span>
-                <strong>A4 Single-Page Invoice Preview:</strong> Fits cleanly on standard A4 paper.
-                Zero-quantity items are hidden automatically.
+                <strong>A4 2-Page Commercial Invoice Preview:</strong> Prints 2 identical copies of Commercial Invoice
+                in 1 single PDF file (Page 1 = Original / Receiving, Page 2 = Accounting Copy).
               </span>
             </div>
             <button
@@ -1237,107 +1239,7 @@ export default function NewDeliveryPage() {
               className="bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-800 flex items-center space-x-1"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Now</span>
-            </button>
-          </div>
-
-          <div className="printable-document">
-            <CommercialInvoice
-              invoice={currentInvoiceData}
-              supplier={settings.supplierProfile}
-              exchangeRate={settings.exchangeRate}
-            />
-          </div>
-        </div>
-      ) : activeTab === 'preview_do' ? (
-        /* Single-Page A4 Delivery Note (DO) Preview */
-        <div className="space-y-4">
-          <div className="no-print p-3 bg-brand-50 border border-brand-200 rounded-xl text-xs text-brand-900 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Truck className="w-4 h-4 text-brand-700" />
-              <span>
-                <strong>A4 Single-Page Delivery Note (DO) Preview:</strong> Contains store address,
-                verified receiving quantities, and dual signature slots (without prices).
-              </span>
-            </div>
-            <button
-              onClick={handlePrint}
-              className="bg-brand-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-brand-800 flex items-center space-x-1"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print DO</span>
-            </button>
-          </div>
-
-          <div className="printable-document">
-            <DeliveryNote
-              invoice={currentInvoiceData}
-              supplier={settings.supplierProfile}
-            />
-          </div>
-        </div>
-      ) : activeTab === 'preview_both' ? (
-        /* 2-Page A4 Combined Document (Invoice + DO in 1 File) */
-        <div className="space-y-4">
-          <div className="no-print p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Layers className="w-4 h-4 text-indigo-700" />
-              <span>
-                <strong>A4 2-Page Combined Print (Invoice + DO):</strong> Prints both Commercial Invoice (Page 1)
-                and Delivery Note (Page 2) cleanly in 1 single PDF file with automatic page breaks.
-              </span>
-            </div>
-            <button
-              onClick={handlePrint}
-              className="bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-800 flex items-center space-x-1"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Both (Invoice + DO)</span>
-            </button>
-          </div>
-
-          <div className="printable-document print-multi-page space-y-6 print:space-y-0 print:p-0">
-            <div className="print-page print-page-break">
-              <CommercialInvoice
-                invoice={currentInvoiceData}
-                supplier={settings.supplierProfile}
-                exchangeRate={settings.exchangeRate}
-              />
-            </div>
-
-            <div className="no-print my-4 flex items-center justify-center">
-              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
-              <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Page 2: Delivery Note (DO)
-              </span>
-              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
-            </div>
-
-            <div className="print-page">
-              <DeliveryNote
-                invoice={currentInvoiceData}
-                supplier={settings.supplierProfile}
-              />
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* 2-Page A4 Duplicate Document (2 Copies of Commercial Invoice in 1 File) */
-        <div className="space-y-4">
-          <div className="no-print p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Copy className="w-4 h-4 text-purple-700" />
-              <span>
-                <strong>A4 2-Page Duplicate Invoice (2x Copies):</strong> Prints 2 identical copies of Commercial Invoice
-                in 1 single PDF file (Page 1 = Original, Page 2 = Accounting / Client Copy).
-              </span>
-            </div>
-            <button
-              onClick={handlePrint}
-              className="bg-purple-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-purple-800 flex items-center space-x-1"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print 2x Invoice</span>
+              <span>Print Invoice (2 Pages)</span>
             </button>
           </div>
 
@@ -1365,6 +1267,157 @@ export default function NewDeliveryPage() {
                 exchangeRate={settings.exchangeRate}
               />
             </div>
+          </div>
+        </div>
+      ) : activeTab === 'preview_do' ? (
+        /* 2-Page A4 Delivery Note (DO) Preview (2 Copies) */
+        <div className="space-y-4">
+          <div className="no-print p-3 bg-brand-50 border border-brand-200 rounded-xl text-xs text-brand-900 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Truck className="w-4 h-4 text-brand-700" />
+              <span>
+                <strong>A4 2-Page Delivery Note (DO) Preview:</strong> Prints 2 identical copies of Delivery Note
+                in 1 single PDF file (Page 1 = Receiver Sign-off, Page 2 = Driver Record).
+              </span>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="bg-brand-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-brand-800 flex items-center space-x-1"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print DO (2 Pages)</span>
+            </button>
+          </div>
+
+          <div className="printable-document print-multi-page space-y-6 print:space-y-0 print:p-0">
+            <div className="print-page print-page-break">
+              <DeliveryNote
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+              />
+            </div>
+
+            <div className="no-print my-4 flex items-center justify-center">
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+              <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Page 2: Delivery Note (Copy 2)
+              </span>
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+            </div>
+
+            <div className="print-page">
+              <DeliveryNote
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+              />
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'preview_both' ? (
+        /* 4-Page A4 Combined Document (2x Invoice + 2x DO in 1 File) */
+        <div className="space-y-4">
+          <div className="no-print p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Layers className="w-4 h-4 text-indigo-700" />
+              <span>
+                <strong>A4 4-Page Combined Print (2x Invoice + 2x DO):</strong> Prints 2 copies of Commercial Invoice
+                and 2 copies of Delivery Note cleanly in 1 single PDF file (4 pages total).
+              </span>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-800 flex items-center space-x-1"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Both (4 Pages)</span>
+            </button>
+          </div>
+
+          <div className="printable-document print-multi-page space-y-6 print:space-y-0 print:p-0">
+            {/* Page 1: Invoice Copy 1 */}
+            <div className="print-page print-page-break">
+              <CommercialInvoice
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+                exchangeRate={settings.exchangeRate}
+              />
+            </div>
+
+            <div className="no-print my-4 flex items-center justify-center">
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+              <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Page 2: Commercial Invoice (Copy 2)
+              </span>
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+            </div>
+
+            {/* Page 2: Invoice Copy 2 */}
+            <div className="print-page print-page-break">
+              <CommercialInvoice
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+                exchangeRate={settings.exchangeRate}
+              />
+            </div>
+
+            <div className="no-print my-4 flex items-center justify-center">
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+              <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Page 3: Delivery Note (DO - Copy 1)
+              </span>
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+            </div>
+
+            {/* Page 3: DO Copy 1 */}
+            <div className="print-page print-page-break">
+              <DeliveryNote
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+              />
+            </div>
+
+            <div className="no-print my-4 flex items-center justify-center">
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+              <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Page 4: Delivery Note (DO - Copy 2)
+              </span>
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+            </div>
+
+            {/* Page 4: DO Copy 2 */}
+            <div className="print-page">
+              <DeliveryNote
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Single-Page A4 Commercial Invoice Preview */
+        <div className="space-y-4">
+          <div className="no-print p-3 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Copy className="w-4 h-4 text-slate-600" />
+              <span>
+                <strong>A4 Single-Page Invoice Preview (1 Copy):</strong> Standard 1-page commercial invoice.
+              </span>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-black flex items-center space-x-1"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Single (1 Page)</span>
+            </button>
+          </div>
+
+          <div className="printable-document">
+            <CommercialInvoice
+              invoice={currentInvoiceData}
+              supplier={settings.supplierProfile}
+              exchangeRate={settings.exchangeRate}
+            />
           </div>
         </div>
       )}
