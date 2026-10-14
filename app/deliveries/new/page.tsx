@@ -24,6 +24,7 @@ import {
   Tag,
   X,
   ChevronDown,
+  Copy,
 } from 'lucide-react';
 import {
   getProducts,
@@ -197,8 +198,8 @@ export default function NewDeliveryPage() {
   // Items State (Pre-populated with 10 fruit SKUs + custom items)
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([]);
 
-  // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do' | 'preview_both'
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do' | 'preview_both'>('edit');
+  // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_invoice2x'
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_invoice2x'>('edit');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -545,7 +546,24 @@ export default function NewDeliveryPage() {
               title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Both Invoice + DO (1 File)'}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Both (1 File)</span>
+              <span>Invoice + DO</span>
+            </button>
+            <button
+              onClick={() => {
+                if (totalQuantity > 0) setActiveTab('preview_invoice2x');
+              }}
+              disabled={totalQuantity === 0}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                activeTab === 'preview_invoice2x'
+                  ? 'bg-purple-700 text-white shadow-xs'
+                  : totalQuantity > 0
+                  ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
+                  : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
+              }`}
+              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View 2 Copies of Commercial Invoice (1 File)'}
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>2x Invoice</span>
             </button>
           </div>
 
@@ -555,7 +573,13 @@ export default function NewDeliveryPage() {
               className="inline-flex items-center space-x-1.5 bg-slate-900 hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>{activeTab === 'preview_both' ? 'Print Both (2 Pages)' : 'Print A4 Document'}</span>
+              <span>
+                {activeTab === 'preview_both'
+                  ? 'Print Both (Invoice + DO)'
+                  : activeTab === 'preview_invoice2x'
+                  ? 'Print (2x Invoice)'
+                  : 'Print A4 Document'}
+              </span>
             </button>
           )}
 
@@ -1252,7 +1276,7 @@ export default function NewDeliveryPage() {
             />
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'preview_both' ? (
         /* 2-Page A4 Combined Document (Invoice + DO in 1 File) */
         <div className="space-y-4">
           <div className="no-print p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between">
@@ -1268,7 +1292,7 @@ export default function NewDeliveryPage() {
               className="bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-800 flex items-center space-x-1"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Both (2 Pages)</span>
+              <span>Print Both (Invoice + DO)</span>
             </button>
           </div>
 
@@ -1293,6 +1317,52 @@ export default function NewDeliveryPage() {
               <DeliveryNote
                 invoice={currentInvoiceData}
                 supplier={settings.supplierProfile}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 2-Page A4 Duplicate Document (2 Copies of Commercial Invoice in 1 File) */
+        <div className="space-y-4">
+          <div className="no-print p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Copy className="w-4 h-4 text-purple-700" />
+              <span>
+                <strong>A4 2-Page Duplicate Invoice (2x Copies):</strong> Prints 2 identical copies of Commercial Invoice
+                in 1 single PDF file (Page 1 = Original, Page 2 = Accounting / Client Copy).
+              </span>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="bg-purple-700 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-purple-800 flex items-center space-x-1"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print 2x Invoice</span>
+            </button>
+          </div>
+
+          <div className="printable-document print-multi-page space-y-6 print:space-y-0 print:p-0">
+            <div className="print-page print-page-break">
+              <CommercialInvoice
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+                exchangeRate={settings.exchangeRate}
+              />
+            </div>
+
+            <div className="no-print my-4 flex items-center justify-center">
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+              <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Page 2: Commercial Invoice (Copy 2)
+              </span>
+              <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+            </div>
+
+            <div className="print-page">
+              <CommercialInvoice
+                invoice={currentInvoiceData}
+                supplier={settings.supplierProfile}
+                exchangeRate={settings.exchangeRate}
               />
             </div>
           </div>
