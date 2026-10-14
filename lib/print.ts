@@ -1,13 +1,18 @@
 /**
- * Helper to trigger browser print without printing the document title,
- * timestamp, or localhost URL in the browser header/footer.
+ * Helper to trigger browser print without printing browser headers/footers,
+ * while setting a clean document title so "Save as PDF" defaults to the
+ * requested filename (e.g. INV-2610-001.pdf).
  */
-export function triggerCleanPrint() {
+export function triggerCleanPrint(filename?: string) {
   if (typeof window === 'undefined') return;
 
   const originalTitle = document.title;
-  // Clear the title temporarily before the print dialog opens
-  document.title = '';
+  // Set the document title to the filename so "Save as PDF" names the file accurately
+  if (filename && filename.trim()) {
+    document.title = filename.trim();
+  } else {
+    document.title = '';
+  }
 
   window.print();
 

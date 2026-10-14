@@ -453,7 +453,7 @@ export default function NewDeliveryPage() {
 
   // Direct print
   const handlePrint = () => {
-    triggerCleanPrint();
+    triggerCleanPrint(invoiceNumber);
   };
 
   return (

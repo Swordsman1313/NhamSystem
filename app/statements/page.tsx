@@ -236,7 +236,8 @@ export default function StatementsPage() {
     .reduce((sum, inv) => sum + (inv.totalAmountUSD || 0), 0);
 
   const handlePrint = () => {
-    triggerCleanPrint();
+    const storeCode = selectedStoreCode || 'AllStores';
+    triggerCleanPrint(`Statement_${storeCode}_${selectedMonth}`);
   };
 
   return (

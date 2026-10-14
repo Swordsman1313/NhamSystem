@@ -582,7 +582,7 @@ function DeliveriesLedgerContent() {
 
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => triggerCleanPrint()}
+                  onClick={() => triggerCleanPrint(selectedInvoice.invoiceNumber)}
                   className="inline-flex items-center space-x-1.5 bg-slate-900 hover:bg-black text-white px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs"
                 >
                   <Printer className="w-3.5 h-3.5" />
