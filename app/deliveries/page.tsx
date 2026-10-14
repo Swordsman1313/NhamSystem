@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Building2,
   ArrowUpDown,
+  Layers,
 } from 'lucide-react';
 import {
   getInvoices,
@@ -58,7 +59,7 @@ function DeliveriesLedgerContent() {
   // Modal Preview State
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [modalDocType, setModalDocType] = useState<'invoice' | 'do'>('invoice');
+  const [modalDocType, setModalDocType] = useState<'invoice' | 'do' | 'both'>('invoice');
 
   // Delete Confirm Modal State
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -157,7 +158,7 @@ function DeliveriesLedgerContent() {
   const pendingCount = invoices.filter((inv) => inv.status === 'pending').length;
 
   // Open Document Modal
-  const openModal = (inv: Invoice, type: 'invoice' | 'do') => {
+  const openModal = (inv: Invoice, type: 'invoice' | 'do' | 'both') => {
     setSelectedInvoice(inv);
     setModalDocType(type);
     setModalOpen(true);
@@ -481,6 +482,13 @@ function DeliveriesLedgerContent() {
                           >
                             <Truck className="w-3.5 h-3.5" />
                           </button>
+                          <button
+                            onClick={() => openModal(inv, 'both')}
+                            title="Print Both in 1 File (Invoice + DO)"
+                            className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
 
@@ -529,13 +537,13 @@ function DeliveriesLedgerContent() {
             {/* Modal Header */}
             <div className="no-print p-3 sm:p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 sticky top-0 bg-white z-10">
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-bold">
+                <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs font-bold">
                   <button
                     onClick={() => setModalDocType('invoice')}
                     className={`px-2.5 sm:px-3 py-1.5 rounded-md transition ${
                       modalDocType === 'invoice'
                         ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
                     Invoice
@@ -545,13 +553,24 @@ function DeliveriesLedgerContent() {
                     className={`px-2.5 sm:px-3 py-1.5 rounded-md transition ${
                       modalDocType === 'do'
                         ? 'bg-brand-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
                     DO Note
                   </button>
+                  <button
+                    onClick={() => setModalDocType('both')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md transition flex items-center space-x-1 ${
+                      modalDocType === 'both'
+                        ? 'bg-indigo-700 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span>Both (1 File)</span>
+                  </button>
                 </div>
-                <span className="font-mono text-xs font-bold text-slate-700">
+                <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                   {selectedInvoice.invoiceNumber}
                 </span>
               </div>
@@ -562,12 +581,14 @@ function DeliveriesLedgerContent() {
                   className="inline-flex items-center space-x-1.5 bg-slate-900 hover:bg-black text-white px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-xs"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Print Document</span>
+                  <span className="hidden sm:inline">
+                    {modalDocType === 'both' ? 'Print Both (2 Pages)' : 'Print Document'}
+                  </span>
                   <span className="sm:hidden">Print</span>
                 </button>
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -575,18 +596,43 @@ function DeliveriesLedgerContent() {
             </div>
 
             {/* Document Render Area */}
-            <div className="p-4 sm:p-6 bg-slate-100 flex-1 overflow-x-auto printable-document">
-              {modalDocType === 'invoice' ? (
+            <div className={`p-4 sm:p-6 bg-slate-100 dark:bg-slate-950 flex-1 overflow-x-auto printable-document ${modalDocType === 'both' ? 'print-multi-page space-y-6 print:space-y-0 print:p-0' : ''}`}>
+              {modalDocType === 'invoice' && (
                 <CommercialInvoice
                   invoice={selectedInvoice}
                   supplier={settings.supplierProfile}
                   exchangeRate={settings.exchangeRate}
                 />
-              ) : (
+              )}
+              {modalDocType === 'do' && (
                 <DeliveryNote
                   invoice={selectedInvoice}
                   supplier={settings.supplierProfile}
                 />
+              )}
+              {modalDocType === 'both' && (
+                <div className="space-y-6 print:space-y-0">
+                  <div className="print-page print-page-break">
+                    <CommercialInvoice
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                      exchangeRate={settings.exchangeRate}
+                    />
+                  </div>
+                  <div className="no-print my-4 flex items-center justify-center">
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                    <span className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Page 2: Delivery Note (DO)
+                    </span>
+                    <div className="h-px bg-slate-300 dark:bg-slate-700 flex-1" />
+                  </div>
+                  <div className="print-page">
+                    <DeliveryNote
+                      invoice={selectedInvoice}
+                      supplier={settings.supplierProfile}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </div>
