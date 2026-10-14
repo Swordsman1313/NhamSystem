@@ -60,7 +60,7 @@ function DeliveriesLedgerContent() {
   // Modal Preview State
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [modalDocType, setModalDocType] = useState<'invoice' | 'do' | 'both' | 'single'>('invoice');
+  const [modalDocType, setModalDocType] = useState<'invoice' | 'do' | 'both'>('invoice');
 
   // Delete Confirm Modal State
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -159,7 +159,7 @@ function DeliveriesLedgerContent() {
   const pendingCount = invoices.filter((inv) => inv.status === 'pending').length;
 
   // Open Document Modal
-  const openModal = (inv: Invoice, type: 'invoice' | 'do' | 'both' | 'single') => {
+  const openModal = (inv: Invoice, type: 'invoice' | 'do' | 'both') => {
     setSelectedInvoice(inv);
     setModalDocType(type);
     setModalOpen(true);
@@ -574,17 +574,6 @@ function DeliveriesLedgerContent() {
                     <Layers className="w-3 h-3" />
                     <span>Both (4p)</span>
                   </button>
-                  <button
-                    onClick={() => setModalDocType('single')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-md transition ${
-                      modalDocType === 'single'
-                        ? 'bg-slate-700 text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-                    }`}
-                    title="Print Single Copy (1 Page)"
-                  >
-                    Single (1p)
-                  </button>
                 </div>
                 <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                   {selectedInvoice.invoiceNumber}
@@ -602,9 +591,7 @@ function DeliveriesLedgerContent() {
                       ? 'Print Both (4 Pages)'
                       : modalDocType === 'invoice'
                       ? 'Print Invoice (2 Pages)'
-                      : modalDocType === 'do'
-                      ? 'Print DO Note (2 Pages)'
-                      : 'Print Single (1 Page)'}
+                      : 'Print DO Note (2 Pages)'}
                   </span>
                   <span className="sm:hidden">Print</span>
                 </button>
@@ -618,7 +605,7 @@ function DeliveriesLedgerContent() {
             </div>
 
             {/* Document Render Area */}
-            <div className={`p-4 sm:p-6 bg-slate-100 dark:bg-slate-950 flex-1 overflow-x-auto printable-document ${modalDocType !== 'single' ? 'print-multi-page space-y-6 print:space-y-0 print:p-0' : ''}`}>
+            <div className="p-4 sm:p-6 bg-slate-100 dark:bg-slate-950 flex-1 overflow-x-auto printable-document print-multi-page space-y-6 print:space-y-0 print:p-0">
               {/* Invoice (2 Pages) */}
               {modalDocType === 'invoice' && (
                 <div className="space-y-6 print:space-y-0">
@@ -729,15 +716,6 @@ function DeliveriesLedgerContent() {
                     />
                   </div>
                 </div>
-              )}
-
-              {/* Single (1 Page) */}
-              {modalDocType === 'single' && (
-                <CommercialInvoice
-                  invoice={selectedInvoice}
-                  supplier={settings.supplierProfile}
-                  exchangeRate={settings.exchangeRate}
-                />
               )}
             </div>
           </div>

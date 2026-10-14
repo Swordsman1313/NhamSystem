@@ -198,8 +198,8 @@ export default function NewDeliveryPage() {
   // Items State (Pre-populated with 10 fruit SKUs + custom items)
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([]);
 
-  // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_single'
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do' | 'preview_both' | 'preview_single'>('edit');
+  // Preview Mode: 'edit' | 'preview_invoice' | 'preview_do' | 'preview_both'
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview_invoice' | 'preview_do' | 'preview_both'>('edit');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -548,23 +548,6 @@ export default function NewDeliveryPage() {
               <Layers className="w-3.5 h-3.5" />
               <span>Both (4p)</span>
             </button>
-            <button
-              onClick={() => {
-                if (totalQuantity > 0) setActiveTab('preview_single');
-              }}
-              disabled={totalQuantity === 0}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeTab === 'preview_single'
-                  ? 'bg-slate-700 text-white shadow-xs'
-                  : totalQuantity > 0
-                  ? 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-300/60 dark:hover:bg-slate-700 cursor-pointer'
-                  : 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
-              }`}
-              title={totalQuantity === 0 ? 'Enter item quantities or Quick-Fill MOQ first' : 'View Single Commercial Invoice (1 Page)'}
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>Single (1p)</span>
-            </button>
           </div>
 
           {activeTab !== 'edit' && (
@@ -578,9 +561,7 @@ export default function NewDeliveryPage() {
                   ? 'Print Both (4 Pages)'
                   : activeTab === 'preview_invoice'
                   ? 'Print Invoice (2 Pages)'
-                  : activeTab === 'preview_do'
-                  ? 'Print DO Note (2 Pages)'
-                  : 'Print Single (1 Page)'}
+                  : 'Print DO Note (2 Pages)'}
               </span>
             </button>
           )}
@@ -1313,7 +1294,7 @@ export default function NewDeliveryPage() {
             </div>
           </div>
         </div>
-      ) : activeTab === 'preview_both' ? (
+      ) : (
         /* 4-Page A4 Combined Document (2x Invoice + 2x DO in 1 File) */
         <div className="space-y-4">
           <div className="no-print p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between">
@@ -1391,33 +1372,6 @@ export default function NewDeliveryPage() {
                 supplier={settings.supplierProfile}
               />
             </div>
-          </div>
-        </div>
-      ) : (
-        /* Single-Page A4 Commercial Invoice Preview */
-        <div className="space-y-4">
-          <div className="no-print p-3 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Copy className="w-4 h-4 text-slate-600" />
-              <span>
-                <strong>A4 Single-Page Invoice Preview (1 Copy):</strong> Standard 1-page commercial invoice.
-              </span>
-            </div>
-            <button
-              onClick={handlePrint}
-              className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-black flex items-center space-x-1"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Single (1 Page)</span>
-            </button>
-          </div>
-
-          <div className="printable-document">
-            <CommercialInvoice
-              invoice={currentInvoiceData}
-              supplier={settings.supplierProfile}
-              exchangeRate={settings.exchangeRate}
-            />
           </div>
         </div>
       )}
