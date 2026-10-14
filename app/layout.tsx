@@ -63,13 +63,6 @@ export default function RootLayout({
                   }
                 } catch(e) {}
               })();
-              window.addEventListener('beforeprint', function() {
-                window.__origTitle = document.title;
-                document.title = '';
-              });
-              window.addEventListener('afterprint', function() {
-                if (window.__origTitle) document.title = window.__origTitle;
-              });
             `,
           }}
         />

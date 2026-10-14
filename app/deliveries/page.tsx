@@ -79,6 +79,17 @@ function DeliveriesLedgerContent() {
     refreshData();
   }, []);
 
+  // Proactively set document title when modal preview is open so browser defaults Save as PDF filename to invoiceno.pdf
+  useEffect(() => {
+    if (modalOpen && selectedInvoice) {
+      const prevTitle = document.title;
+      document.title = selectedInvoice.invoiceNumber;
+      return () => {
+        document.title = prevTitle;
+      };
+    }
+  }, [modalOpen, selectedInvoice]);
+
   // Update Status handler
   const handleStatusChange = (inv: Invoice, newStatus: InvoiceStatus) => {
     const updated: Invoice = {

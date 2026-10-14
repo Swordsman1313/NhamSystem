@@ -7,17 +7,19 @@ export function triggerCleanPrint(filename?: string) {
   if (typeof window === 'undefined') return;
 
   const originalTitle = document.title;
-  // Set the document title to the filename so "Save as PDF" names the file accurately
-  if (filename && filename.trim()) {
-    document.title = filename.trim();
-  } else {
-    document.title = '';
+  const cleanName = filename?.trim();
+
+  if (cleanName) {
+    document.title = cleanName;
   }
 
-  window.print();
-
-  // Restore the original document title after user closes print dialog
-  setTimeout(() => {
+  // Restore the original document title after user finishes or cancels printing
+  const cleanup = () => {
+    window.removeEventListener('afterprint', cleanup);
     document.title = originalTitle;
-  }, 1000);
+  };
+
+  window.addEventListener('afterprint', cleanup);
+
+  window.print();
 }

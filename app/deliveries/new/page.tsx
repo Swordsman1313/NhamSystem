@@ -310,6 +310,17 @@ export default function NewDeliveryPage() {
     setLineItems(initialItems);
   }, []);
 
+  // Proactively set document title when in printable preview so browser defaults Save as PDF filename to invoiceno.pdf
+  useEffect(() => {
+    if (activeTab !== 'edit' && invoiceNumber) {
+      const prevTitle = document.title;
+      document.title = invoiceNumber;
+      return () => {
+        document.title = prevTitle;
+      };
+    }
+  }, [activeTab, invoiceNumber]);
+
   // Update due date when invoice date or terms change
   const handleDateChange = (newDate: string) => {
     setInvoiceDate(newDate);
