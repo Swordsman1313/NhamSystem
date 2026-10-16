@@ -355,6 +355,14 @@ export function normalizeProduct(p: Product): Product {
   const nameEn = p.nameEn || p.name || 'Unnamed Product';
   const nameKh = p.nameKh || p.khmerName || 'ផលិតផលគ្មានឈ្មោះ';
   const wholesalePriceUSD = p.wholesalePriceUSD ?? p.wholesalePrice ?? 0;
+  const rawBom = p.bom && p.bom.length > 0 ? p.bom : getInitialProductBOM(p.barcode);
+  const bom = rawBom.map((item) => {
+    if (item.packagingItemId === 'sticker-2016800000025') {
+      return { ...item, packagingItemId: 'sticker-sweet-melon' };
+    }
+    return item;
+  });
+
   return {
     ...p,
     id: p.id || `prod-${p.barcode}`,
@@ -366,7 +374,7 @@ export function normalizeProduct(p: Product): Product {
     uom: p.uom || 'Pcs',
     wholesalePrice: wholesalePriceUSD,
     wholesalePriceUSD,
-    bom: p.bom && p.bom.length > 0 ? p.bom : getInitialProductBOM(p.barcode),
+    bom,
   };
 }
 

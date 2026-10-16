@@ -77,16 +77,85 @@ export function resetInventory(): void {
   savePackagingItems(INITIAL_PACKAGING_ITEMS);
 }
 
+// Flexible Packaging Item Resolver (handles barcodeRefs, sticker prefixes, and legacy alias mappings)
+export function resolveInventoryItem(
+  inventory: InventoryItem[],
+  itemIdOrBarcode?: string
+): InventoryItem | undefined {
+  if (!itemIdOrBarcode) return undefined;
+
+  // 1. Exact match by id
+  const exact = inventory.find((i) => i.id === itemIdOrBarcode);
+  if (exact) return exact;
+
+  // 2. Match by barcodeRef directly or with "sticker-" prefix
+  const cleanBarcode = itemIdOrBarcode.replace(/^sticker-/, '');
+  const byBarcode = inventory.find(
+    (i) => i.barcodeRef && (i.barcodeRef === cleanBarcode || i.barcodeRef === itemIdOrBarcode)
+  );
+  if (byBarcode) return byBarcode;
+
+  // 3. Known aliases and legacy mappings
+  const aliasMap: Record<string, string> = {
+    'sticker-2016800000025': 'sticker-sweet-melon',
+    'sticker-sweet-melon': 'sticker-2016800000025',
+    'sticker-2016800000032': 'sticker-baby-mango',
+    'sticker-baby-mango': 'sticker-2016800000032',
+    'sticker-2016800000049': 'sticker-jackfruit',
+    'sticker-jackfruit': 'sticker-2016800000049',
+    'sticker-2016800000056': 'sticker-guava',
+    'sticker-guava': 'sticker-2016800000056',
+    'sticker-2016800000063': 'sticker-papaya',
+    'sticker-papaya': 'sticker-2016800000063',
+    'sticker-jicama': 'sticker-2016800000070',
+    'sticker-2016800000070': 'sticker-jicama',
+    'sticker-jujube': 'sticker-2016800000087',
+    'sticker-2016800000087': 'sticker-jujube',
+    'sticker-mixed-sour': 'sticker-2016800000094',
+    'sticker-2016800000094': 'sticker-mixed-sour',
+    'sticker-pickled-grapes': 'sticker-2016800000100',
+    'sticker-2016800000100': 'sticker-pickled-grapes',
+    'sticker-mixed-fresh': 'sticker-2016800000117',
+    'sticker-2016800000117': 'sticker-mixed-fresh',
+    'box-big-300g': 'box-big',
+    'box-big': 'box-big-300g',
+    'box-small-std': 'box-small',
+    'box-small': 'box-small-std',
+    'skewer-wood': 'bamboo-skewer',
+    'bamboo-skewer': 'skewer-wood',
+  };
+
+  const alias = aliasMap[itemIdOrBarcode];
+  if (alias) {
+    const byAlias = inventory.find((i) => i.id === alias);
+    if (byAlias) return byAlias;
+  }
+
+  // 4. Case-insensitive slug matching
+  if (itemIdOrBarcode.startsWith('sticker-')) {
+    const slug = itemIdOrBarcode.replace(/^sticker-/, '').toLowerCase();
+    const bySlug = inventory.find(
+      (i) =>
+        i.category === 'sticker' &&
+        (i.id.toLowerCase().includes(slug) || i.name.toLowerCase().includes(slug))
+    );
+    if (bySlug) return bySlug;
+  }
+
+  return undefined;
+}
+
 /**
  * Calculates total packaging needed for a list of invoice line items.
  * Dynamically respects the configured Product BOM recipe (falling back to standard).
  */
 export function calculateRequiredPackaging(
   items: InvoiceLineItem[]
-): { itemId: string; qty: number }[] {
-  const reqMap = new Map<string, number>();
+): { itemId: string; name: string; qty: number }[] {
+  const reqMap = new Map<string, { itemId: string; name: string; qty: number }>();
   const allProducts = getProducts();
   const prodMap = new Map<string, Product>(allProducts.map((p) => [p.barcode, p]));
+  const inventory = getInventory();
 
   for (const item of items) {
     const qty = Number(item.quantity) || 0;
@@ -97,26 +166,44 @@ export function calculateRequiredPackaging(
     // If product has an active BOM configured, consume that exact recipe!
     if (matchedProduct && matchedProduct.bom && matchedProduct.bom.length > 0) {
       for (const b of matchedProduct.bom) {
-        reqMap.set(b.packagingItemId, (reqMap.get(b.packagingItemId) || 0) + b.quantity * qty);
+        const resolved = resolveInventoryItem(inventory, b.packagingItemId);
+        const canonicalId = resolved ? resolved.id : b.packagingItemId;
+        const name = resolved ? resolved.name : b.packagingItemId;
+
+        const current = reqMap.get(canonicalId) || { itemId: canonicalId, name, qty: 0 };
+        current.qty += b.quantity * qty;
+        reqMap.set(canonicalId, current);
       }
     } else {
       // Standard fallback if no recipe configured
       const boxId = BIG_BOX_BARCODES.has(item.barcode)
         ? 'box-big-300g'
         : 'box-small-std';
-      reqMap.set(boxId, (reqMap.get(boxId) || 0) + qty);
-      reqMap.set('skewer-wood', (reqMap.get('skewer-wood') || 0) + qty);
+      const resolvedBox = resolveInventoryItem(inventory, boxId);
+      const canonicalBoxId = resolvedBox ? resolvedBox.id : boxId;
+      const boxName = resolvedBox ? resolvedBox.name : (BIG_BOX_BARCODES.has(item.barcode) ? 'Big Fruit Box 300G' : 'Standard Fruit Box (Small)');
+      const curBox = reqMap.get(canonicalBoxId) || { itemId: canonicalBoxId, name: boxName, qty: 0 };
+      curBox.qty += qty;
+      reqMap.set(canonicalBoxId, curBox);
+
+      const resolvedSkewer = resolveInventoryItem(inventory, 'skewer-wood');
+      const canonicalSkewerId = resolvedSkewer ? resolvedSkewer.id : 'skewer-wood';
+      const skewerName = resolvedSkewer ? resolvedSkewer.name : 'Bamboo Fruit Skewer';
+      const curSkewer = reqMap.get(canonicalSkewerId) || { itemId: canonicalSkewerId, name: skewerName, qty: 0 };
+      curSkewer.qty += qty;
+      reqMap.set(canonicalSkewerId, curSkewer);
+
       const stickerId = `sticker-${item.barcode}`;
-      reqMap.set(stickerId, (reqMap.get(stickerId) || 0) + qty);
+      const resolvedSticker = resolveInventoryItem(inventory, stickerId);
+      const canonicalStickerId = resolvedSticker ? resolvedSticker.id : stickerId;
+      const stickerName = resolvedSticker ? resolvedSticker.name : `UV Sticker - ${item.name || item.barcode}`;
+      const curSticker = reqMap.get(canonicalStickerId) || { itemId: canonicalStickerId, name: stickerName, qty: 0 };
+      curSticker.qty += qty;
+      reqMap.set(canonicalStickerId, curSticker);
     }
   }
 
-  const result: { itemId: string; qty: number }[] = [];
-  reqMap.forEach((qty, itemId) => {
-    result.push({ itemId, qty });
-  });
-
-  return result;
+  return Array.from(reqMap.values());
 }
 
 /**
@@ -128,7 +215,6 @@ export function checkStockAvailability(items: InvoiceLineItem[]): {
   required: { itemId: string; name: string; needed: number; onHand: number }[];
 } {
   const inventory = getInventory();
-  const invMap = new Map(inventory.map((i) => [i.id, i]));
   const needed = calculateRequiredPackaging(items);
   const warnings: string[] = [];
   const requiredList: { itemId: string; name: string; needed: number; onHand: number }[] = [];
@@ -136,12 +222,12 @@ export function checkStockAvailability(items: InvoiceLineItem[]): {
   let allAvailable = true;
 
   for (const req of needed) {
-    const item = invMap.get(req.itemId);
+    const item = resolveInventoryItem(inventory, req.itemId);
     const onHand = item ? item.onHand : 0;
-    const name = item ? item.name : req.itemId;
+    const name = item ? item.name : req.name;
 
     requiredList.push({
-      itemId: req.itemId,
+      itemId: item ? item.id : req.itemId,
       name,
       needed: req.qty,
       onHand,
@@ -172,20 +258,19 @@ export function deductForInvoice(
   items: InvoiceLineItem[]
 ): DeductedInventoryItem[] {
   const currentInventory = getInventory();
-  const invMap = new Map(currentInventory.map((i) => [i.id, i]));
   const needed = calculateRequiredPackaging(items);
 
   const deductions: DeductedInventoryItem[] = [];
 
   for (const req of needed) {
-    const item = invMap.get(req.itemId);
+    const item = resolveInventoryItem(currentInventory, req.itemId);
     if (item) {
       item.onHand = Math.max(0, item.onHand - req.qty);
-      deductions.push({ itemId: req.itemId, qty: req.qty });
+      deductions.push({ itemId: item.id, qty: req.qty });
     }
   }
 
-  saveInventory(Array.from(invMap.values()));
+  saveInventory(currentInventory);
   return deductions;
 }
 
@@ -201,13 +286,11 @@ export function rollbackInvoiceInventory(
   }
 
   const currentInventory = getInventory();
-  const invMap = new Map(currentInventory.map((i) => [i.id, i]));
-
   let totalItemsRestored = 0;
   const parts: string[] = [];
 
   for (const record of deductedItems) {
-    const item = invMap.get(record.itemId);
+    const item = resolveInventoryItem(currentInventory, record.itemId);
     if (item) {
       item.onHand += record.qty;
       totalItemsRestored += record.qty;
@@ -215,7 +298,7 @@ export function rollbackInvoiceInventory(
     }
   }
 
-  saveInventory(Array.from(invMap.values()));
+  saveInventory(currentInventory);
   return {
     rolledBackCount: totalItemsRestored,
     summary: parts.join(', '),

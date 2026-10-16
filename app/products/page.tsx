@@ -53,7 +53,7 @@ import { INITIAL_PRODUCTS } from '@/lib/initialData';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const PRODUCT_STICKER_MAP: Record<string, string> = {
-  '2016800000025': 'sticker-2016800000025',
+  '2016800000025': 'sticker-sweet-melon',
   '2016800000032': 'sticker-baby-mango',
   '2016800000049': 'sticker-jackfruit',
   '2016800000056': 'sticker-guava',
@@ -163,9 +163,9 @@ export default function ProductBOMBuilderPage() {
             bomChanged = true;
             return { ...item, packagingItemId: 'box-big-300g' };
           }
-          if (p.barcode === '2016800000025' && item.packagingItemId === 'sticker-sweet-melon') {
+          if (p.barcode === '2016800000025' && item.packagingItemId === 'sticker-2016800000025') {
             bomChanged = true;
-            return { ...item, packagingItemId: 'sticker-2016800000025' };
+            return { ...item, packagingItemId: 'sticker-sweet-melon' };
           }
           return item;
         });
