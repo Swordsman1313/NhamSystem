@@ -96,11 +96,18 @@ body {
     font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-kantumruy), 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS', system-ui, sans-serif;
   }
 
+  /* Ensure Khmer typography retains Kantumruy Pro with proper line-height in print */
+  .font-khmer,
+  [class*="font-khmer"] {
+    font-family: var(--font-kantumruy), 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS', 'Khmer OS Siemreap', system-ui, sans-serif !important;
+    line-height: 1.5 !important;
+  }
+
   html, body {
     background: #ffffff !important;
     color: #000000 !important;
     font-size: 11px !important;
-    line-height: 1.25 !important;
+    line-height: 1.4 !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -109,10 +116,10 @@ body {
     overflow: visible !important;
   }
 
-  /* Reset modal overlays, fixed wrappers, and scroll containers in print mode */
+  /* Reset modal overlays, fixed wrappers, and scroll containers in print mode without wiping document page padding */
   .print-reset-container,
   div:has(.printable-document),
-  div:has(.printable-document) > div {
+  div:has(.printable-document) > div:not(.printable-document):not(.print-page) {
     position: static !important;
     inset: auto !important;
     overflow: visible !important;
@@ -152,22 +159,22 @@ body {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    /* Clean physical document padding on A4 sheet */
-    padding: 12mm 15mm 12mm 15mm !important;
-    box-sizing: border-box !important;
+    padding: 0 !important;
     background: #ffffff !important;
     box-shadow: none !important;
     border: none !important;
     overflow: visible !important;
   }
 
-  /* Multi-Page Document Print Rules (e.g. Combined Invoice + DO in 1 File) */
+  /* Clean physical document padding on A4 sheet for both multi-page docs and single-page statements */
   .printable-document.print-multi-page {
     padding: 0 !important;
     margin: 0 !important;
   }
 
-  .printable-document.print-multi-page .print-page {
+  .printable-document.print-multi-page .print-page,
+  .printable-document .print-page,
+  .printable-document:not(.print-multi-page) > .a4-preview-sheet {
     padding: 12mm 15mm 12mm 15mm !important;
     box-sizing: border-box !important;
     width: 100% !important;
@@ -189,13 +196,18 @@ body {
     max-width: 100% !important;
     min-height: auto !important;
     margin: 0 !important;
+  }
+
+  .print-page .a4-preview-sheet {
     padding: 0 !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
   }
 
   tr {
     page-break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
   }
 
   table {

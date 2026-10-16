@@ -357,7 +357,7 @@ export default function StatementsPage() {
         </div>
 
         {/* Quick Month Metrics Pill (Desktop only - mobile uses dedicated Statement Card below) */}
-        <div className="hidden xl:flex items-center space-x-4 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shrink-0">
+        <div className="no-print hidden xl:flex items-center space-x-4 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shrink-0">
           <div>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">Total Orders</span>
             <span className="font-bold text-slate-900 dark:text-slate-100">
@@ -491,13 +491,15 @@ export default function StatementsPage() {
 
       {/* Main Single-Page A4 Statement Document (hidden on mobile screen to prevent oversized QR overflow; visible on sm+ screens and in print) */}
       <div className="printable-document hidden sm:block print:block">
-        <SummaryStatement
-          store={currentStore}
-          invoices={matchingInvoices}
-          supplier={settings.supplierProfile}
-          periodLabel={periodLabel}
-          exchangeRate={settings.exchangeRate}
-        />
+        <div className="print-page">
+          <SummaryStatement
+            store={currentStore}
+            invoices={matchingInvoices}
+            supplier={settings.supplierProfile}
+            periodLabel={periodLabel}
+            exchangeRate={settings.exchangeRate}
+          />
+        </div>
       </div>
     </div>
   );

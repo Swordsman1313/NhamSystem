@@ -23,10 +23,10 @@ export default function SummaryStatement({
   const totalUSD = invoices.reduce((acc, inv) => acc + (inv.totalAmountUSD || 0), 0);
 
   return (
-    <div className="a4-preview-sheet bg-white text-slate-900 dark:bg-white dark:text-slate-900 print:bg-white print:text-black font-sans text-[11px] leading-tight select-text print:p-0 print:border-none">
+    <div className="a4-preview-sheet bg-white text-slate-900 dark:bg-white dark:text-slate-900 print:bg-white print:text-black font-sans text-[11px] leading-normal select-text print:border-none">
       {/* 1. Centered Header Banner */}
-      <div className="w-full bg-[#e9f2eb] py-2 mb-4 text-center rounded-xs border border-[#d8e6db] print:border-none">
-        <h1 className="text-base font-bold text-black font-khmer tracking-wide">
+      <div className="w-full bg-[#e9f2eb] py-2.5 mb-4 text-center rounded-xs border border-[#d8e6db] print:border-none">
+        <h1 className="text-base font-bold text-black font-khmer tracking-wide leading-normal">
           របាយការណ៍បូកសរុប / SUMMARY STATEMENT
         </h1>
       </div>
@@ -34,30 +34,30 @@ export default function SummaryStatement({
       {/* 2. Supplier Info & Period Meta Grid */}
       <div className="grid grid-cols-2 gap-6 mb-4 text-[10.5px]">
         {/* Left: Supplier Details */}
-        <div className="space-y-1">
+        <div className="space-y-1.5 leading-normal">
           <div>
             <span className="font-khmer font-bold">ឈ្មោះអ្នកផ្គត់ផ្គង់ / Supplier Name: </span>
             <span className="font-bold">{supplier.name}</span>
           </div>
-          <div className="font-khmer">
-            <span className="font-bold">អាសយដ្ឋាន / Address: </span>
-            <span>{supplier.address}</span>
+          <div>
+            <span className="font-khmer font-bold">អាសយដ្ឋាន / Address: </span>
+            <span className="font-khmer">{supplier.address}</span>
           </div>
           <div>
             <span className="font-khmer font-bold">លេខទូរស័ព្ទ / Tel: </span>
-            <span className="font-bold">{supplier.phone}</span>
+            <span className="font-bold font-mono">{supplier.phone}</span>
           </div>
         </div>
 
         {/* Right: Statement Metadata */}
-        <div className="space-y-1 text-right sm:text-left sm:pl-12">
+        <div className="space-y-1.5 leading-normal pl-8">
           <div>
             <span className="font-khmer font-bold">សម្រាប់ខែ / Billing Period: </span>
             <span className="font-bold font-mono ml-1 text-emerald-900">{periodLabel}</span>
           </div>
           <div>
             <span className="font-khmer font-bold">កាលបរិច្ឆេទចេញ / Issued Date: </span>
-            <span className="font-bold ml-1">
+            <span className="font-bold ml-1 font-mono">
               {new Date().toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'short',
@@ -67,17 +67,17 @@ export default function SummaryStatement({
           </div>
           <div>
             <span className="font-khmer font-bold">ចំនួនវិក្កយបត្រ / Invoices: </span>
-            <span className="font-bold ml-1">{invoices.length} deliveries</span>
+            <span className="font-bold ml-1">{invoices.length} {invoices.length === 1 ? 'delivery' : 'deliveries'}</span>
           </div>
         </div>
       </div>
 
       {/* 3. Customer Information Box */}
-      <div className="w-full sm:w-[54%] border border-black mb-5 text-[10px]">
-        <div className="bg-[#e9f2eb] border-b border-black px-2.5 py-1 font-bold font-khmer text-black">
+      <div className="w-[58%] border border-black mb-5 text-[10px]">
+        <div className="bg-[#e9f2eb] border-b border-black px-2.5 py-1.5 font-bold font-khmer text-black leading-normal">
           ព័ត៌មានអតិថិជន / BILL TO / CUSTOMER INFORMATION
         </div>
-        <div className="p-2 space-y-1">
+        <div className="p-2 space-y-1.5 leading-normal">
           <div>
             <span className="font-khmer font-bold">ឈ្មោះអតិថិជន / Customer Name: </span>
             <span className="font-bold">{store.customerName}</span>
@@ -86,13 +86,13 @@ export default function SummaryStatement({
             <span className="font-khmer font-bold">ដឹកទៅ / Ship To: </span>
             <span className="font-bold">{store.shipTo}</span>
           </div>
-          <div className="font-khmer">
-            <span className="font-bold">អាសយដ្ឋាន / Address: </span>
-            <span>{store.address}</span>
+          <div>
+            <span className="font-khmer font-bold">អាសយដ្ឋាន / Address: </span>
+            <span className="font-khmer">{store.address}</span>
           </div>
           <div>
             <span className="font-khmer font-bold">លេខទូរស័ព្ទ / Tel: </span>
-            <span className="font-bold">{store.phone}</span>
+            <span className="font-bold font-mono">{store.phone}</span>
           </div>
         </div>
       </div>
@@ -101,19 +101,19 @@ export default function SummaryStatement({
       <table className="w-full border-collapse border border-black text-[10.5px] mb-4">
         <thead>
           <tr className="border-b border-black bg-white">
-            <th className="border border-black py-1.5 px-2 text-center font-bold w-12">
+            <th className="border border-black py-2 px-2 text-center font-bold w-12">
               No
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-44">
+            <th className="border border-black py-2 px-3 text-center font-bold w-44 font-khmer">
               Invoice No / លេខវិក្កយបត្រ
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold">
+            <th className="border border-black py-2 px-3 text-center font-bold font-khmer">
               Date / កាលបរិច្ឆេទ
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-28">
+            <th className="border border-black py-2 px-3 text-center font-bold w-28 font-khmer">
               QTY / ចំនួន
             </th>
-            <th className="border border-black py-1.5 px-3 text-center font-bold w-36">
+            <th className="border border-black py-2 px-3 text-center font-bold w-36">
               Total Amount
             </th>
           </tr>
@@ -128,19 +128,19 @@ export default function SummaryStatement({
           ) : (
             invoices.map((inv, index) => (
               <tr key={inv.id || index} className="border-b border-black">
-                <td className="border border-black py-1.5 px-2 text-center">
+                <td className="border border-black py-2 px-2 text-center font-medium">
                   {index + 1}
                 </td>
-                <td className="border border-black py-1.5 px-3 text-center font-mono font-medium">
+                <td className="border border-black py-2 px-3 text-center font-mono font-medium">
                   {inv.invoiceNumber}
                 </td>
-                <td className="border border-black py-1.5 px-3 text-center">
+                <td className="border border-black py-2 px-3 text-center font-mono font-medium">
                   {formatDateDisplay(inv.invoiceDate)}
                 </td>
-                <td className="border border-black py-1.5 px-3 text-center font-medium">
+                <td className="border border-black py-2 px-3 text-center font-medium">
                   {inv.totalQuantity}
                 </td>
-                <td className="border border-black py-1.5 px-3">
+                <td className="border border-black py-2 px-3">
                   <div className="flex justify-between w-full font-medium">
                     <span>$</span>
                     <span className="font-mono">{inv.totalAmountUSD.toFixed(2)}</span>
@@ -154,7 +154,7 @@ export default function SummaryStatement({
           <tr className="border-t-2 border-black font-bold">
             <td
               colSpan={3}
-              className="border border-black py-2 px-3 text-center font-khmer font-bold"
+              className="border border-black py-2 px-3 text-center font-khmer font-bold text-xs"
             >
               សរុប / Total Amount (USD)
             </td>
@@ -171,36 +171,47 @@ export default function SummaryStatement({
         </tfoot>
       </table>
 
-      {/* 5. Bank Payment Info */}
-      <div className="text-center font-bold text-[10.5px] mt-4 mb-2">
-        Payment Info: {supplier.bankName} | Account Name: {supplier.accountName} | Account No: {supplier.accountNumber} ({supplier.currency})
-      </div>
-
-      {/* 6. ABA QR Code */}
-      <div className="flex justify-center mb-6">
-        <AbaQrCode accountName={supplier.accountName} size={110} />
-      </div>
-
-      {/* 7. Dual Signature Section */}
-      <div className="grid grid-cols-2 gap-12 pt-2 text-center text-[10.5px]">
-        {/* Buyer Signature */}
-        <div>
-          <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកទិញ</p>
-          <p className="font-bold text-[10px]">Buyer&apos;s Signature and Name</p>
-          <div className="h-16"></div>
-          <p className="font-khmer text-[10px] text-slate-800">
-            កាលបរិច្ឆេទ / Date: ............/............/............
-          </p>
+      {/* Bottom Section with page break protection */}
+      <div className="break-inside-avoid">
+        {/* 5. Bank Payment Info */}
+        <div className="text-center font-bold text-[10.5px] mt-4 mb-2">
+          Payment Info: {supplier.bankName} | Account Name: {supplier.accountName} | Account No: {supplier.accountNumber} ({supplier.currency})
         </div>
 
-        {/* Seller Signature */}
-        <div>
-          <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកលក់</p>
-          <p className="font-bold text-[10px]">Seller&apos;s Signature and Name</p>
-          <div className="h-16"></div>
-          <p className="font-khmer text-[10px] text-slate-800">
-            កាលបរិច្ឆេទ / Date: ............/............/............
-          </p>
+        {/* 6. ABA QR Code */}
+        <div className="flex justify-center mb-6">
+          <AbaQrCode accountName={supplier.accountName} size={110} />
+        </div>
+
+        {/* 7. Dual Signature Section */}
+        <div className="grid grid-cols-2 gap-12 pt-4 text-center text-[10.5px]">
+          {/* Buyer Signature */}
+          <div className="flex flex-col items-center">
+            <p className="font-khmer font-bold text-[11px] leading-normal mb-0.5">
+              ហត្ថលេខា និងឈ្មោះអ្នកទិញ
+            </p>
+            <p className="font-semibold text-[9.5px] text-slate-700 leading-normal mb-1">
+              Buyer&apos;s Signature and Name
+            </p>
+            <div className="h-16 w-48 border-b border-dashed border-slate-400 mb-2"></div>
+            <p className="font-khmer text-[10px] text-slate-700 leading-normal">
+              កាលបរិច្ឆេទ / Date: _____ / _____ / _________
+            </p>
+          </div>
+
+          {/* Seller Signature */}
+          <div className="flex flex-col items-center">
+            <p className="font-khmer font-bold text-[11px] leading-normal mb-0.5">
+              ហត្ថលេខា និងឈ្មោះអ្នកលក់
+            </p>
+            <p className="font-semibold text-[9.5px] text-slate-700 leading-normal mb-1">
+              Seller&apos;s Signature and Name
+            </p>
+            <div className="h-16 w-48 border-b border-dashed border-slate-400 mb-2"></div>
+            <p className="font-khmer text-[10px] text-slate-700 leading-normal">
+              កាលបរិច្ឆេទ / Date: _____ / _____ / _________
+            </p>
+          </div>
         </div>
       </div>
     </div>

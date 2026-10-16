@@ -219,23 +219,31 @@ export default function CommercialInvoice({
       </div>
 
       {/* 7. Dual Signature Section */}
-      <div className="grid grid-cols-2 gap-12 pt-2 text-center text-[10.5px]">
+      <div className="grid grid-cols-2 gap-12 pt-4 text-center text-[10.5px]">
         {/* Buyer Signature */}
-        <div>
-          <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកទិញ</p>
-          <p className="font-bold text-[10px]">Buyer&apos;s Signature and Name</p>
-          <div className="h-14"></div>
-          <p className="font-khmer text-[10px] text-slate-800">
+        <div className="flex flex-col items-center">
+          <p className="font-khmer font-bold text-[11px] leading-normal mb-0.5">
+            ហត្ថលេខា និងឈ្មោះអ្នកទិញ
+          </p>
+          <p className="font-semibold text-[9.5px] text-slate-700 leading-normal mb-1">
+            Buyer&apos;s Signature and Name
+          </p>
+          <div className="h-14 w-48 border-b border-dashed border-slate-400 mb-2"></div>
+          <p className="font-khmer text-[10px] text-slate-700 leading-normal">
             កាលបរិច្ឆេទ / Date: _____ / _____ / _________
           </p>
         </div>
 
         {/* Seller Signature */}
-        <div>
-          <p className="font-khmer font-bold">ហត្ថលេខា និងឈ្មោះអ្នកលក់</p>
-          <p className="font-bold text-[10px]">Seller&apos;s Signature and Name</p>
-          <div className="h-14"></div>
-          <p className="font-khmer text-[10px] text-slate-800">
+        <div className="flex flex-col items-center">
+          <p className="font-khmer font-bold text-[11px] leading-normal mb-0.5">
+            ហត្ថលេខា និងឈ្មោះអ្នកលក់
+          </p>
+          <p className="font-semibold text-[9.5px] text-slate-700 leading-normal mb-1">
+            Seller&apos;s Signature and Name
+          </p>
+          <div className="h-14 w-48 border-b border-dashed border-slate-400 mb-2"></div>
+          <p className="font-khmer text-[10px] text-slate-700 leading-normal">
             កាលបរិច្ឆេទ / Date: _____ / _____ / _________
           </p>
         </div>
